@@ -13,7 +13,6 @@ import {
   FileText,
   Layers,
   Play,
-  RefreshCw,
   Search,
   ShieldCheck,
   TrendingUp,
@@ -21,9 +20,7 @@ import {
   Building2,
   Receipt,
   FileWarning,
-  PlusCircle,
-  FileUp,
-  HelpCircle
+  FileUp
 } from 'lucide-react';
 
 export default function App() {
@@ -142,8 +139,8 @@ export default function App() {
       c.members.some(
         (m) =>
           m.record_id.toLowerCase().includes(q) ||
-          m.reference.toLowerCase().includes(q) ||
-          m.description.toLowerCase().includes(q)
+          (m.reference || '').toLowerCase().includes(q) ||
+          (m.description || '').toLowerCase().includes(q)
       )
     );
   });
@@ -551,14 +548,14 @@ export default function App() {
                 <div className="mt-4">
                   <div className="flex items-baseline space-x-2">
                     <span className="text-3xl font-extrabold text-slate-900">
-                      {results.metrics.f1 !== null ? formatPercent(results.metrics.f1) : '92.9%'}
+                      {results.metrics.f1 !== null ? formatPercent(results.metrics.f1) : 'N/A'}
                     </span>
                     <span className="text-xs font-medium text-slate-500">
-                      Precision: {results.metrics.precision !== null ? formatPercent(results.metrics.precision) : '98.3%'}
+                      Precision: {results.metrics.precision !== null ? formatPercent(results.metrics.precision) : 'N/A'}
                     </span>
                   </div>
                   <p className="text-xs text-slate-500 mt-1">
-                    Recall: {results.metrics.recall !== null ? formatPercent(results.metrics.recall) : '88.1%'}
+                    Recall: {results.metrics.recall !== null ? formatPercent(results.metrics.recall) : 'N/A'} (needs ground truth)
                   </p>
                 </div>
               </div>
@@ -817,7 +814,7 @@ export default function App() {
                   ))}
                   {filteredExceptions.length === 0 && (
                     <tr>
-                      <td colSpan="7" className="text-center py-8 text-slate-400">
+                      <td colSpan={7} className="text-center py-8 text-slate-400">
                         No exceptions found matching search criteria.
                       </td>
                     </tr>

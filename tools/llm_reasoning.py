@@ -19,10 +19,11 @@ import urllib.error
 import urllib.request
 from typing import Any
 
-from dotenv import load_dotenv
-load_dotenv()
+import logging
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel
+
+log = logging.getLogger(__name__)
 
 from tools.candidate_retrieval import Evidence
 from tools.normalize import Record, desc_text
@@ -177,7 +178,7 @@ def batch_reason_over_candidates(
         return results
 
     model = os.environ.get("RECON_LLM_MODEL", "gemini-2.5-flash").strip()
-    print(f"  [gemini-agent] Bundling {len(work_items)} ambiguous record(s) into single Gemini API request...", flush=True)
+    log.info("Gemini batch: %d ambiguous records", len(work_items))
 
     tasks_payload = []
     for rec, cands, _ in work_items:
@@ -263,18 +264,18 @@ def batch_reason_over_candidates(
                     missing_evidence=missing,
                     reasoner=f"gemini:{model}"
                 )
-                print(f"  [gemini-agent] -> {rid}: {dec.upper()} (sel={sel}, conf={conf:.2f}) | {reason[:50]}...", flush=True)
+                log.info("Gemini -> %s: %s (sel=%s conf=%.2f)", rid, dec.upper(), sel, conf)
 
         # For any items missed by LLM, fallback to deterministic
         for rec, cands, evs in work_items:
             if rec.record_id not in results:
                 results[rec.record_id] = _deterministic_reason(rec, cands, evs, cfg)
 
-        print(f"  [gemini-agent] Successfully processed batch of {len(work_items)} records in 1 Gemini API call!", flush=True)
+        log.info("Gemini batch done (%d records)", len(work_items))
         return results
 
     except Exception as e:
-        print(f"  [gemini-agent] Batch API call failed: {e}. Falling back to deterministic reasoner.", flush=True)
+        log.warning("Gemini batch failed: %s — falling back to deterministic", e, exc_info=True)
         for rec, cands, evs in work_items:
             fb = _deterministic_reason(rec, cands, evs, cfg)
             fb.reasoner = "gemini_fallback:deterministic"

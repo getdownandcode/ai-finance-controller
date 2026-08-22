@@ -1,14 +1,12 @@
 # AI Finance Controller — Production Multi-Source Reconciliation Agent
 
-An enterprise-grade, autonomous financial reconciliation system that ingests multi-source feeds (**Bank Statements**, **General Ledger**, and **Invoices**) and closes the finance-ops loop with multi-tier deterministic matching, fuzzy scoring, and Google Gemini AI evidence reasoning.
+An autonomous financial reconciliation system that ingests multi-source feeds (**Bank Statements**, **General Ledger**, and **Invoices**) and closes the finance-ops loop with multi-tier deterministic matching, fuzzy scoring, and Gemini AI evidence reasoning.
 
 ---
 
-## 🚀 Deployment Options (Git & Docker with CI/CD)
+## 🚀 Deployment (Fly.io)
 
-### Option 1: Automated CI/CD via GitHub Actions (Recommended)
-
-This repository includes a preconfigured GitHub Actions workflow in [`.github/workflows/deploy.yml`](.github/workflows/deploy.yml).
+### Automated CI/CD via GitHub Actions
 
 1. **Push to GitHub**:
    ```bash
@@ -17,42 +15,30 @@ This repository includes a preconfigured GitHub Actions workflow in [`.github/wo
    git push -u origin main
    ```
 
-2. **Add GitHub Repository Secrets** (under *Settings > Secrets and variables > Actions*):
-   - `GCP_PROJECT_ID`: Your Google Cloud project ID.
-   - `GCP_SA_KEY`: JSON service account key with *Cloud Run Admin*, *Artifact Registry Writer*, and *Service Account User* roles.
-   - `GEMINI_API_KEY`: Your Google Gemini API key.
+2. **Create Fly.io app & token**:
+   ```bash
+   brew install flyctl
+   fly auth login
+   fly launch --no-deploy   # uses existing fly.toml
+   fly tokens create deploy -x 999999h  # copy token
+   ```
 
-3. **Deploy**:
-   - Every push to `main` will automatically build the multi-stage Docker image, push it to Google Artifact Registry, and deploy to **Google Cloud Run**.
+3. **Add GitHub Secret** (*Settings > Secrets and variables > Actions*):
+   - `FLY_API_TOKEN`: token from above
+   - Add `GEMINI_API_KEY` as Fly secret: `fly secrets set GEMINI_API_KEY=your_key`
 
----
+4. **Deploy**: Every push to `main` triggers `.github/workflows/fly.yml` → `fly deploy --remote-only`. Or deploy manually: `fly deploy`.
 
-### Option 2: Continuous Deployment directly from Cloud Run Console
-
-1. Open **[Google Cloud Console > Cloud Run](https://console.cloud.google.com/run)**.
-2. Click **Create Service**.
-3. Select **"Continuously deploy from a repository"**.
-4. Authorize and select your GitHub repository.
-5. Set Build Type to **Dockerfile**.
-6. Under *Container, Networking, Security > Environment variables*, add:
-   - `GEMINI_API_KEY`: `your_key_here`
-   - `RECON_LLM_MODEL`: `gemini-2.5-flash`
-7. Click **Create** — Cloud Run will build and host the live HTTPS URL!
-
----
-
-### Option 3: Direct CLI Deployment via Cloud Build
-
-If you have `gcloud` installed locally:
+### Manual Deploy
 
 ```bash
-# Authenticate & set project
-gcloud auth login
-gcloud config set project YOUR_GCP_PROJECT_ID
-
-# Deploy directly
-./deploy.sh
+fly secrets set GEMINI_API_KEY=your_key RECON_LLM_MODEL=gemini-2.5-flash
+fly deploy --remote-only
+fly open
+fly logs
 ```
+
+Health check: `https://<app>.fly.dev/api/health`
 
 ---
 
@@ -71,18 +57,25 @@ python server.py
 ```
 Open **[http://127.0.0.1:8000](http://127.0.0.1:8000)** in your browser.
 
+Or run CLI directly:
+```bash
+python run_agent.py --llm off
+python run_agent.py --bank-csv data/bank_feed.csv --ledger-csv data/ledger.csv --llm auto
+```
+
 ---
 
 ## 📂 Project Architecture
 
 ```text
-├── Dockerfile                  # Multi-stage production container build (Node.js + Python)
-├── deploy.sh                   # Direct Cloud Run deploy script
-├── .github/workflows/
-│   └── deploy.yml              # Automated GitHub Actions CI/CD pipeline
-├── server.py                   # FastAPI backend server & static asset host
-├── agents/                     # Controller, Matching, Exception, and Reporting agents
-├── tools/                      # Normalizer, Exact, Fuzzy, LLM batch reasoning, Cash position
-├── frontend/                   # React + Tailwind CSS light-theme Web UI
-└── evaluation/                 # Scoring & multi-format report generator
+├── fly.toml                  # Fly.io app config (region bom, healthcheck)
+├── Dockerfile                # Multi-stage build (Node.js frontend + Python backend)
+├── .github/workflows/fly.yml # GitHub Actions -> fly deploy
+├── server.py                 # FastAPI backend + static asset host
+├── app/pipeline.py           # Shared reconciliation pipeline (used by API & CLI)
+├── config.py                 # Centralized env config
+├── agents/                   # Controller, Matching, Exception, Reporting agents
+├── tools/                    # Normalizer, Exact, Fuzzy, LLM reasoning, Cash position
+├── frontend/                 # React + Tailwind Web UI
+└── evaluation/               # Scoring & report generator
 ```

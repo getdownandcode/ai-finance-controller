@@ -5,12 +5,15 @@ gating, conflict handling and a final no-silent-drops coverage check.
 """
 from __future__ import annotations
 
-from dataclasses import dataclass, field
+import logging
+from dataclasses import dataclass
 from datetime import datetime, timezone
 
 from agents.exception_agent import ExceptionAgent
 from agents.matching_agent import MatchingAgent
 from tools.normalize import Record
+
+log = logging.getLogger(__name__)
 
 
 @dataclass
@@ -135,9 +138,9 @@ class ControllerAgent:
             counts[r.source] = counts.get(r.source, 0) + 1
         self.state.log("controller", "observe", record_counts=counts,
                        unresolved=len(self.state.unresolved()))
-        print(f"[observe] {sum(counts.values())} records loaded "
-              f"(bank={counts.get('bank',0)} ledger={counts.get('ledger',0)} "
-              f"invoice={counts.get('invoice',0)})")
+        log.info("observe: %d records (bank=%d ledger=%d invoice=%d)",
+                 sum(counts.values()), counts.get("bank", 0),
+                 counts.get("ledger", 0), counts.get("invoice", 0))
 
     def plan(self) -> list[str]:
         plan = ["exact_match", "fuzzy_match", "llm_evidence_reasoning", "exception_triage"]
@@ -145,13 +148,13 @@ class ControllerAgent:
                        thresholds={"exact": 1.00, "fuzzy": self.cfg.fuzzy_accept,
                                    "llm": self.cfg.llm_accept},
                        llm_mode=self.cfg.llm_mode)
-        print(f"[plan]    tool order: {' -> '.join(plan)} "
-              f"(gates: exact=1.00, fuzzy>={self.cfg.fuzzy_accept}, llm>={self.cfg.llm_accept})")
+        log.info("plan: %s (gates exact=1.00 fuzzy>=%.2f llm>=%.2f)",
+                 " -> ".join(plan), self.cfg.fuzzy_accept, self.cfg.llm_accept)
         return plan
 
     def reflect(self, stage: str, **obs):
         self.state.log("controller", "reflect", pass_stage=stage, observation=obs)
-        print(f"[reflect] {stage}: {obs}")
+        log.info("reflect %s: %s", stage, obs)
 
     # -- main loop ------------------------------------------------------------
     def run(self) -> ReconState:
@@ -184,5 +187,5 @@ class ControllerAgent:
         self.state.log("controller", "coverage_verified",
                        matched=len(self.state.matched_ids()),
                        exceptions=len(self.state.exception_ids), lost=len(missing))
-        print(f"[verify]  coverage OK — matched={len(self.state.matched_ids())}, "
-              f"exceptions={len(self.state.exception_ids)}, lost=0")
+        log.info("verify coverage OK — matched=%d exceptions=%d lost=0",
+                 len(self.state.matched_ids()), len(self.state.exception_ids))

@@ -43,8 +43,12 @@ frontend/dist/
 *.key
 
 # Reports & local scratch data
-reports/*.json
-reports/*.md
-reports/*.csv
+reports/
 scratch/
+data/
 .DS_Store
+*.log
+
+# IDE
+.vscode/
+.idea/

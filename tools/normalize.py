@@ -179,6 +179,8 @@ def clean_date(val: Any) -> date:
         return val.date() if isinstance(val, datetime) else val
     ts = pd.to_datetime(val, errors="coerce")
     if pd.isna(ts):
+        import logging
+        logging.getLogger(__name__).warning("Unparseable date %r — falling back to today", val)
         return date.today()
     return ts.date()
 
