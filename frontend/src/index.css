@@ -134,6 +134,7 @@
   --animate-fade-up: fade-up 0.35s cubic-bezier(0.21, 1.02, 0.73, 1) both;
   --animate-fade-in: fade-in 0.25s ease-out both;
   --animate-shimmer: shimmer 2.2s linear infinite;
+  --animate-indeterminate: indeterminate 1.2s ease-in-out infinite;
 
   @keyframes fade-up {
     from { opacity: 0; transform: translateY(8px); }
@@ -146,6 +147,11 @@
   @keyframes shimmer {
     from { background-position: 200% 0; }
     to { background-position: -200% 0; }
+  }
+  @keyframes indeterminate {
+    0% { transform: translateX(-100%); }
+    50% { transform: translateX(0%); }
+    100% { transform: translateX(200%); }
   }
 }
 

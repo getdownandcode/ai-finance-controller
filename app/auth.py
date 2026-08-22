@@ -47,8 +47,15 @@ def _validate_username(username: str):
     return u
 
 def _validate_password(password: str):
-    if len(password) < 6 or len(password) > 128:
-        raise HTTPException(status_code=400, detail="Password must be 6-128 characters")
+    if len(password) < 8 or len(password) > 128:
+        raise HTTPException(status_code=400, detail="Password must be 8-128 characters")
+    import re
+    if not re.search(r"[A-Za-z]", password):
+        raise HTTPException(status_code=400, detail="Password must contain at least one letter (A-Z)")
+    if not re.search(r"[0-9]", password):
+        raise HTTPException(status_code=400, detail="Password must contain at least one number (0-9)")
+    if not re.search(r"[^A-Za-z0-9]", password):
+        raise HTTPException(status_code=400, detail="Password must contain at least one special character (e.g. !@#$%)")
     return password
 
 def register_user(username: str, password: str) -> dict:

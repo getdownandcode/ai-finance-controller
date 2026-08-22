@@ -112,8 +112,8 @@ export default function App() {
   const [bankFile, setBankFile] = useState(null);
   const [ledgerFile, setLedgerFile] = useState(null);
   const [invoicesFile, setInvoicesFile] = useState(null);
-  const [bankOpening, setBankOpening] = useState(0.0);
-  const [ledgerOpening, setLedgerOpening] = useState(0.0);
+  const [bankOpening, setBankOpening] = useState("0");
+  const [ledgerOpening, setLedgerOpening] = useState("0");
   const [matchingStrategy, setMatchingStrategy] = useState('auto');
   const [exceptionFilter, setExceptionFilter] = useState('ALL');
   const [exceptionSearch, setExceptionSearch] = useState('');
@@ -162,8 +162,8 @@ export default function App() {
       if (bankFile) formData.append('bank_file', bankFile);
       if (ledgerFile) formData.append('ledger_file', ledgerFile);
       if (invoicesFile) formData.append('invoices_file', invoicesFile);
-      formData.append('bank_opening', bankOpening);
-      formData.append('ledger_opening', ledgerOpening);
+      formData.append('bank_opening', String(parseFloat(bankOpening) || 0));
+      formData.append('ledger_opening', String(parseFloat(ledgerOpening) || 0));
       formData.append('llm_mode', matchingStrategy);
       const res = await authFetch('/api/reconcile', { method: 'POST', body: formData });
       if (!res.ok) {
@@ -361,8 +361,16 @@ export default function App() {
             </div>
             <div className="space-y-1.5">
               <label className="text-xs font-semibold text-foreground">Password</label>
-              <input type="password" value={authPass} onChange={e=>setAuthPass(e.target.value)} placeholder="••••••••" className="w-full rounded-xl border border-input bg-background px-3 py-2.5 text-sm text-foreground placeholder:text-muted-foreground outline-none focus:border-primary focus:ring-1 focus:ring-ring" required minLength={6} />
-              <p className="text-[11px] text-muted-foreground">Each user sees only their own sessions & dashboard — like ChatGPT.</p>
+              <input type="password" value={authPass} onChange={e=>setAuthPass(e.target.value)} placeholder="Min 8 chars, letter + number + special" className="w-full rounded-xl border border-input bg-background px-3 py-2.5 text-sm text-foreground placeholder:text-muted-foreground outline-none focus:border-primary focus:ring-1 focus:ring-ring" required minLength={8} />
+              <div className="rounded-lg border border-border bg-muted/50 px-3 py-2">
+                <p className="text-[11px] font-semibold text-muted-foreground">Password must contain:</p>
+                <ul className="mt-1 space-y-0.5 text-[11px]">
+                  <li className={authPass.length >= 8 ? "text-secondary" : "text-muted-foreground"}>• 8–128 characters {authPass.length >= 8 ? "✓" : ""}</li>
+                  <li className={/[A-Za-z]/.test(authPass) ? "text-secondary" : "text-muted-foreground"}>• at least one letter {/[A-Za-z]/.test(authPass) ? "✓" : ""}</li>
+                  <li className={/[0-9]/.test(authPass) ? "text-secondary" : "text-muted-foreground"}>• at least one number {/[0-9]/.test(authPass) ? "✓" : ""}</li>
+                  <li className={/[^A-Za-z0-9]/.test(authPass) ? "text-secondary" : "text-muted-foreground"}>• at least one special (!@#$%) {/[^A-Za-z0-9]/.test(authPass) ? "✓" : ""}</li>
+                </ul>
+              </div>
             </div>
             {authError && <div className="rounded-xl border border-destructive/30 bg-destructive/10 px-3 py-2 text-xs text-destructive">{authError}</div>}
             <button type="submit" disabled={authLoading} className="w-full rounded-xl bg-primary py-3 text-sm font-bold text-primary-foreground hover:opacity-90 disabled:opacity-50">
@@ -565,7 +573,7 @@ export default function App() {
               <p className="mx-auto mt-1.5 max-w-md text-xs leading-relaxed text-muted-foreground">Normalizing schemas, finding candidate pairs, executing multi-tier matching rules, and evaluating AI evidence.</p>
             </div>
             <div className="h-1 w-48 overflow-hidden rounded-full bg-muted">
-              <div className="h-full w-1/2 animate-[shimmer_1.2s_ease-in-out_infinite] rounded-full bg-gradient-to-r from-transparent via-primary to-transparent bg-[length:200%_100%]" />
+              <div className="h-full w-2/5 rounded-full bg-primary animate-[indeterminate_1.2s_ease-in-out_infinite]" />
             </div>
           </div>
         )}
@@ -676,14 +684,14 @@ export default function App() {
                     <span className="text-xs font-semibold text-foreground">Bank opening balance</span>
                     <div className="relative">
                       <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-xs text-muted-foreground">$</span>
-                      <input type="number" step="0.01" value={bankOpening} onChange={(e) => setBankOpening(parseFloat(e.target.value) || 0)} className={cx(inputCls, 'pl-7')} placeholder="0.00" />
+                      <input type="text" inputMode="decimal" value={bankOpening} onChange={(e) => { const v = e.target.value; if (v === "" || v === "-" || v === "." || /^-?\d*\.?\d*$/.test(v)) setBankOpening(v); }} onFocus={(e) => e.target.select()} onBlur={() => { if (bankOpening === "" || bankOpening === "-" || bankOpening === ".") setBankOpening("0"); }} className={cx(inputCls, 'pl-7')} placeholder="0.00" />
                     </div>
                   </label>
                   <label className="space-y-1.5">
                     <span className="text-xs font-semibold text-foreground">Ledger opening balance</span>
                     <div className="relative">
                       <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-xs text-muted-foreground">$</span>
-                      <input type="number" step="0.01" value={ledgerOpening} onChange={(e) => setLedgerOpening(parseFloat(e.target.value) || 0)} className={cx(inputCls, 'pl-7')} placeholder="0.00" />
+                      <input type="text" inputMode="decimal" value={ledgerOpening} onChange={(e) => { const v = e.target.value; if (v === "" || v === "-" || v === "." || /^-?\d*\.?\d*$/.test(v)) setLedgerOpening(v); }} onFocus={(e) => e.target.select()} onBlur={() => { if (ledgerOpening === "" || ledgerOpening === "-" || ledgerOpening === ".") setLedgerOpening("0"); }} className={cx(inputCls, 'pl-7')} placeholder="0.00" />
                     </div>
                   </label>
                   <label className="space-y-1.5">
