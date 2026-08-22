@@ -1,0 +1,21 @@
+invoice_id,invoice_date,amount,currency,vendor,status,reference
+INV-1001,2026-02-05,3213.48,USD,Acme Corporation,paid,INV-1001
+INV-1002,2026-02-01,1610.13,USD,Initech Systems,paid,INV-1002
+INV-1003,2026-02-04,3640.47,USD,Northwind Traders,paid,INV-1003
+INV-1004,2026-01-31,2256.46,USD,Acme Corporation,paid,INV-1004
+INV-1005,2026-02-04,1362.01,USD,Acme Corporation,paid,INV-1005
+INV-1006,2026-02-01,1274.89,USD,Wayne Components,paid,INV-1006
+INV-1007,2026-02-06,2376.52,USD,Umbrella Logistics,paid,INV-1007
+INV-1008,2026-02-05,4224.92,USD,Globex Industries,paid,INV-1008
+INV-1009,2026-02-01,2259.5,USD,Umbrella Logistics,paid,INV-1009
+INV-1010,2026-01-31,1347.38,USD,Stark Fabrication,paid,INV-1010
+INV-1011,2026-02-02,808.08,USD,Northwind Traders,paid,INV-1011
+INV-1016,2026-02-03,3664.68,USD,Northwind Traders,paid,INV-1016
+INV-1017,2026-02-02,1101.82,USD,Stark Fabrication,paid,INV-1017
+INV-1018,2026-02-01,2753.78,USD,Globex Industries,paid,INV-1018
+INV-1019,2026-02-05,2210.36,USD,Umbrella Logistics,paid,INV-1019
+INV-1020,2026-01-31,3033.07,USD,Acme Corporation,paid,INV-1020
+INV-1024,2026-02-05,2985.92,USD,Umbrella Logistics,paid,INV-1024
+INV-1025,2026-02-02,2662.97,USD,Wayne Components,paid,INV-1025
+INV-1026,2026-02-02,2487.73,USD,Northwind Traders,paid,INV-1026
+INV-1027,2026-02-03,2487.73,USD,Northwind Traders,open,INV-1027

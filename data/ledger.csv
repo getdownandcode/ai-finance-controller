@@ -1,0 +1,31 @@
+ledger_id,date,amount,currency,account,reference,description
+L-001,2026-02-06,3213.48,USD,accounts_receivable,INV-1001,Invoice 1001 settlement
+L-002,2026-02-02,1610.13,USD,accounts_receivable,INV-1002,Invoice 1002 settlement
+L-003,2026-02-05,3640.47,USD,accounts_receivable,INV-1003,Invoice 1003 settlement
+L-004,2026-02-01,2256.46,USD,accounts_receivable,INV-1004,Invoice 1004 settlement
+L-005,2026-02-05,1362.01,USD,accounts_receivable,INV-1005,Invoice 1005 settlement
+L-006,2026-02-02,1274.89,USD,accounts_receivable,INV-1006,Invoice 1006 settlement
+L-007,2026-02-07,2376.52,USD,accounts_receivable,INV-1007,Invoice 1007 settlement
+L-008,2026-02-06,4224.92,USD,accounts_receivable,INV-1008,Invoice 1008 settlement
+L-009,2026-02-02,2259.5,USD,accounts_receivable,INV-1009,Invoice 1009 settlement
+L-010,2026-02-01,1347.38,USD,accounts_receivable,INV-1010,Invoice 1010 settlement
+L-011,2026-02-03,808.08,USD,accounts_receivable,INV-1011,Invoice 1011 settlement
+L-012,2026-02-05,4128.98,USD,accounts_receivable,INV-1012,Invoice 1012 settlement (wire)
+L-013,2026-02-01,1563.89,USD,accounts_receivable,INV-1013,Invoice 1013 settlement (wire)
+L-014,2026-02-05,3610.82,USD,accounts_receivable,INV-1014,Invoice 1014 settlement (wire)
+L-015,2026-02-04,949.24,USD,accounts_receivable,INV-1015,Invoice 1015 settlement (wire)
+L-016,2026-02-06,-473.36,USD,accounts_payable,EXP-2001,Vendor payment Umbrella Logistics
+L-017,2026-02-01,-1570.17,USD,accounts_payable,EXP-2002,Vendor payment Northwind Traders
+L-018,2026-02-02,-1754.78,USD,accounts_payable,EXP-2003,Vendor payment Umbrella Logistics
+L-019,2026-02-04,3664.68,USD,accounts_receivable,INV-1016,Settlement of invoice 1016
+L-020,2026-02-03,1101.82,USD,accounts_receivable,INV-1017,Settlement of invoice 1017
+L-021,2026-02-02,2753.78,USD,accounts_receivable,INV-1018,Settlement of invoice 1018
+L-022,2026-02-06,2210.36,USD,accounts_receivable,INV-1019,Settlement of invoice 1019
+L-023,2026-02-01,3033.07,USD,accounts_receivable,INV-1020,Settlement of invoice 1020
+L-024,2026-02-05,1984.31,USD,accounts_receivable,INV-1021,Invoice 1021 settlement
+L-025,2026-02-04,1664.31,USD,accounts_receivable,INV-1022,Invoice 1022 settlement
+L-026,2026-02-02,2197.75,USD,accounts_receivable,INV-1023,Invoice 1023 settlement
+L-027,2026-02-06,2985.92,USD,accounts_receivable,INV-1024,Invoice 1024 settlement
+L-028,2026-02-03,2662.97,USD,accounts_receivable,INV-1025,Invoice 1025 settlement
+L-029,2026-02-02,2487.73,USD,accounts_receivable,INV-1026,Invoice 1026 settlement
+L-030,2026-02-06,3213.48,USD,accounts_receivable,INV-1001,Invoice 1001 settlement (duplicate post)

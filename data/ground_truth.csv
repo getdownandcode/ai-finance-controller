@@ -1,0 +1,81 @@
+group_id,record_id,source,expected_resolution,notes
+G-001,B-001,bank,matched,Clean exact-match settlement of INV-1001
+G-001,L-001,ledger,matched,Clean exact-match settlement of INV-1001
+G-001,INV-1001,invoice,matched,Clean exact-match settlement of INV-1001
+G-002,B-002,bank,matched,Clean exact-match settlement of INV-1002
+G-002,L-002,ledger,matched,Clean exact-match settlement of INV-1002
+G-002,INV-1002,invoice,matched,Clean exact-match settlement of INV-1002
+G-003,B-003,bank,matched,Clean exact-match settlement of INV-1003
+G-003,L-003,ledger,matched,Clean exact-match settlement of INV-1003
+G-003,INV-1003,invoice,matched,Clean exact-match settlement of INV-1003
+G-004,B-004,bank,matched,Clean exact-match settlement of INV-1004
+G-004,L-004,ledger,matched,Clean exact-match settlement of INV-1004
+G-004,INV-1004,invoice,matched,Clean exact-match settlement of INV-1004
+G-005,B-005,bank,matched,Clean exact-match settlement of INV-1005
+G-005,L-005,ledger,matched,Clean exact-match settlement of INV-1005
+G-005,INV-1005,invoice,matched,Clean exact-match settlement of INV-1005
+G-006,B-006,bank,matched,Clean exact-match settlement of INV-1006
+G-006,L-006,ledger,matched,Clean exact-match settlement of INV-1006
+G-006,INV-1006,invoice,matched,Clean exact-match settlement of INV-1006
+G-007,B-007,bank,matched,Clean exact-match settlement of INV-1007
+G-007,L-007,ledger,matched,Clean exact-match settlement of INV-1007
+G-007,INV-1007,invoice,matched,Clean exact-match settlement of INV-1007
+G-008,B-008,bank,matched,Clean exact-match settlement of INV-1008
+G-008,L-008,ledger,matched,Clean exact-match settlement of INV-1008
+G-008,INV-1008,invoice,matched,Clean exact-match settlement of INV-1008
+G-009,B-009,bank,matched,Clean exact-match settlement of INV-1009
+G-009,L-009,ledger,matched,Clean exact-match settlement of INV-1009
+G-009,INV-1009,invoice,matched,Clean exact-match settlement of INV-1009
+G-010,B-010,bank,matched,Clean exact-match settlement of INV-1010
+G-010,L-010,ledger,matched,Clean exact-match settlement of INV-1010
+G-010,INV-1010,invoice,matched,Clean exact-match settlement of INV-1010
+G-011,B-011,bank,matched,Clean exact-match settlement of INV-1011
+G-011,L-011,ledger,matched,Clean exact-match settlement of INV-1011
+G-011,INV-1011,invoice,matched,Clean exact-match settlement of INV-1011
+G-012,B-012,bank,matched,Wire receipt of INV-1012 booked directly (no invoice row in batch)
+G-012,L-012,ledger,matched,Wire receipt of INV-1012 booked directly (no invoice row in batch)
+G-013,B-013,bank,matched,Wire receipt of INV-1013 booked directly (no invoice row in batch)
+G-013,L-013,ledger,matched,Wire receipt of INV-1013 booked directly (no invoice row in batch)
+G-014,B-014,bank,matched,Wire receipt of INV-1014 booked directly (no invoice row in batch)
+G-014,L-014,ledger,matched,Wire receipt of INV-1014 booked directly (no invoice row in batch)
+G-015,B-015,bank,matched,Wire receipt of INV-1015 booked directly (no invoice row in batch)
+G-015,L-015,ledger,matched,Wire receipt of INV-1015 booked directly (no invoice row in batch)
+G-016,B-016,bank,matched,Vendor payment EXP-2001
+G-016,L-016,ledger,matched,Vendor payment EXP-2001
+G-017,B-017,bank,matched,Vendor payment EXP-2002
+G-017,L-017,ledger,matched,Vendor payment EXP-2002
+G-018,B-018,bank,matched,Vendor payment EXP-2003
+G-018,L-018,ledger,matched,Vendor payment EXP-2003
+G-019,B-019,bank,matched,"Fuzzy: bank nets a 1.2% fee, +2/3d lag, reworded descriptions (INV-1016)"
+G-019,L-019,ledger,matched,"Fuzzy: bank nets a 1.2% fee, +2/3d lag, reworded descriptions (INV-1016)"
+G-019,INV-1016,invoice,matched,"Fuzzy: bank nets a 1.2% fee, +2/3d lag, reworded descriptions (INV-1016)"
+G-020,B-020,bank,matched,"Fuzzy: bank nets a 1.0% fee, +2/3d lag, reworded descriptions (INV-1017)"
+G-020,L-020,ledger,matched,"Fuzzy: bank nets a 1.0% fee, +2/3d lag, reworded descriptions (INV-1017)"
+G-020,INV-1017,invoice,matched,"Fuzzy: bank nets a 1.0% fee, +2/3d lag, reworded descriptions (INV-1017)"
+G-021,B-021,bank,matched,"Fuzzy: bank nets a 1.3% fee, +2/3d lag, reworded descriptions (INV-1018)"
+G-021,L-021,ledger,matched,"Fuzzy: bank nets a 1.3% fee, +2/3d lag, reworded descriptions (INV-1018)"
+G-021,INV-1018,invoice,matched,"Fuzzy: bank nets a 1.3% fee, +2/3d lag, reworded descriptions (INV-1018)"
+G-022,B-022,bank,matched,"Fuzzy: bank nets a 1.8% fee, +2/3d lag, reworded descriptions (INV-1019)"
+G-022,L-022,ledger,matched,"Fuzzy: bank nets a 1.8% fee, +2/3d lag, reworded descriptions (INV-1019)"
+G-022,INV-1019,invoice,matched,"Fuzzy: bank nets a 1.8% fee, +2/3d lag, reworded descriptions (INV-1019)"
+G-023,B-023,bank,matched,"Fuzzy: bank nets a 1.0% fee, +2/3d lag, reworded descriptions (INV-1020)"
+G-023,L-023,ledger,matched,"Fuzzy: bank nets a 1.0% fee, +2/3d lag, reworded descriptions (INV-1020)"
+G-023,INV-1020,invoice,matched,"Fuzzy: bank nets a 1.0% fee, +2/3d lag, reworded descriptions (INV-1020)"
+G-024,B-024,bank,matched,Fuzzy pair: fee-netted bank line for INV-1021
+G-024,L-024,ledger,matched,Fuzzy pair: fee-netted bank line for INV-1021
+G-025,B-025,bank,matched,Fuzzy pair: fee-netted bank line for INV-1022
+G-025,L-025,ledger,matched,Fuzzy pair: fee-netted bank line for INV-1022
+G-026,B-026,bank,matched,Fuzzy pair: fee-netted bank line for INV-1023
+G-026,L-026,ledger,matched,Fuzzy pair: fee-netted bank line for INV-1023
+G-027,B-027,bank,matched,Ambiguous: bank amount nets 2.9%+$0.30 card fee vs INV-1024; needs reasoning
+G-027,L-027,ledger,matched,Ambiguous: bank amount nets 2.9%+$0.30 card fee vs INV-1024; needs reasoning
+G-027,INV-1024,invoice,matched,Ambiguous: bank amount nets 2.9%+$0.30 card fee vs INV-1024; needs reasoning
+G-028,B-028,bank,matched,"Ambiguous: nickname description, missing reference (INV-1025); needs reasoning"
+G-028,L-028,ledger,matched,"Ambiguous: nickname description, missing reference (INV-1025); needs reasoning"
+G-028,INV-1025,invoice,matched,"Ambiguous: nickname description, missing reference (INV-1025); needs reasoning"
+G-029,B-029,bank,matched,Ambiguous hard case: bank line settles INV-1026 but is indistinguishable from INV-1027
+G-029,L-029,ledger,matched,Ambiguous hard case: bank line settles INV-1026 but is indistinguishable from INV-1027
+G-029,INV-1026,invoice,matched,Ambiguous hard case: bank line settles INV-1026 but is indistinguishable from INV-1027
+G-030,INV-1027,invoice,orphan,"Open invoice INV-1027; twin of INV-1026, settlement not identifiable in batch"
+G-031,B-030,bank,orphan,"True orphan: unidentified wire, no counterpart"
+G-032,L-030,ledger,orphan,Double-posting of L-001; must not be force-matched
