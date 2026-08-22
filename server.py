@@ -23,6 +23,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 
+from app.auth import create_token, get_current_user, register_user, revoke_token, verify_password, verify_token
 from app.pipeline import run_reconciliation
 from config import settings
 from generate_data import generate
@@ -68,18 +69,32 @@ async def log_requests(request: Request, call_next):
 
 
 # ---------------------------------------------------------------------------
-# Session persistence (ChatGPT-like)
+# Session persistence (ChatGPT-like) — per-user isolation
 # ---------------------------------------------------------------------------
-def _save_session(payload: dict) -> None:
+def _user_sessions_dir(username: str) -> Path:
+    # sanitize username for filesystem
+    safe_user = "".join(c if c.isalnum() or c in "-_." else "_" for c in username)[:40]
+    d = SESSIONS_DIR / safe_user
+    d.mkdir(parents=True, exist_ok=True)
+    return d
+
+def _save_session(payload: dict, username: str | None = None) -> None:
     """Persist full reconciliation payload so history survives restarts."""
     try:
         bid = payload.get("batch_id", f"session_{int(time.time())}")
         # sanitize batch_id for filesystem
         safe = "".join(c if c.isalnum() or c in "-_." else "_" for c in bid)[:80]
         payload["_saved_at"] = time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())
-        (SESSIONS_DIR / f"{safe}.json").write_text(json.dumps(payload, indent=2, default=str), encoding="utf-8")
-        # keep only last 50 sessions
-        sessions = sorted(SESSIONS_DIR.glob("*.json"), key=lambda p: p.stat().st_mtime, reverse=True)
+        if username:
+            payload["_owner"] = username
+            target = _user_sessions_dir(username) / f"{safe}.json"
+        else:
+            # legacy fallback (pre-auth sessions)
+            target = SESSIONS_DIR / f"{safe}.json"
+        target.write_text(json.dumps(payload, indent=2, default=str), encoding="utf-8")
+        # keep only last 50 sessions per user
+        base = _user_sessions_dir(username) if username else SESSIONS_DIR
+        sessions = sorted(base.glob("*.json"), key=lambda p: p.stat().st_mtime, reverse=True)
         for p in sessions[50:]:
             try:
                 p.unlink()
@@ -89,9 +104,22 @@ def _save_session(payload: dict) -> None:
         log.exception("Failed to save session")
 
 
-def _list_sessions() -> list[dict]:
+def _list_sessions(username: str | None = None) -> list[dict]:
     out = []
-    for p in sorted(SESSIONS_DIR.glob("*.json"), key=lambda x: x.stat().st_mtime, reverse=True):
+    base = _user_sessions_dir(username) if username else SESSIONS_DIR
+    # also include legacy flat files for migration
+    candidates = list(base.glob("*.json"))
+    if username:
+        # also consider legacy flat files owned by this user (old _owner field)
+        for p in SESSIONS_DIR.glob("*.json"):
+            if p.is_file():
+                try:
+                    d = json.loads(p.read_text(encoding="utf-8"))
+                    if d.get("_owner") == username and p not in candidates:
+                        candidates.append(p)
+                except Exception:
+                    continue
+    for p in sorted(candidates, key=lambda x: x.stat().st_mtime, reverse=True):
         try:
             data = json.loads(p.read_text(encoding="utf-8"))
             out.append({
@@ -161,8 +189,46 @@ def get_status():
     }
 
 
+# ---------------------------------------------------------------------------
+# Auth (simple username/password → opaque token)
+# ---------------------------------------------------------------------------
+@app.post("/api/auth/register")
+def auth_register(payload: dict):
+    username = str(payload.get("username") or "").strip()
+    password = str(payload.get("password") or "")
+    reg = register_user(username, password)
+    token = create_token(reg["username"])
+    return {"username": reg["username"], "token": token}
+
+
+@app.post("/api/auth/login")
+def auth_login(payload: dict):
+    username = str(payload.get("username") or "").strip()
+    password = str(payload.get("password") or "")
+    if not verify_password(username, password):
+        raise HTTPException(status_code=401, detail="Invalid username or password")
+    token = create_token(username)
+    return {"username": username, "token": token}
+
+
+@app.post("/api/auth/logout")
+def auth_logout(request: Request):
+    auth = request.headers.get("Authorization", "")
+    token = auth[7:].strip() if auth.startswith("Bearer ") else request.query_params.get("token", "")
+    if token:
+        revoke_token(token)
+    return {"ok": True}
+
+
+@app.get("/api/auth/me")
+def auth_me(request: Request):
+    username = get_current_user(request)
+    return {"username": username}
+
+
 @app.post("/api/reconcile")
 async def reconcile_custom_files(
+    request: Request,
     bank_file: Optional[UploadFile] = File(None),
     ledger_file: Optional[UploadFile] = File(None),
     invoices_file: Optional[UploadFile] = File(None),
@@ -171,6 +237,7 @@ async def reconcile_custom_files(
     ledger_opening: float = Form(42500.0),
     llm_mode: str = Form("auto"),
 ):
+    username = get_current_user(request)
     if llm_mode not in ALLOWED_LLM_MODES:
         raise HTTPException(status_code=400, detail=f"llm_mode must be one of {ALLOWED_LLM_MODES}")
     _validate_opening(bank_opening, "bank_opening")
@@ -195,7 +262,8 @@ async def reconcile_custom_files(
             batch_id=f"custom_upload_{int(time.time())}",
             reports_dir=REPORTS_DIR,
         )
-        _save_session(payload)
+        payload["_owner"] = username
+        _save_session(payload, username)
         return payload
     except HTTPException:
         raise
@@ -205,7 +273,8 @@ async def reconcile_custom_files(
 
 
 @app.post("/api/reconcile-demo")
-def reconcile_demo(seed: int = Form(42), llm_mode: str = Form("auto")):
+def reconcile_demo(request: Request, seed: int = Form(42), llm_mode: str = Form("auto")):
+    username = get_current_user(request)
     if llm_mode not in ALLOWED_LLM_MODES:
         raise HTTPException(status_code=400, detail=f"llm_mode must be one of {ALLOWED_LLM_MODES}")
     if not 0 <= seed <= 1_000_000:
@@ -228,7 +297,8 @@ def reconcile_demo(seed: int = Form(42), llm_mode: str = Form("auto")):
             batch_id=meta.get("batch_id", f"demo_seed_{seed}"),
             reports_dir=REPORTS_DIR,
         )
-        _save_session(payload)
+        payload["_owner"] = username
+        _save_session(payload, username)
         return payload
     except HTTPException:
         raise
@@ -237,33 +307,78 @@ def reconcile_demo(seed: int = Form(42), llm_mode: str = Form("auto")):
         raise HTTPException(status_code=500, detail=str(exc)) from exc
 
 
-# --- Session history (ChatGPT-like) ---
+# --- Session history (ChatGPT-like) — per-user ---
 @app.get("/api/sessions")
-def list_sessions():
-    return {"sessions": _list_sessions()}
+def list_sessions(request: Request):
+    username = get_current_user(request)
+    return {"sessions": _list_sessions(username)}
 
 
 @app.get("/api/session/{batch_id}")
-def get_session(batch_id: str):
+def get_session(batch_id: str, request: Request):
+    username = get_current_user(request)
     safe = "".join(c if c.isalnum() or c in "-_." else "_" for c in batch_id)[:80]
-    p = SESSIONS_DIR / f"{safe}.json"
+    # try per-user dir first, then legacy flat
+    p = _user_sessions_dir(username) / f"{safe}.json"
     if not p.exists():
+        p = SESSIONS_DIR / f"{safe}.json"
+        if p.exists():
+            try:
+                data = json.loads(p.read_text(encoding="utf-8"))
+                if data.get("_owner") and data.get("_owner") != username:
+                    raise HTTPException(status_code=404, detail="Session not found")
+            except HTTPException:
+                raise
+            except Exception:
+                pass
+        else:
+            raise HTTPException(status_code=404, detail="Session not found")
+    data = json.loads(p.read_text(encoding="utf-8"))
+    # enforce ownership
+    if data.get("_owner") and data.get("_owner") != username:
         raise HTTPException(status_code=404, detail="Session not found")
-    return json.loads(p.read_text(encoding="utf-8"))
+    return data
+
+
+@app.post("/api/session/restore")
+def restore_session(payload: dict, request: Request):
+    username = get_current_user(request)
+    # Allow browser to re-persist a localStorage session that never made it to disk (e.g. 354-rec phantom)
+    try:
+        if not payload.get("batch_id"):
+            raise HTTPException(status_code=400, detail="batch_id required")
+        payload["_owner"] = username
+        _save_session(payload, username)
+        return {"restored": payload.get("batch_id")}
+    except HTTPException:
+        raise
+    except Exception as exc:
+        raise HTTPException(status_code=500, detail=str(exc)) from exc
 
 
 @app.delete("/api/session/{batch_id}")
-def delete_session(batch_id: str):
+def delete_session(batch_id: str, request: Request):
+    username = get_current_user(request)
     safe = "".join(c if c.isalnum() or c in "-_." else "_" for c in batch_id)[:80]
-    p = SESSIONS_DIR / f"{safe}.json"
-    if not p.exists():
-        raise HTTPException(status_code=404, detail="Session not found")
-    p.unlink()
-    return {"deleted": batch_id}
+    p = _user_sessions_dir(username) / f"{safe}.json"
+    legacy = SESSIONS_DIR / f"{safe}.json"
+    if p.exists():
+        p.unlink()
+        return {"deleted": batch_id}
+    if legacy.exists():
+        try:
+            data = json.loads(legacy.read_text(encoding="utf-8"))
+            if data.get("_owner") in (None, username):
+                legacy.unlink()
+                return {"deleted": batch_id}
+        except Exception:
+            pass
+    raise HTTPException(status_code=404, detail="Session not found")
 
 
 @app.get("/api/download/{report_type}")
-def download_report(report_type: str):
+def download_report(report_type: str, request: Request):
+    get_current_user(request)
     mapping = {
         "markdown": ("recon_report.md", "text/markdown"),
         "json": ("recon_report.json", "application/json"),
