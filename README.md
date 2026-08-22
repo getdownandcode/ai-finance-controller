@@ -4,41 +4,17 @@ An autonomous financial reconciliation system that ingests multi-source feeds (*
 
 ---
 
-## 🚀 Deployment (Fly.io)
+## 🚀 Deployment (Render)
 
-### Automated CI/CD via GitHub Actions
+1. Push this repo to GitHub.
+2. Render Dashboard → **New → Web Service** → connect the repo.
+3. Runtime: **Docker** (uses the repo `Dockerfile` automatically).
+4. Environment variables:
+   - `GEMINI_API_KEY`: your Gemini API key
+   - `RECON_LLM_MODEL`: `gemini-2.5-flash`
+5. Plan: Free → **Create Web Service**.
 
-1. **Push to GitHub**:
-   ```bash
-   git remote add origin https://github.com/YOUR_USERNAME/ai-finance-controller.git
-   git branch -M main
-   git push -u origin main
-   ```
-
-2. **Create Fly.io app & token**:
-   ```bash
-   brew install flyctl
-   fly auth login
-   fly launch --no-deploy   # uses existing fly.toml
-   fly tokens create deploy -x 999999h  # copy token
-   ```
-
-3. **Add GitHub Secret** (*Settings > Secrets and variables > Actions*):
-   - `FLY_API_TOKEN`: token from above
-   - Add `GEMINI_API_KEY` as Fly secret: `fly secrets set GEMINI_API_KEY=your_key`
-
-4. **Deploy**: Every push to `main` triggers `.github/workflows/fly.yml` → `fly deploy --remote-only`. Or deploy manually: `fly deploy`.
-
-### Manual Deploy
-
-```bash
-fly secrets set GEMINI_API_KEY=your_key RECON_LLM_MODEL=gemini-2.5-flash
-fly deploy --remote-only
-fly open
-fly logs
-```
-
-Health check: `https://<app>.fly.dev/api/health`
+Every push to the connected branch auto-deploys. Health check path: `/api/health`.
 
 ---
 
@@ -68,9 +44,7 @@ python run_agent.py --bank-csv data/bank_feed.csv --ledger-csv data/ledger.csv -
 ## 📂 Project Architecture
 
 ```text
-├── fly.toml                  # Fly.io app config (region bom, healthcheck)
 ├── Dockerfile                # Multi-stage build (Node.js frontend + Python backend)
-├── .github/workflows/fly.yml # GitHub Actions -> fly deploy
 ├── server.py                 # FastAPI backend + static asset host
 ├── app/pipeline.py           # Shared reconciliation pipeline (used by API & CLI)
 ├── config.py                 # Centralized env config

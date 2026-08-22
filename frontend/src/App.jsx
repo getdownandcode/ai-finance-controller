@@ -3,6 +3,7 @@ import {
   Activity,
   AlertCircle,
   ArrowRight,
+  Building2,
   CheckCircle2,
   ChevronRight,
   Database,
@@ -11,33 +12,61 @@ import {
   FileCheck,
   FileSpreadsheet,
   FileText,
+  FileUp,
+  FileWarning,
   Layers,
   Play,
+  Receipt,
   Search,
   ShieldCheck,
+  Sparkles,
   TrendingUp,
   Upload,
-  Building2,
-  Receipt,
-  FileWarning,
-  FileUp
+  X,
 } from 'lucide-react';
+
+const cx = (...c) => c.filter(Boolean).join(' ');
+
+const ACCENTS = {
+  emerald: { line: 'from-emerald-400/70 via-emerald-400/10', chip: 'bg-emerald-500/15 text-emerald-300 ring-1 ring-emerald-400/20' },
+  indigo: { line: 'from-indigo-400/70 via-indigo-400/10', chip: 'bg-indigo-500/15 text-indigo-300 ring-1 ring-indigo-400/20' },
+  rose: { line: 'from-rose-400/70 via-rose-400/10', chip: 'bg-rose-500/15 text-rose-300 ring-1 ring-rose-400/20' },
+  sky: { line: 'from-sky-400/70 via-sky-400/10', chip: 'bg-sky-500/15 text-sky-300 ring-1 ring-sky-400/20' },
+  amber: { line: 'from-amber-400/70 via-amber-400/10', chip: 'bg-amber-500/15 text-amber-300 ring-1 ring-amber-400/20' },
+  violet: { line: 'from-violet-400/70 via-violet-400/10', chip: 'bg-violet-500/15 text-violet-300 ring-1 ring-violet-400/20' },
+};
+
+function StatCard({ label, value, sub, icon: Icon, accent, badge }) {
+  const a = ACCENTS[accent];
+  return (
+    <div className="glass group relative overflow-hidden rounded-2xl p-5 transition-colors hover:border-white/15">
+      <div className={cx('pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r to-transparent', a.line)} />
+      <div className="flex items-center justify-between">
+        <span className="text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-400">{label}</span>
+        <div className={cx('flex h-8 w-8 items-center justify-center rounded-xl', a.chip)}>
+          <Icon className="h-4 w-4" />
+        </div>
+      </div>
+      <div className="mt-3 flex flex-wrap items-baseline gap-2">
+        <span className={cx('text-[26px] font-extrabold tracking-tight tabular-nums leading-none', accent === 'rose' ? 'text-rose-300' : 'text-white')}>{value}</span>
+        {badge}
+      </div>
+      <p className="mt-2 text-xs leading-relaxed text-slate-400">{sub}</p>
+    </div>
+  );
+}
 
 export default function App() {
   const [activeTab, setActiveTab] = useState('ingest');
   const [loading, setLoading] = useState(false);
   const [results, setResults] = useState(null);
   const [error, setError] = useState(null);
-
-  // Form states for user uploads
   const [bankFile, setBankFile] = useState(null);
   const [ledgerFile, setLedgerFile] = useState(null);
   const [invoicesFile, setInvoicesFile] = useState(null);
   const [bankOpening, setBankOpening] = useState(0.0);
   const [ledgerOpening, setLedgerOpening] = useState(0.0);
   const [matchingStrategy, setMatchingStrategy] = useState('auto');
-
-  // Search & Filters in tables
   const [exceptionFilter, setExceptionFilter] = useState('ALL');
   const [exceptionSearch, setExceptionSearch] = useState('');
   const [clusterSearch, setClusterSearch] = useState('');
@@ -48,7 +77,6 @@ export default function App() {
       setError('Please upload at least one CSV file (Bank Statement, General Ledger, or Invoices).');
       return;
     }
-
     setLoading(true);
     setError(null);
     try {
@@ -59,17 +87,11 @@ export default function App() {
       formData.append('bank_opening', bankOpening);
       formData.append('ledger_opening', ledgerOpening);
       formData.append('llm_mode', matchingStrategy);
-
-      const res = await fetch('/api/reconcile', {
-        method: 'POST',
-        body: formData,
-      });
-
+      const res = await fetch('/api/reconcile', { method: 'POST', body: formData });
       if (!res.ok) {
         const err = await res.json();
         throw new Error(err.detail || 'Reconciliation execution failed');
       }
-
       const data = await res.json();
       setResults(data);
       setActiveTab('dashboard');
@@ -87,17 +109,11 @@ export default function App() {
       const formData = new FormData();
       formData.append('seed', 42);
       formData.append('llm_mode', matchingStrategy);
-
-      const res = await fetch('/api/reconcile-demo', {
-        method: 'POST',
-        body: formData,
-      });
-
+      const res = await fetch('/api/reconcile-demo', { method: 'POST', body: formData });
       if (!res.ok) {
         const err = await res.json();
         throw new Error(err.detail || 'Sample batch reconciliation failed');
       }
-
       const data = await res.json();
       setResults(data);
       setActiveTab('dashboard');
@@ -112,13 +128,11 @@ export default function App() {
     if (val === undefined || val === null) return '$0.00';
     return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(val);
   };
-
   const formatPercent = (val) => {
     if (val === undefined || val === null) return 'N/A';
     return `${(val * 100).toFixed(1)}%`;
   };
 
-  // Filtered exceptions
   const filteredExceptions = (results?.exceptions || []).filter((item) => {
     const matchesFilter = exceptionFilter === 'ALL' || item.reason === exceptionFilter;
     const matchesSearch =
@@ -129,108 +143,114 @@ export default function App() {
     return matchesFilter && matchesSearch;
   });
 
-  // Filtered clusters
   const filteredClusters = (results?.matched_clusters || []).filter((c) => {
     if (!clusterSearch) return true;
     const q = clusterSearch.toLowerCase();
     return (
       c.group_id.toLowerCase().includes(q) ||
       c.method.toLowerCase().includes(q) ||
-      c.members.some(
-        (m) =>
-          m.record_id.toLowerCase().includes(q) ||
-          (m.reference || '').toLowerCase().includes(q) ||
-          (m.description || '').toLowerCase().includes(q)
-      )
+      c.members.some((m) => m.record_id.toLowerCase().includes(q) || (m.reference || '').toLowerCase().includes(q) || (m.description || '').toLowerCase().includes(q))
     );
   });
 
   const getReasonBadge = (reason) => {
-    switch (reason) {
-      case 'POSSIBLE_DUPLICATE':
-        return <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-semibold bg-rose-100 text-rose-800 border border-rose-200">Double-Post Conflict</span>;
-      case 'DUPLICATE_CANDIDATE':
-        return <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-semibold bg-amber-100 text-amber-800 border border-amber-200">Near-Tie Conflict</span>;
-      case 'LOW_CONFIDENCE':
-        return <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-semibold bg-sky-100 text-sky-800 border border-sky-200">Low Confidence</span>;
-      case 'NO_COUNTERPART':
-        return <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-semibold bg-slate-100 text-slate-700 border border-slate-300">Unmatched Record</span>;
-      case 'AMOUNT_MISMATCH':
-        return <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-semibold bg-purple-100 text-purple-800 border border-purple-200">Amount Variance</span>;
-      default:
-        return <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-semibold bg-slate-100 text-slate-800 border border-slate-200">{reason}</span>;
-    }
+    const map = {
+      POSSIBLE_DUPLICATE: { label: 'Double-Post Conflict', cls: 'bg-rose-500/10 text-rose-300 border-rose-500/20', dot: 'bg-rose-400' },
+      DUPLICATE_CANDIDATE: { label: 'Near-Tie Conflict', cls: 'bg-amber-500/10 text-amber-300 border-amber-500/20', dot: 'bg-amber-400' },
+      LOW_CONFIDENCE: { label: 'Low Confidence', cls: 'bg-sky-500/10 text-sky-300 border-sky-500/20', dot: 'bg-sky-400' },
+      NO_COUNTERPART: { label: 'Unmatched Record', cls: 'bg-slate-500/10 text-slate-300 border-white/10', dot: 'bg-slate-400' },
+      AMOUNT_MISMATCH: { label: 'Amount Variance', cls: 'bg-violet-500/10 text-violet-300 border-violet-500/20', dot: 'bg-violet-400' },
+    };
+    const t = map[reason] || { label: reason, cls: 'bg-slate-500/10 text-slate-300 border-white/10', dot: 'bg-slate-400' };
+    return (
+      <span className={cx('inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-[11px] font-semibold leading-none', t.cls)}>
+        <span className={cx('h-1.5 w-1.5 rounded-full', t.dot)} />
+        {t.label}
+      </span>
+    );
   };
 
   const getMethodBadge = (method) => {
-    switch (method) {
-      case 'exact':
-        return <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-emerald-100 text-emerald-800 border border-emerald-200">Tier 1: Exact Match</span>;
-      case 'fuzzy':
-        return <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-amber-100 text-amber-800 border border-amber-200">Tier 2: Fuzzy Scoring</span>;
-      case 'llm':
-        return <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-indigo-100 text-indigo-800 border border-indigo-200">Tier 3: AI Reasoner</span>;
-      default:
-        return <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-slate-100 text-slate-800">{method}</span>;
-    }
+    const map = {
+      exact: { label: 'Tier 1 · Exact', cls: 'bg-emerald-500/10 text-emerald-300 border-emerald-500/20', dot: 'bg-emerald-400' },
+      fuzzy: { label: 'Tier 2 · Fuzzy', cls: 'bg-amber-500/10 text-amber-300 border-amber-500/20', dot: 'bg-amber-400' },
+      llm: { label: 'Tier 3 · AI Reasoner', cls: 'bg-indigo-500/10 text-indigo-300 border-indigo-500/20', dot: 'bg-indigo-400' },
+    };
+    const t = map[method] || { label: method, cls: 'bg-slate-500/10 text-slate-300 border-white/10', dot: 'bg-slate-400' };
+    return (
+      <span className={cx('inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-[11px] font-semibold leading-none', t.cls)}>
+        <span className={cx('h-1.5 w-1.5 rounded-full', t.dot)} />
+        {t.label}
+      </span>
+    );
   };
 
+  const hasFiles = Boolean(bankFile || ledgerFile || invoicesFile);
+  const inputCls =
+    'w-full rounded-xl border border-white/10 bg-white/[0.04] px-3 py-2.5 text-xs font-medium text-white placeholder:text-slate-500 outline-none transition focus:border-indigo-400/60 focus:bg-white/[0.06] focus:ring-2 focus:ring-indigo-500/20';
+  const selectCls =
+    'w-full rounded-xl border border-white/10 bg-white/[0.04] px-3 py-2.5 text-xs font-medium text-slate-200 outline-none transition focus:border-indigo-400/60 focus:bg-white/[0.06] focus:ring-2 focus:ring-indigo-500/20 cursor-pointer';
+
   return (
-    <div className="min-h-screen bg-slate-50 text-slate-900 flex flex-col font-sans">
-      {/* Top Header Navigation */}
-      <header className="sticky top-0 z-30 bg-white/95 backdrop-blur border-b border-slate-200 shadow-2xs">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex items-center justify-between h-16">
-            {/* Logo and App Title */}
-            <div className="flex items-center space-x-3">
-              <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-indigo-600 to-indigo-500 flex items-center justify-center text-white shadow-xs">
-                <Layers className="w-5 h-5" />
+    <div className="relative flex min-h-screen flex-col overflow-x-hidden text-slate-200 selection:bg-indigo-500/30">
+      <div className="pointer-events-none fixed inset-0 bg-aurora" />
+      <div className="pointer-events-none fixed inset-0 bg-grid" />
+
+      <header className="sticky top-0 z-40 border-b border-white/[0.06] bg-[#070a12]/70 backdrop-blur-xl">
+        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+          <div className="flex h-[64px] items-center justify-between gap-4">
+            <div className="flex min-w-0 items-center gap-3">
+              <div className="relative shrink-0">
+                <div className="absolute inset-0 rounded-xl bg-gradient-to-tr from-indigo-500 via-violet-500 to-fuchsia-500 opacity-60 blur-lg" />
+                <div className="relative flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-tr from-indigo-500 via-violet-500 to-fuchsia-500 text-white shadow-lg shadow-indigo-500/20">
+                  <Layers className="h-5 w-5" />
+                </div>
               </div>
-              <div>
-                <h1 className="text-base font-bold text-slate-900 tracking-tight">AI Finance Controller</h1>
-                <p className="text-xs text-slate-500 hidden sm:block">Autonomous Multi-Source Financial Reconciliation Platform</p>
+              <div className="min-w-0">
+                <h1 className="truncate text-[15px] font-extrabold tracking-tight text-white">AI Finance Controller</h1>
+                <p className="hidden truncate text-[11px] font-medium text-slate-400 sm:block">Autonomous multi-source reconciliation</p>
               </div>
             </div>
 
-            {/* Header Right Actions */}
-            <div className="flex items-center space-x-3">
+            <div className="flex shrink-0 items-center gap-2">
               <button
                 onClick={() => setActiveTab('ingest')}
-                className={`inline-flex items-center space-x-1.5 px-4 py-2 rounded-lg text-xs font-semibold transition-colors shadow-xs cursor-pointer ${
+                className={cx(
+                  'inline-flex items-center gap-1.5 rounded-xl px-4 py-2 text-xs font-semibold transition-all focus-ring cursor-pointer',
                   activeTab === 'ingest'
-                    ? 'bg-indigo-600 text-white hover:bg-indigo-700'
-                    : 'bg-white text-slate-700 border border-slate-200 hover:bg-slate-50'
-                }`}
+                    ? 'bg-white text-slate-900 shadow'
+                    : 'border border-white/10 bg-white/[0.04] text-slate-300 hover:bg-white/10 hover:text-white'
+                )}
               >
-                <Upload className="w-3.5 h-3.5" />
-                <span>Upload New Files</span>
+                <Upload className="h-3.5 w-3.5" />
+                <span className="hidden sm:inline">Upload files</span>
+                <span className="sm:hidden">Upload</span>
               </button>
-
               {results && (
                 <button
                   onClick={() => setActiveTab('dashboard')}
-                  className={`inline-flex items-center space-x-1.5 px-3.5 py-2 rounded-lg text-xs font-semibold transition-colors cursor-pointer border ${
+                  className={cx(
+                    'inline-flex items-center gap-1.5 rounded-xl px-3.5 py-2 text-xs font-semibold transition-all focus-ring cursor-pointer',
                     activeTab === 'dashboard'
-                      ? 'bg-slate-900 text-white border-slate-900'
-                      : 'bg-white text-slate-700 border-slate-200 hover:bg-slate-50'
-                  }`}
+                      ? 'bg-gradient-to-r from-indigo-500 to-violet-500 text-white shadow-lg shadow-indigo-500/20'
+                      : 'border border-white/10 bg-white/[0.04] text-slate-300 hover:bg-white/10 hover:text-white'
+                  )}
                 >
-                  <Activity className="w-3.5 h-3.5" />
-                  <span>View Dashboard</span>
+                  <Activity className="h-3.5 w-3.5" />
+                  <span>Dashboard</span>
                 </button>
               )}
             </div>
           </div>
 
-          {/* Navigation Tabs (Available once results exist) */}
-          <div className="flex space-x-1 overflow-x-auto border-t border-slate-100 py-1.5">
+          <nav className="scrollbar-none flex gap-1 overflow-x-auto border-t border-white/[0.04] py-2">
             {[
-              { id: 'ingest', label: '1. Ingest Data', icon: Database },
-              { id: 'dashboard', label: '2. Dashboard', icon: Activity, disabled: !results },
-              { id: 'exceptions', label: `3. Exceptions (${results?.exceptions?.length || 0})`, icon: FileWarning, disabled: !results },
-              { id: 'clusters', label: `4. Reconciled Groups (${results?.matched_clusters?.length || 0})`, icon: CheckCircle2, disabled: !results },
-              { id: 'audit', label: '5. Audit Trail', icon: FileText, disabled: !results },
-              { id: 'export', label: '6. Export Reports', icon: Download, disabled: !results },
+              { id: 'ingest', label: 'Ingest', sub: '1', icon: Database },
+              { id: 'dashboard', label: 'Dashboard', sub: '2', icon: Activity, disabled: !results },
+              { id: 'exceptions', label: `Exceptions ${results ? `· ${results.exceptions.length}` : ''}`, sub: '3', icon: FileWarning, disabled: !results },
+              { id: 'clusters', label: `Reconciled ${results ? `· ${results.matched_clusters.length}` : ''}`, sub: '4', icon: CheckCircle2, disabled: !results },
+              { id: 'audit', label: 'Audit', sub: '5', icon: FileText, disabled: !results },
+              { id: 'export', label: 'Export', sub: '6', icon: Download, disabled: !results },
             ].map((tab) => {
               const Icon = tab.icon;
               const isActive = activeTab === tab.id;
@@ -239,499 +259,355 @@ export default function App() {
                   key={tab.id}
                   onClick={() => !tab.disabled && setActiveTab(tab.id)}
                   disabled={tab.disabled}
-                  className={`flex items-center space-x-2 px-3.5 py-2 rounded-lg text-xs font-medium transition-all whitespace-nowrap ${
+                  className={cx(
+                    'group flex shrink-0 items-center gap-2 whitespace-nowrap rounded-lg px-3.5 py-2 text-xs font-medium transition-all',
                     tab.disabled
-                      ? 'text-slate-300 cursor-not-allowed'
+                      ? 'cursor-not-allowed text-slate-600'
                       : isActive
-                      ? 'bg-indigo-50 text-indigo-700 shadow-2xs font-semibold border border-indigo-100 cursor-pointer'
-                      : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100/60 cursor-pointer'
-                  }`}
+                        ? 'bg-white/10 text-white ring-1 ring-white/10 cursor-pointer'
+                        : 'text-slate-400 hover:bg-white/[0.06] hover:text-slate-200 cursor-pointer'
+                  )}
                 >
-                  <Icon className={`w-3.5 h-3.5 ${isActive ? 'text-indigo-600' : 'text-slate-400'}`} />
+                  <span className={cx('flex h-5 w-5 items-center justify-center rounded-md text-[11px]', isActive ? 'bg-white text-slate-900' : 'bg-white/5 text-slate-400 group-hover:bg-white/10')}>
+                    {tab.sub}
+                  </span>
+                  <Icon className={cx('h-3.5 w-3.5', isActive ? 'text-indigo-300' : 'text-slate-500')} />
                   <span>{tab.label}</span>
                 </button>
               );
             })}
-          </div>
+          </nav>
         </div>
       </header>
 
-      {/* Main Content Area */}
-      <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-6">
-        {/* Error Notification */}
+      <main className="relative mx-auto flex w-full max-w-7xl flex-1 flex-col gap-6 px-4 py-6 sm:px-6 lg:px-8">
         {error && (
-          <div className="bg-rose-50 border border-rose-200 rounded-xl p-4 flex items-start space-x-3 text-rose-800 text-sm">
-            <AlertCircle className="w-5 h-5 text-rose-600 shrink-0 mt-0.5" />
-            <div className="flex-1">
-              <h4 className="font-semibold text-rose-900">Reconciliation Error</h4>
-              <p className="mt-0.5">{error}</p>
+          <div className="animate-fade-in flex items-start gap-3 rounded-2xl border border-rose-500/20 bg-rose-500/10 px-4 py-3.5 text-sm backdrop-blur">
+            <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-rose-500/20 text-rose-300">
+              <AlertCircle className="h-4 w-4" />
             </div>
-            <button onClick={() => setError(null)} className="text-rose-500 hover:text-rose-700 text-xs font-bold cursor-pointer">
-              ✕
+            <div className="min-w-0 flex-1">
+              <p className="text-xs font-bold tracking-wide text-rose-200">Reconciliation error</p>
+              <p className="mt-1 text-xs leading-relaxed text-rose-200/80">{error}</p>
+            </div>
+            <button onClick={() => setError(null)} className="rounded-lg p-1 text-rose-300/70 hover:bg-white/10 hover:text-rose-200 cursor-pointer">
+              <X className="h-4 w-4" />
             </button>
           </div>
         )}
 
-        {/* Loading Indicator */}
         {loading && (
-          <div className="bg-white border border-slate-200 rounded-2xl p-10 text-center flex flex-col items-center justify-center space-y-3 shadow-xs">
-            <div className="w-10 h-10 rounded-full border-3 border-indigo-100 border-t-indigo-600 animate-spin" />
-            <h3 className="font-bold text-slate-800 text-sm">Reconciling Financial Records...</h3>
-            <p className="text-xs text-slate-500 max-w-md">
-              Normalizing schemas, finding candidate pairs, executing multi-tier matching rules, and evaluating AI evidence.
-            </p>
+          <div className="glass animate-fade-in flex flex-col items-center justify-center gap-4 rounded-3xl px-8 py-12 text-center">
+            <div className="relative h-12 w-12">
+              <div className="absolute inset-0 rounded-full border border-white/10" />
+              <div className="absolute inset-0 animate-spin rounded-full border-2 border-transparent border-t-indigo-400 border-r-violet-400" style={{ animationDuration: '0.9s' }} />
+              <div className="absolute inset-2 rounded-full bg-gradient-to-tr from-indigo-500/20 to-violet-500/20 blur-[1px]" />
+            </div>
+            <div>
+              <h3 className="text-sm font-bold text-white">Reconciling financial records…</h3>
+              <p className="mx-auto mt-1.5 max-w-md text-xs leading-relaxed text-slate-400">Normalizing schemas, finding candidate pairs, executing multi-tier matching rules, and evaluating AI evidence.</p>
+            </div>
+            <div className="h-1 w-48 overflow-hidden rounded-full bg-white/10">
+              <div className="h-full w-1/2 animate-[shimmer_1.2s_ease-in-out_infinite] rounded-full bg-gradient-to-r from-transparent via-indigo-400 to-transparent bg-[length:200%_100%]" />
+            </div>
           </div>
         )}
 
-        {/* TAB 1: DATA INGESTION (PRIMARY USER ENTRY POINT) */}
         {activeTab === 'ingest' && (
-          <div className="space-y-6">
-            {/* Header banner */}
-            <div className="bg-white rounded-2xl border border-slate-200/80 p-6 shadow-xs">
-              <div className="max-w-3xl">
-                <h2 className="text-lg font-bold text-slate-900">Reconcile Your Financial Data</h2>
-                <p className="text-xs text-slate-500 mt-1">
-                  Upload your company's CSV files across Bank feeds, General Ledger exports, or Invoices. The AI engine automatically detects and cleans your column formats (dates, currencies, amounts, references, and descriptions).
-                </p>
-              </div>
-
-              <form onSubmit={handleCustomReconcile} className="space-y-6 mt-6">
-                {/* 3 Upload Dropzones */}
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
-                  {/* Bank Feed */}
-                  <div className={`border-2 border-dashed rounded-2xl p-5 text-center transition-all flex flex-col justify-between ${
-                    bankFile ? 'border-indigo-500 bg-indigo-50/20' : 'border-slate-200 bg-slate-50/50 hover:border-indigo-400 hover:bg-indigo-50/10'
-                  }`}>
-                    <div>
-                      <div className={`w-10 h-10 rounded-xl mx-auto flex items-center justify-center ${
-                        bankFile ? 'bg-indigo-600 text-white' : 'bg-indigo-50 text-indigo-600'
-                      }`}>
-                        <Building2 className="w-5 h-5" />
-                      </div>
-                      <h4 className="font-bold text-slate-800 text-sm mt-3">Bank Feed CSV</h4>
-                      <p className="text-xs text-slate-400 mt-1">Bank statements, settlements, wires</p>
-                    </div>
-
-                    <div className="mt-5">
-                      {bankFile ? (
-                        <div className="bg-white p-2.5 rounded-lg border border-indigo-200 text-xs text-indigo-900 font-medium flex items-center justify-between">
-                          <span className="truncate max-w-xs">{bankFile.name}</span>
-                          <button
-                            type="button"
-                            onClick={() => setBankFile(null)}
-                            className="text-rose-500 hover:text-rose-700 ml-2 font-bold cursor-pointer"
-                          >
-                            ✕
-                          </button>
-                        </div>
-                      ) : (
-                        <>
-                          <input
-                            type="file"
-                            id="bank-file"
-                            accept=".csv"
-                            onChange={(e) => setBankFile(e.target.files[0])}
-                            className="hidden"
-                          />
-                          <label
-                            htmlFor="bank-file"
-                            className="inline-flex items-center space-x-1.5 px-3.5 py-2 rounded-lg text-xs font-semibold bg-white border border-slate-200 text-slate-700 shadow-2xs hover:bg-slate-50 cursor-pointer"
-                          >
-                            <FileUp className="w-3.5 h-3.5" />
-                            <span>Select Bank CSV</span>
-                          </label>
-                        </>
-                      )}
+          <div className="animate-fade-up space-y-6">
+            <div className="glass overflow-hidden rounded-3xl">
+              <div className="relative overflow-hidden p-6 sm:p-8">
+                <div className="pointer-events-none absolute -right-16 -top-16 h-64 w-64 rounded-full bg-gradient-to-tr from-indigo-500/15 via-violet-500/15 to-fuchsia-500/10 blur-2xl" />
+                <div className="relative flex flex-wrap items-start justify-between gap-4">
+                  <div className="max-w-2xl">
+                    <span className="inline-flex items-center gap-1.5 rounded-full border border-indigo-400/20 bg-indigo-500/10 px-3 py-1 text-[11px] font-semibold text-indigo-300">
+                      <Sparkles className="h-3 w-3" />
+                      AI-powered matching engine
+                      <span className="ml-1 hidden rounded-full bg-white/10 px-1.5 py-0.5 text-[10px] font-bold tracking-wide text-indigo-200 sm:inline">AUTO · FUZZY · LLM</span>
+                    </span>
+                    <h2 className="mt-4 text-2xl font-extrabold tracking-tight text-white sm:text-[30px] sm:leading-none">
+                      Reconcile your books in <span className="text-gradient">one pass</span>
+                    </h2>
+                    <p className="mt-3 max-w-xl text-sm leading-relaxed text-slate-400">
+                      Drop in CSVs from your bank, ledger, or billing system. The engine auto-detects columns, normalizes amounts &amp; dates, and links transactions across sources.
+                    </p>
+                    <div className="mt-4 flex flex-wrap items-center gap-2 text-[11px] text-slate-400">
+                      <span className="inline-flex items-center gap-1.5 rounded-full border border-white/10 bg-white/[0.03] px-2.5 py-1"><ShieldCheck className="h-3 w-3 text-emerald-400" /> No data stored</span>
+                      <span className="inline-flex items-center gap-1.5 rounded-full border border-white/10 bg-white/[0.03] px-2.5 py-1"><FileSpreadsheet className="h-3 w-3 text-sky-400" /> CSV auto-mapping</span>
                     </div>
                   </div>
-
-                  {/* General Ledger */}
-                  <div className={`border-2 border-dashed rounded-2xl p-5 text-center transition-all flex flex-col justify-between ${
-                    ledgerFile ? 'border-emerald-500 bg-emerald-50/20' : 'border-slate-200 bg-slate-50/50 hover:border-emerald-400 hover:bg-emerald-50/10'
-                  }`}>
-                    <div>
-                      <div className={`w-10 h-10 rounded-xl mx-auto flex items-center justify-center ${
-                        ledgerFile ? 'bg-emerald-600 text-white' : 'bg-emerald-50 text-emerald-600'
-                      }`}>
-                        <FileSpreadsheet className="w-5 h-5" />
+                  {results && (
+                    <div className="hidden items-center gap-2 rounded-2xl border border-white/10 bg-white/[0.04] px-4 py-3 sm:flex">
+                      <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-emerald-500/15 text-emerald-300 ring-1 ring-emerald-400/20">
+                        <CheckCircle2 className="h-4 w-4" />
                       </div>
-                      <h4 className="font-bold text-slate-800 text-sm mt-3">General Ledger CSV</h4>
-                      <p className="text-xs text-slate-400 mt-1">QuickBooks, Xero, ERP journal entries</p>
-                    </div>
-
-                    <div className="mt-5">
-                      {ledgerFile ? (
-                        <div className="bg-white p-2.5 rounded-lg border border-emerald-200 text-xs text-emerald-900 font-medium flex items-center justify-between">
-                          <span className="truncate max-w-xs">{ledgerFile.name}</span>
-                          <button
-                            type="button"
-                            onClick={() => setLedgerFile(null)}
-                            className="text-rose-500 hover:text-rose-700 ml-2 font-bold cursor-pointer"
-                          >
-                            ✕
-                          </button>
-                        </div>
-                      ) : (
-                        <>
-                          <input
-                            type="file"
-                            id="ledger-file"
-                            accept=".csv"
-                            onChange={(e) => setLedgerFile(e.target.files[0])}
-                            className="hidden"
-                          />
-                          <label
-                            htmlFor="ledger-file"
-                            className="inline-flex items-center space-x-1.5 px-3.5 py-2 rounded-lg text-xs font-semibold bg-white border border-slate-200 text-slate-700 shadow-2xs hover:bg-slate-50 cursor-pointer"
-                          >
-                            <FileUp className="w-3.5 h-3.5" />
-                            <span>Select Ledger CSV</span>
-                          </label>
-                        </>
-                      )}
-                    </div>
-                  </div>
-
-                  {/* Invoices */}
-                  <div className={`border-2 border-dashed rounded-2xl p-5 text-center transition-all flex flex-col justify-between ${
-                    invoicesFile ? 'border-amber-500 bg-amber-50/20' : 'border-slate-200 bg-slate-50/50 hover:border-amber-400 hover:bg-amber-50/10'
-                  }`}>
-                    <div>
-                      <div className={`w-10 h-10 rounded-xl mx-auto flex items-center justify-center ${
-                        invoicesFile ? 'bg-amber-600 text-white' : 'bg-amber-50 text-amber-600'
-                      }`}>
-                        <Receipt className="w-5 h-5" />
+                      <div>
+                        <p className="text-xs font-bold text-white">Last run · {results.batch_id}</p>
+                        <p className="text-[11px] text-slate-400">{results.total_records} records · {formatPercent(results.metrics.raw_match_rate)} matched</p>
                       </div>
-                      <h4 className="font-bold text-slate-800 text-sm mt-3">Invoices CSV (Optional)</h4>
-                      <p className="text-xs text-slate-400 mt-1">Billing records, AP/AR line items</p>
                     </div>
-
-                    <div className="mt-5">
-                      {invoicesFile ? (
-                        <div className="bg-white p-2.5 rounded-lg border border-amber-200 text-xs text-amber-900 font-medium flex items-center justify-between">
-                          <span className="truncate max-w-xs">{invoicesFile.name}</span>
-                          <button
-                            type="button"
-                            onClick={() => setInvoicesFile(null)}
-                            className="text-rose-500 hover:text-rose-700 ml-2 font-bold cursor-pointer"
-                          >
-                            ✕
-                          </button>
-                        </div>
-                      ) : (
-                        <>
-                          <input
-                            type="file"
-                            id="invoice-file"
-                            accept=".csv"
-                            onChange={(e) => setInvoicesFile(e.target.files[0])}
-                            className="hidden"
-                          />
-                          <label
-                            htmlFor="invoice-file"
-                            className="inline-flex items-center space-x-1.5 px-3.5 py-2 rounded-lg text-xs font-semibold bg-white border border-slate-200 text-slate-700 shadow-2xs hover:bg-slate-50 cursor-pointer"
-                          >
-                            <FileUp className="w-3.5 h-3.5" />
-                            <span>Select Invoices CSV</span>
-                          </label>
-                        </>
-                      )}
-                    </div>
-                  </div>
+                  )}
                 </div>
 
-                {/* Opening Balances & Matching Mode */}
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 pt-5 border-t border-slate-100">
-                  <div>
-                    <label className="block text-xs font-semibold text-slate-700 mb-1">Bank Opening Balance ($)</label>
-                    <input
-                      type="number"
-                      step="0.01"
-                      value={bankOpening}
-                      onChange={(e) => setBankOpening(parseFloat(e.target.value) || 0)}
-                      className="w-full px-3 py-2 text-xs border border-slate-200 rounded-lg focus:outline-indigo-500 bg-slate-50"
-                      placeholder="0.00"
-                    />
+                <form onSubmit={handleCustomReconcile} className="relative mt-8 space-y-6">
+                  <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+                    {[
+                      {
+                        key: 'bank',
+                        file: bankFile,
+                        setter: setBankFile,
+                        id: 'bank-file',
+                        icon: Building2,
+                        title: 'Bank Feed',
+                        desc: 'Statements, settlements & wires',
+                        chip: 'bg-indigo-500/15 text-indigo-300 ring-indigo-400/20',
+                        active: 'border-indigo-400/40 bg-indigo-500/[0.06]',
+                        idle: 'hover:border-indigo-400/30 hover:bg-indigo-500/[0.03]',
+                      },
+                      {
+                        key: 'ledger',
+                        file: ledgerFile,
+                        setter: setLedgerFile,
+                        id: 'ledger-file',
+                        icon: FileSpreadsheet,
+                        title: 'General Ledger',
+                        desc: 'QuickBooks, Xero & ERP journals',
+                        chip: 'bg-emerald-500/15 text-emerald-300 ring-emerald-400/20',
+                        active: 'border-emerald-400/40 bg-emerald-500/[0.06]',
+                        idle: 'hover:border-emerald-400/30 hover:bg-emerald-500/[0.03]',
+                      },
+                      {
+                        key: 'inv',
+                        file: invoicesFile,
+                        setter: setInvoicesFile,
+                        id: 'invoice-file',
+                        icon: Receipt,
+                        title: 'Invoices',
+                        desc: 'Billing & AP/AR items · optional',
+                        chip: 'bg-amber-500/15 text-amber-300 ring-amber-400/20',
+                        active: 'border-amber-400/40 bg-amber-500/[0.06]',
+                        idle: 'hover:border-amber-400/30 hover:bg-amber-500/[0.03]',
+                      },
+                    ].map((s) => {
+                      const Icon = s.icon;
+                      return (
+                        <div
+                          key={s.key}
+                          className={cx(
+                            'group relative flex flex-col justify-between rounded-2xl border-2 border-dashed p-5 text-center transition-all duration-200',
+                            s.file ? cx('border-solid', s.active) : cx('border-white/10 bg-white/[0.015]', s.idle)
+                          )}
+                        >
+                          <div>
+                            <div className={cx('mx-auto flex h-11 w-11 items-center justify-center rounded-xl ring-1', s.file ? 'bg-white text-slate-900' : s.chip)}>
+                              <Icon className="h-5 w-5" />
+                            </div>
+                            <h4 className="mt-3 text-sm font-bold text-white">{s.title}</h4>
+                            <p className="mt-1 text-xs text-slate-400">{s.desc}</p>
+                          </div>
+                          <div className="mt-5">
+                            {s.file ? (
+                              <div className="flex items-center justify-between gap-2 rounded-xl border bg-black/20 px-3 py-2.5 text-xs font-medium backdrop-blur">
+                                <span className="min-w-0 truncate text-slate-200">{s.file.name}</span>
+                                <button type="button" onClick={() => s.setter(null)} className="flex h-6 w-6 shrink-0 items-center justify-center rounded-lg bg-white/10 text-slate-400 hover:bg-white/15 hover:text-white cursor-pointer">
+                                  <X className="h-3.5 w-3.5" />
+                                </button>
+                              </div>
+                            ) : (
+                              <>
+                                <input type="file" id={s.id} accept=".csv,text/csv" onChange={(e) => s.setter(e.target.files?.[0] || null)} className="hidden" />
+                                <label htmlFor={s.id} className="inline-flex cursor-pointer items-center gap-1.5 rounded-xl border border-white/10 bg-white/[0.06] px-3.5 py-2 text-xs font-semibold text-white shadow-sm transition hover:bg-white/10">
+                                  <FileUp className="h-3.5 w-3.5" />
+                                  Select CSV
+                                </label>
+                              </>
+                            )}
+                          </div>
+                        </div>
+                      );
+                    })}
                   </div>
-                  <div>
-                    <label className="block text-xs font-semibold text-slate-700 mb-1">Ledger Opening Balance ($)</label>
-                    <input
-                      type="number"
-                      step="0.01"
-                      value={ledgerOpening}
-                      onChange={(e) => setLedgerOpening(parseFloat(e.target.value) || 0)}
-                      className="w-full px-3 py-2 text-xs border border-slate-200 rounded-lg focus:outline-indigo-500 bg-slate-50"
-                      placeholder="0.00"
-                    />
+
+                  <div className="grid grid-cols-1 gap-4 border-t border-white/[0.06] pt-6 sm:grid-cols-3">
+                    <label className="space-y-1.5">
+                      <span className="text-xs font-semibold text-slate-300">Bank opening balance</span>
+                      <div className="relative">
+                        <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-xs text-slate-500">$</span>
+                        <input type="number" step="0.01" value={bankOpening} onChange={(e) => setBankOpening(parseFloat(e.target.value) || 0)} className={cx(inputCls, 'pl-7')} placeholder="0.00" />
+                      </div>
+                    </label>
+                    <label className="space-y-1.5">
+                      <span className="text-xs font-semibold text-slate-300">Ledger opening balance</span>
+                      <div className="relative">
+                        <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-xs text-slate-500">$</span>
+                        <input type="number" step="0.01" value={ledgerOpening} onChange={(e) => setLedgerOpening(parseFloat(e.target.value) || 0)} className={cx(inputCls, 'pl-7')} placeholder="0.00" />
+                      </div>
+                    </label>
+                    <label className="space-y-1.5">
+                      <span className="text-xs font-semibold text-slate-300">Matching engine</span>
+                      <select value={matchingStrategy} onChange={(e) => setMatchingStrategy(e.target.value)} className={selectCls}>
+                        <option value="auto">Adaptive Hybrid — deterministic + AI</option>
+                        <option value="gemini">AI Reasoner priority</option>
+                        <option value="off">Deterministic only — no AI</option>
+                      </select>
+                    </label>
                   </div>
-                  <div>
-                    <label className="block text-xs font-semibold text-slate-700 mb-1">Matching Engine Mode</label>
-                    <select
-                      value={matchingStrategy}
-                      onChange={(e) => setMatchingStrategy(e.target.value)}
-                      className="w-full px-3 py-2 text-xs border border-slate-200 rounded-lg focus:outline-indigo-500 bg-slate-50 cursor-pointer font-medium"
+
+                  <div className="flex flex-col-reverse items-stretch justify-between gap-3 border-t border-white/[0.06] pt-6 sm:flex-row sm:items-center">
+                    <button type="button" onClick={handleRunSampleData} disabled={loading} className="inline-flex items-center justify-center gap-1.5 text-xs font-medium text-slate-400 underline decoration-white/20 underline-offset-4 hover:text-indigo-300 hover:decoration-indigo-400/40 disabled:opacity-50 cursor-pointer">
+                      <Database className="h-3.5 w-3.5" />
+                      Or try with a sample benchmark dataset
+                    </button>
+                    <button
+                      type="submit"
+                      disabled={loading || !hasFiles}
+                      className={cx(
+                        'inline-flex items-center justify-center gap-2 rounded-xl px-6 py-3 text-sm font-semibold transition-all focus-ring cursor-pointer',
+                        !hasFiles
+                          ? 'cursor-not-allowed border border-white/10 bg-white/5 text-slate-500'
+                          : 'bg-gradient-to-r from-indigo-500 to-violet-500 text-white shadow-lg shadow-indigo-500/25 hover:from-indigo-400 hover:to-violet-400 hover:shadow-indigo-500/30'
+                      )}
                     >
-                      <option value="auto">Adaptive Hybrid (Deterministic + AI)</option>
-                      <option value="gemini">AI Reasoner Priority</option>
-                      <option value="off">Deterministic Only (No AI)</option>
-                    </select>
+                      <Play className="h-4 w-4" />
+                      Run reconciliation
+                      <ArrowRight className="h-4 w-4 opacity-70" />
+                    </button>
                   </div>
-                </div>
+                </form>
+              </div>
+            </div>
 
-                {/* Primary Action Row */}
-                <div className="flex flex-col sm:flex-row items-center justify-between gap-4 pt-5 border-t border-slate-100">
-                  <button
-                    type="button"
-                    onClick={handleRunSampleData}
-                    disabled={loading}
-                    className="text-xs font-medium text-slate-500 hover:text-indigo-600 underline cursor-pointer"
-                  >
-                    Or try with a sample benchmark dataset
-                  </button>
-
-                  <button
-                    type="submit"
-                    disabled={loading || (!bankFile && !ledgerFile && !invoicesFile)}
-                    className={`inline-flex items-center space-x-2 px-6 py-2.5 rounded-xl text-xs font-semibold shadow-xs transition-all ${
-                      (!bankFile && !ledgerFile && !invoicesFile)
-                        ? 'bg-slate-200 text-slate-400 cursor-not-allowed'
-                        : 'bg-indigo-600 text-white hover:bg-indigo-700 cursor-pointer'
-                    }`}
-                  >
-                    <Play className="w-3.5 h-3.5" />
-                    <span>Run Reconciliation</span>
-                  </button>
-                </div>
-              </form>
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+              {[
+                { title: 'Auto column mapping', desc: 'Dates, currencies, references & descriptions are detected and cleaned automatically.', icon: Sparkles, accent: 'indigo' },
+                { title: 'Three-tier matching', desc: 'Exact → fuzzy scoring → AI reasoner with confidence gating.', icon: Layers, accent: 'violet' },
+                { title: 'Auditable by design', desc: 'Every match and exception carries evidence + a full JSON trail.', icon: ShieldCheck, accent: 'emerald' },
+              ].map((f) => {
+                const Icon = f.icon;
+                return (
+                  <div key={f.title} className="rounded-2xl border border-white/[0.06] bg-white/[0.02] p-4">
+                    <div className={cx('flex h-8 w-8 items-center justify-center rounded-xl ring-1', ACCENTS[f.accent].chip)}>
+                      <Icon className="h-4 w-4" />
+                    </div>
+                    <h4 className="mt-3 text-xs font-bold text-white">{f.title}</h4>
+                    <p className="mt-1 text-xs leading-relaxed text-slate-400">{f.desc}</p>
+                  </div>
+                );
+              })}
             </div>
           </div>
         )}
 
-        {/* TAB 2: EXECUTIVE DASHBOARD (WHEN RESULTS READY) */}
         {activeTab === 'dashboard' && results && (
-          <div className="space-y-6">
-            {/* Top KPI Cards Grid */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-              {/* Match Rate Card */}
-              <div className="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-xs flex flex-col justify-between">
-                <div className="flex items-center justify-between">
-                  <span className="text-xs font-semibold text-slate-500 tracking-wide uppercase">Match Rate</span>
-                  <div className="w-8 h-8 rounded-lg bg-emerald-50 text-emerald-600 flex items-center justify-center">
-                    <CheckCircle2 className="w-4 h-4" />
-                  </div>
-                </div>
-                <div className="mt-4">
-                  <div className="flex items-baseline space-x-2">
-                    <span className="text-3xl font-extrabold text-slate-900">
-                      {formatPercent(results.metrics.raw_match_rate)}
-                    </span>
-                    {results.metrics.has_ground_truth && (
-                      <span className="text-xs font-medium text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-md border border-emerald-100">
-                        {formatPercent(results.metrics.validated_match_rate)} Validated
-                      </span>
-                    )}
-                  </div>
-                  <p className="text-xs text-slate-500 mt-1">
-                    {results.metrics.matched_records} of {results.total_records} records reconciled
-                  </p>
-                </div>
-              </div>
-
-              {/* Accuracy & Quality Card */}
-              <div className="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-xs flex flex-col justify-between">
-                <div className="flex items-center justify-between">
-                  <span className="text-xs font-semibold text-slate-500 tracking-wide uppercase">Accuracy Score (F1)</span>
-                  <div className="w-8 h-8 rounded-lg bg-indigo-50 text-indigo-600 flex items-center justify-center">
-                    <TrendingUp className="w-4 h-4" />
-                  </div>
-                </div>
-                <div className="mt-4">
-                  <div className="flex items-baseline space-x-2">
-                    <span className="text-3xl font-extrabold text-slate-900">
-                      {results.metrics.f1 !== null ? formatPercent(results.metrics.f1) : 'N/A'}
-                    </span>
-                    <span className="text-xs font-medium text-slate-500">
-                      Precision: {results.metrics.precision !== null ? formatPercent(results.metrics.precision) : 'N/A'}
-                    </span>
-                  </div>
-                  <p className="text-xs text-slate-500 mt-1">
-                    Recall: {results.metrics.recall !== null ? formatPercent(results.metrics.recall) : 'N/A'} (needs ground truth)
-                  </p>
-                </div>
-              </div>
-
-              {/* Exception Exposure Card */}
-              <div className="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-xs flex flex-col justify-between">
-                <div className="flex items-center justify-between">
-                  <span className="text-xs font-semibold text-slate-500 tracking-wide uppercase">Exception Exposure</span>
-                  <div className="w-8 h-8 rounded-lg bg-rose-50 text-rose-600 flex items-center justify-center">
-                    <AlertCircle className="w-4 h-4" />
-                  </div>
-                </div>
-                <div className="mt-4">
-                  <span className="text-3xl font-extrabold text-rose-600">
-                    {formatMoney(results.cash_position.exception_exposure_total)}
-                  </span>
-                  <p className="text-xs text-slate-500 mt-1">
-                    {results.exceptions.length} unresolved transactions flagged for review
-                  </p>
-                </div>
-              </div>
-
-              {/* Reconciled Variance Card */}
-              <div className="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-xs flex flex-col justify-between">
-                <div className="flex items-center justify-between">
-                  <span className="text-xs font-semibold text-slate-500 tracking-wide uppercase">Reconciled Variance</span>
-                  <div className="w-8 h-8 rounded-lg bg-sky-50 text-sky-600 flex items-center justify-center">
-                    <DollarSign className="w-4 h-4" />
-                  </div>
-                </div>
-                <div className="mt-4">
-                  <span className="text-3xl font-extrabold text-slate-900">
-                    {formatMoney(results.cash_position.reconciled_difference)}
-                  </span>
-                  <p className="text-xs text-slate-500 mt-1">
-                    Bank Cash vs. General Ledger delta
-                  </p>
-                </div>
-              </div>
+          <div className="animate-fade-up space-y-6">
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+              <StatCard
+                label="Match rate"
+                accent="emerald"
+                icon={CheckCircle2}
+                value={formatPercent(results.metrics.raw_match_rate)}
+                badge={
+                  results.metrics.has_ground_truth ? (
+                    <span className="rounded-full border border-emerald-400/20 bg-emerald-500/10 px-2 py-1 text-[11px] font-semibold text-emerald-300">{formatPercent(results.metrics.validated_match_rate)} validated</span>
+                  ) : null
+                }
+                sub={`${results.metrics.matched_records} of ${results.total_records} records reconciled`}
+              />
+              <StatCard
+                label="Accuracy · F1"
+                accent="indigo"
+                icon={TrendingUp}
+                value={results.metrics.f1 !== null ? formatPercent(results.metrics.f1) : 'N/A'}
+                badge={<span className="text-[11px] font-medium text-slate-400">P {results.metrics.precision !== null ? formatPercent(results.metrics.precision) : 'N/A'}</span>}
+                sub={`Recall ${results.metrics.recall !== null ? formatPercent(results.metrics.recall) : 'N/A'} · needs ground truth`}
+              />
+              <StatCard
+                label="Exception exposure"
+                accent="rose"
+                icon={AlertCircle}
+                value={formatMoney(results.cash_position.exception_exposure_total)}
+                sub={`${results.exceptions.length} unresolved · flagged for review`}
+              />
+              <StatCard
+                label="Reconciled variance"
+                accent="sky"
+                icon={DollarSign}
+                value={formatMoney(results.cash_position.reconciled_difference)}
+                sub="Bank cash vs. ledger delta"
+              />
             </div>
 
-            {/* Cash Position Snapshot & Resolution Breakdown */}
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-              {/* Cash Position Snapshot (2 Cols) */}
-              <div className="lg:col-span-2 bg-white rounded-2xl border border-slate-200/80 p-6 shadow-xs">
-                <div className="flex items-center justify-between pb-4 border-b border-slate-100">
-                  <div className="flex items-center space-x-2.5">
-                    <div className="w-7 h-7 rounded-lg bg-indigo-50 text-indigo-600 flex items-center justify-center">
-                      <DollarSign className="w-4 h-4" />
+            <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
+              <div className="glass rounded-3xl p-6 lg:col-span-2">
+                <div className="flex flex-wrap items-start justify-between gap-3 border-b border-white/[0.06] pb-4">
+                  <div className="flex items-start gap-3">
+                    <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-indigo-500/15 text-indigo-300 ring-1 ring-indigo-400/20">
+                      <DollarSign className="h-4 w-4" />
                     </div>
                     <div>
-                      <h3 className="font-bold text-slate-900 text-sm">Reconciled Cash-Position Snapshot</h3>
-                      <p className="text-xs text-slate-500">Real-time bank vs. general ledger liquidity breakdown</p>
+                      <h3 className="text-sm font-bold text-white">Cash-position snapshot</h3>
+                      <p className="text-xs text-slate-400">Live bank vs. ledger liquidity</p>
                     </div>
                   </div>
-                  <span className="text-xs font-medium text-slate-600 bg-slate-100 px-2.5 py-1 rounded-md border border-slate-200">
-                    Reconciled
-                  </span>
+                  <span className="rounded-full border border-emerald-400/20 bg-emerald-500/10 px-2.5 py-1 text-[11px] font-semibold text-emerald-300">Reconciled</span>
                 </div>
 
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-5">
-                  <div className="bg-slate-50/70 p-4 rounded-xl border border-slate-200/60">
-                    <span className="text-xs text-slate-500 uppercase tracking-wide font-medium">Confirmed Bank Cash</span>
-                    <div className="text-2xl font-extrabold text-slate-900 mt-1">
-                      {formatMoney(results.cash_position.confirmed_bank_cash)}
-                    </div>
-                    <div className="text-xs text-slate-500 mt-2 flex justify-between">
-                      <span>Opening Balance:</span>
-                      <span className="font-medium text-slate-700">{formatMoney(results.cash_position.bank_opening)}</span>
-                    </div>
-                    <div className="text-xs text-slate-500 flex justify-between mt-0.5">
-                      <span>Matched Bank Movements:</span>
-                      <span className="font-medium text-slate-700">+{formatMoney(results.cash_position.matched_bank_movements)}</span>
+                <div className="mt-5 grid grid-cols-1 gap-4 sm:grid-cols-2">
+                  <div className="rounded-2xl border border-white/[0.06] bg-white/[0.03] p-4">
+                    <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-slate-400">Confirmed bank cash</p>
+                    <p className="mt-2 text-2xl font-extrabold tracking-tight text-white tabular-nums">{formatMoney(results.cash_position.confirmed_bank_cash)}</p>
+                    <div className="mt-4 space-y-1.5 text-xs">
+                      <div className="flex justify-between text-slate-400"><span>Opening balance</span><span className="font-semibold text-slate-200 tabular-nums">{formatMoney(results.cash_position.bank_opening)}</span></div>
+                      <div className="flex justify-between text-slate-400"><span>Matched movements</span><span className="font-semibold text-emerald-300 tabular-nums">+{formatMoney(results.cash_position.matched_bank_movements)}</span></div>
                     </div>
                   </div>
-
-                  <div className="bg-slate-50/70 p-4 rounded-xl border border-slate-200/60">
-                    <span className="text-xs text-slate-500 uppercase tracking-wide font-medium">Confirmed Ledger Cash</span>
-                    <div className="text-2xl font-extrabold text-slate-900 mt-1">
-                      {formatMoney(results.cash_position.confirmed_ledger_cash)}
-                    </div>
-                    <div className="text-xs text-slate-500 mt-2 flex justify-between">
-                      <span>Opening Balance:</span>
-                      <span className="font-medium text-slate-700">{formatMoney(results.cash_position.ledger_opening)}</span>
-                    </div>
-                    <div className="text-xs text-slate-500 flex justify-between mt-0.5">
-                      <span>Matched Ledger Movements:</span>
-                      <span className="font-medium text-slate-700">+{formatMoney(results.cash_position.matched_ledger_movements)}</span>
+                  <div className="rounded-2xl border border-white/[0.06] bg-white/[0.03] p-4">
+                    <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-slate-400">Confirmed ledger cash</p>
+                    <p className="mt-2 text-2xl font-extrabold tracking-tight text-white tabular-nums">{formatMoney(results.cash_position.confirmed_ledger_cash)}</p>
+                    <div className="mt-4 space-y-1.5 text-xs">
+                      <div className="flex justify-between text-slate-400"><span>Opening balance</span><span className="font-semibold text-slate-200 tabular-nums">{formatMoney(results.cash_position.ledger_opening)}</span></div>
+                      <div className="flex justify-between text-slate-400"><span>Matched movements</span><span className="font-semibold text-emerald-300 tabular-nums">+{formatMoney(results.cash_position.matched_ledger_movements)}</span></div>
                     </div>
                   </div>
                 </div>
 
-                {/* Exception Exposure by Source */}
-                <div className="mt-5 pt-4 border-t border-slate-100 flex flex-wrap items-center justify-between gap-4 text-xs text-slate-600">
-                  <span className="font-medium text-slate-700">Exception Exposure by Source:</span>
-                  <div className="flex items-center space-x-4">
-                    <span>Bank: <strong className="text-rose-600">{formatMoney(results.cash_position.exception_exposure_by_source?.bank || 0)}</strong></span>
-                    <span>Ledger: <strong className="text-rose-600">{formatMoney(results.cash_position.exception_exposure_by_source?.ledger || 0)}</strong></span>
-                    <span>Invoices: <strong className="text-rose-600">{formatMoney(results.cash_position.exception_exposure_by_source?.invoice || 0)}</strong></span>
+                <div className="mt-5 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-white/[0.06] bg-black/20 px-4 py-3 text-xs">
+                  <span className="font-semibold text-slate-300">Exposure by source</span>
+                  <div className="flex flex-wrap gap-4">
+                    <span className="text-slate-400">Bank <strong className="font-bold text-rose-300 tabular-nums">{formatMoney(results.cash_position.exception_exposure_by_source?.bank || 0)}</strong></span>
+                    <span className="text-slate-400">Ledger <strong className="font-bold text-rose-300 tabular-nums">{formatMoney(results.cash_position.exception_exposure_by_source?.ledger || 0)}</strong></span>
+                    <span className="text-slate-400">Invoices <strong className="font-bold text-rose-300 tabular-nums">{formatMoney(results.cash_position.exception_exposure_by_source?.invoice || 0)}</strong></span>
                   </div>
                 </div>
               </div>
 
-              {/* Resolution Tier Breakdown */}
-              <div className="bg-white rounded-2xl border border-slate-200/80 p-6 shadow-xs flex flex-col justify-between">
+              <div className="glass flex flex-col justify-between rounded-3xl p-6">
                 <div>
-                  <h3 className="font-bold text-slate-900 text-sm">Resolution Method Breakdown</h3>
-                  <p className="text-xs text-slate-500 mt-0.5">Reconciliation distribution across tiers</p>
-
-                  <div className="space-y-4 mt-5">
-                    {/* Tier 1: Exact */}
-                    <div>
-                      <div className="flex justify-between text-xs font-semibold mb-1">
-                        <span className="text-emerald-700">Tier 1: Exact Match</span>
-                        <span className="text-slate-900">{results.metrics.method_counts.exact} records</span>
-                      </div>
-                      <div className="w-full bg-slate-100 rounded-full h-2 overflow-hidden">
-                        <div
-                          className="bg-emerald-500 h-2 rounded-full"
-                          style={{ width: `${(results.metrics.method_counts.exact / results.total_records) * 100}%` }}
-                        />
-                      </div>
-                    </div>
-
-                    {/* Tier 2: Fuzzy */}
-                    <div>
-                      <div className="flex justify-between text-xs font-semibold mb-1">
-                        <span className="text-amber-700">Tier 2: Fuzzy Scoring</span>
-                        <span className="text-slate-900">{results.metrics.method_counts.fuzzy} records</span>
-                      </div>
-                      <div className="w-full bg-slate-100 rounded-full h-2 overflow-hidden">
-                        <div
-                          className="bg-amber-500 h-2 rounded-full"
-                          style={{ width: `${(results.metrics.method_counts.fuzzy / results.total_records) * 100}%` }}
-                        />
-                      </div>
-                    </div>
-
-                    {/* Tier 3: AI Reasoner */}
-                    <div>
-                      <div className="flex justify-between text-xs font-semibold mb-1">
-                        <span className="text-indigo-700">Tier 3: AI Reasoner</span>
-                        <span className="text-slate-900">{results.metrics.method_counts.llm} records</span>
-                      </div>
-                      <div className="w-full bg-slate-100 rounded-full h-2 overflow-hidden">
-                        <div
-                          className="bg-indigo-600 h-2 rounded-full"
-                          style={{ width: `${(results.metrics.method_counts.llm / results.total_records) * 100}%` }}
-                        />
-                      </div>
-                    </div>
-
-                    {/* Exceptions */}
-                    <div>
-                      <div className="flex justify-between text-xs font-semibold mb-1">
-                        <span className="text-rose-700">Triaged Exceptions</span>
-                        <span className="text-slate-900">{results.exceptions.length} records</span>
-                      </div>
-                      <div className="w-full bg-slate-100 rounded-full h-2 overflow-hidden">
-                        <div
-                          className="bg-rose-500 h-2 rounded-full"
-                          style={{ width: `${(results.exceptions.length / results.total_records) * 100}%` }}
-                        />
-                      </div>
-                    </div>
+                  <h3 className="text-sm font-bold text-white">Resolution breakdown</h3>
+                  <p className="text-xs text-slate-400">Distribution across tiers</p>
+                  <div className="mt-6 space-y-4">
+                    {[
+                      { label: 'Tier 1 · Exact', value: results.metrics.method_counts.exact, color: 'bg-emerald-500', text: 'text-emerald-300' },
+                      { label: 'Tier 2 · Fuzzy', value: results.metrics.method_counts.fuzzy, color: 'bg-amber-500', text: 'text-amber-300' },
+                      { label: 'Tier 3 · AI', value: results.metrics.method_counts.llm, color: 'bg-indigo-500', text: 'text-indigo-300' },
+                      { label: 'Exceptions', value: results.exceptions.length, color: 'bg-rose-500', text: 'text-rose-300' },
+                    ].map((r) => {
+                      const pct = results.total_records ? (r.value / results.total_records) * 100 : 0;
+                      return (
+                        <div key={r.label}>
+                          <div className="mb-1.5 flex justify-between text-xs font-semibold"><span className={r.text}>{r.label}</span><span className="tabular-nums text-white">{r.value}</span></div>
+                          <div className="h-2 overflow-hidden rounded-full bg-white/10">
+                            <div className={cx('h-full rounded-full transition-all duration-700', r.color)} style={{ width: `${pct}%` }} />
+                          </div>
+                        </div>
+                      );
+                    })}
                   </div>
                 </div>
-
-                <div className="mt-6 pt-4 border-t border-slate-100 text-xs text-slate-500 flex items-center justify-between">
-                  <span>Batch: <strong className="text-slate-700">{results.batch_id}</strong></span>
-                  <button
-                    onClick={() => setActiveTab('exceptions')}
-                    className="text-indigo-600 font-semibold hover:text-indigo-800 flex items-center cursor-pointer"
-                  >
-                    <span>View Exceptions</span>
-                    <ChevronRight className="w-3.5 h-3.5 ml-0.5" />
+                <div className="mt-6 flex items-center justify-between border-t border-white/[0.06] pt-4 text-xs">
+                  <span className="truncate font-mono text-slate-400">Batch <strong className="font-semibold text-slate-200">{results.batch_id}</strong></span>
+                  <button onClick={() => setActiveTab('exceptions')} className="inline-flex shrink-0 items-center gap-1 font-semibold text-indigo-300 hover:text-indigo-200 cursor-pointer">
+                    View exceptions <ChevronRight className="h-3.5 w-3.5" />
                   </button>
                 </div>
               </div>
@@ -739,269 +615,185 @@ export default function App() {
           </div>
         )}
 
-        {/* TAB 3: EXCEPTIONS */}
         {activeTab === 'exceptions' && results && (
-          <div className="bg-white rounded-2xl border border-slate-200/80 p-6 shadow-xs space-y-5">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div className="glass animate-fade-up space-y-5 rounded-3xl p-6">
+            <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
               <div>
-                <h3 className="font-bold text-slate-900 text-base">Exception Management & Triage</h3>
-                <p className="text-xs text-slate-500 mt-0.5">
-                  Complete ledger accountability: every unresolved transaction is cataloged with root cause diagnostics.
-                </p>
+                <h3 className="text-base font-bold text-white">Exception triage</h3>
+                <p className="mt-1 max-w-xl text-xs leading-relaxed text-slate-400">Every unresolved transaction cataloged with root cause and the next best candidate — nothing falls through the cracks.</p>
               </div>
-
-              {/* Search & Filters */}
-              <div className="flex items-center space-x-2">
+              <div className="flex shrink-0 items-center gap-2">
                 <div className="relative">
-                  <Search className="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
-                  <input
-                    type="text"
-                    placeholder="Search exceptions..."
-                    value={exceptionSearch}
-                    onChange={(e) => setExceptionSearch(e.target.value)}
-                    className="pl-8 pr-3 py-1.5 text-xs border border-slate-200 rounded-lg focus:outline-indigo-500 bg-slate-50 w-44 sm:w-56"
-                  />
+                  <Search className="pointer-events-none absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-slate-500" />
+                  <input type="text" placeholder="Search ID or explanation…" value={exceptionSearch} onChange={(e) => setExceptionSearch(e.target.value)} className="w-44 rounded-xl border border-white/10 bg-white/[0.04] py-2 pl-8 pr-3 text-xs text-white placeholder:text-slate-500 outline-none focus:border-indigo-400/50 focus:bg-white/[0.06] sm:w-56" />
                 </div>
-
-                <select
-                  value={exceptionFilter}
-                  onChange={(e) => setExceptionFilter(e.target.value)}
-                  className="px-2.5 py-1.5 text-xs border border-slate-200 rounded-lg focus:outline-indigo-500 bg-slate-50 font-medium cursor-pointer"
-                >
-                  <option value="ALL">All Categories</option>
-                  <option value="POSSIBLE_DUPLICATE">Double-Post Conflict</option>
-                  <option value="DUPLICATE_CANDIDATE">Near-Tie Conflict</option>
-                  <option value="LOW_CONFIDENCE">Low Confidence</option>
-                  <option value="NO_COUNTERPART">Unmatched Record</option>
-                  <option value="AMOUNT_MISMATCH">Amount Mismatch</option>
+                <select value={exceptionFilter} onChange={(e) => setExceptionFilter(e.target.value)} className="rounded-xl border border-white/10 bg-white/[0.04] px-2.5 py-2 text-xs font-medium text-slate-200 outline-none focus:border-indigo-400/50 cursor-pointer">
+                  <option value="ALL" className="bg-[#0b0f1d]">All categories</option>
+                  <option value="POSSIBLE_DUPLICATE" className="bg-[#0b0f1d]">Double-Post</option>
+                  <option value="DUPLICATE_CANDIDATE" className="bg-[#0b0f1d]">Near-Tie</option>
+                  <option value="LOW_CONFIDENCE" className="bg-[#0b0f1d]">Low Confidence</option>
+                  <option value="NO_COUNTERPART" className="bg-[#0b0f1d]">Unmatched</option>
+                  <option value="AMOUNT_MISMATCH" className="bg-[#0b0f1d]">Amount Variance</option>
                 </select>
               </div>
             </div>
 
-            {/* Exceptions Table */}
-            <div className="overflow-x-auto rounded-xl border border-slate-100">
-              <table className="w-full text-left text-xs border-collapse">
-                <thead className="bg-slate-50/80 text-slate-600 border-b border-slate-200/80 font-semibold uppercase tracking-wider">
-                  <tr>
-                    <th className="py-3 px-4">Record ID</th>
-                    <th className="py-3 px-3">Source</th>
-                    <th className="py-3 px-4">Diagnosis</th>
-                    <th className="py-3 px-4">Best Candidate</th>
-                    <th className="py-3 px-3">Confidence</th>
-                    <th className="py-3 px-4">Explanation</th>
-                    <th className="py-3 px-3">Recommended Action</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-slate-100 font-normal">
-                  {filteredExceptions.map((item, idx) => (
-                    <tr key={idx} className="hover:bg-slate-50/60 transition-colors">
-                      <td className="py-3 px-4 font-bold text-slate-900">{item.record_id}</td>
-                      <td className="py-3 px-3 capitalize font-medium text-slate-600">{item.source}</td>
-                      <td className="py-3 px-4">{getReasonBadge(item.reason)}</td>
-                      <td className="py-3 px-4 font-mono text-slate-700">
-                        {item.best_candidate_id ? `${item.best_candidate_id} (${item.best_candidate_source})` : '—'}
-                      </td>
-                      <td className="py-3 px-3 font-semibold text-slate-700">
-                        {(item.confidence * 100).toFixed(0)}%
-                      </td>
-                      <td className="py-3 px-4 text-slate-600 max-w-md">{item.explanation}</td>
-                      <td className="py-3 px-3">
-                        <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-semibold bg-indigo-50 text-indigo-700 border border-indigo-100">
-                          {item.recommended_action}
-                        </span>
-                      </td>
+            <div className="overflow-hidden rounded-2xl border border-white/[0.06]">
+              <div className="overflow-x-auto">
+                <table className="w-full min-w-[900px] border-collapse text-left text-xs">
+                  <thead>
+                    <tr className="border-b border-white/[0.06] bg-white/[0.04] text-[11px] font-semibold uppercase tracking-[0.08em] text-slate-400">
+                      <th className="px-4 py-3">Record ID</th>
+                      <th className="px-3 py-3">Source</th>
+                      <th className="px-4 py-3">Diagnosis</th>
+                      <th className="px-4 py-3">Best candidate</th>
+                      <th className="px-3 py-3">Confidence</th>
+                      <th className="px-4 py-3">Explanation</th>
+                      <th className="px-3 py-3">Action</th>
                     </tr>
-                  ))}
-                  {filteredExceptions.length === 0 && (
-                    <tr>
-                      <td colSpan={7} className="text-center py-8 text-slate-400">
-                        No exceptions found matching search criteria.
-                      </td>
-                    </tr>
-                  )}
-                </tbody>
-              </table>
+                  </thead>
+                  <tbody className="divide-y divide-white/[0.06]">
+                    {filteredExceptions.map((item, idx) => (
+                      <tr key={idx} className="transition-colors hover:bg-white/[0.03]">
+                        <td className="px-4 py-3 font-mono text-xs font-bold text-white">{item.record_id}</td>
+                        <td className="px-3 py-3 capitalize text-slate-300">{item.source}</td>
+                        <td className="px-4 py-3">{getReasonBadge(item.reason)}</td>
+                        <td className="px-4 py-3 font-mono text-[11px] text-slate-400">{item.best_candidate_id ? `${item.best_candidate_id} · ${item.best_candidate_source}` : '—'}</td>
+                        <td className="px-3 py-3">
+                          <div className="flex items-center gap-2">
+                            <div className="h-1.5 w-14 overflow-hidden rounded-full bg-white/10">
+                              <div className={cx('h-full rounded-full', item.confidence > 0.8 ? 'bg-emerald-400' : item.confidence > 0.5 ? 'bg-amber-400' : 'bg-rose-400')} style={{ width: `${(item.confidence * 100).toFixed(0)}%` }} />
+                            </div>
+                            <span className="font-semibold tabular-nums text-slate-200">{(item.confidence * 100).toFixed(0)}%</span>
+                          </div>
+                        </td>
+                        <td className="max-w-[360px] px-4 py-3 leading-relaxed text-slate-300">{item.explanation}</td>
+                        <td className="px-3 py-3"><span className="inline-flex rounded-full border border-indigo-400/20 bg-indigo-500/10 px-2.5 py-1 text-[11px] font-semibold text-indigo-300">{item.recommended_action}</span></td>
+                      </tr>
+                    ))}
+                    {filteredExceptions.length === 0 && (
+                      <tr><td colSpan={7} className="py-12 text-center text-slate-500">No exceptions match your filters.</td></tr>
+                    )}
+                  </tbody>
+                </table>
+              </div>
             </div>
           </div>
         )}
 
-        {/* TAB 4: RECONCILED GROUPS */}
         {activeTab === 'clusters' && results && (
-          <div className="bg-white rounded-2xl border border-slate-200/80 p-6 shadow-xs space-y-5">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div className="glass animate-fade-up space-y-5 rounded-3xl p-6">
+            <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
               <div>
-                <h3 className="font-bold text-slate-900 text-base">Reconciled Transaction Groups</h3>
-                <p className="text-xs text-slate-500 mt-0.5">
-                  Multi-source linked transaction clusters across Bank, Ledger, and Invoices.
-                </p>
+                <h3 className="text-base font-bold text-white">Reconciled groups</h3>
+                <p className="mt-1 text-xs text-slate-400">Linked transaction clusters across bank, ledger, and invoices.</p>
               </div>
-
-              <div className="relative">
-                <Search className="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
-                <input
-                  type="text"
-                  placeholder="Search group or reference..."
-                  value={clusterSearch}
-                  onChange={(e) => setClusterSearch(e.target.value)}
-                  className="pl-8 pr-3 py-1.5 text-xs border border-slate-200 rounded-lg focus:outline-indigo-500 bg-slate-50 w-56"
-                />
+              <div className="relative shrink-0">
+                <Search className="pointer-events-none absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-slate-500" />
+                <input type="text" placeholder="Search group or reference…" value={clusterSearch} onChange={(e) => setClusterSearch(e.target.value)} className="w-64 rounded-xl border border-white/10 bg-white/[0.04] py-2 pl-8 pr-3 text-xs text-white placeholder:text-slate-500 outline-none focus:border-indigo-400/50 focus:bg-white/[0.06]" />
               </div>
             </div>
 
-            {/* Clusters List */}
             <div className="space-y-3">
               {filteredClusters.map((cluster, idx) => (
-                <div key={idx} className="border border-slate-200 rounded-xl p-4 bg-slate-50/40 hover:bg-white transition-all shadow-2xs">
-                  <div className="flex items-center justify-between mb-3">
-                    <div className="flex items-center space-x-2">
-                      <span className="font-bold text-slate-900 text-xs">{cluster.group_id}</span>
+                <div key={idx} className="rounded-2xl border border-white/[0.06] bg-white/[0.03] p-4 transition-colors hover:bg-white/[0.05]">
+                  <div className="flex flex-wrap items-center justify-between gap-3">
+                    <div className="flex items-center gap-2">
+                      <span className="font-mono text-xs font-bold text-white">{cluster.group_id}</span>
                       {getMethodBadge(cluster.method)}
                     </div>
-                    <span className="text-xs text-slate-500 font-medium">
-                      {cluster.count} Linked Records
-                    </span>
+                    <span className="rounded-full border border-white/10 bg-white/5 px-2.5 py-1 text-[11px] font-medium text-slate-300">{cluster.count} linked</span>
                   </div>
-
-                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs">
+                  <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-3">
                     {cluster.members.map((m, mIdx) => (
-                      <div key={mIdx} className="bg-white p-3 rounded-lg border border-slate-200/70 shadow-2xs flex flex-col justify-between">
+                      <div key={mIdx} className="flex flex-col justify-between rounded-xl border border-white/[0.06] bg-black/20 p-3">
                         <div>
-                          <div className="flex justify-between items-center mb-1">
-                            <span className="font-bold text-slate-900">{m.record_id}</span>
-                            <span className="text-2xs font-bold uppercase px-1.5 py-0.5 rounded bg-slate-100 text-slate-600">
-                              {m.source}
-                            </span>
+                          <div className="flex items-center justify-between gap-2">
+                            <span className="font-mono text-xs font-bold text-white">{m.record_id}</span>
+                            <span className="rounded bg-white/10 px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wide text-slate-300">{m.source}</span>
                           </div>
-                          <p className="text-slate-500 text-2xs truncate">{m.description || m.counterparty || 'No description'}</p>
+                          <p className="mt-1.5 truncate text-[11px] leading-relaxed text-slate-400">{m.description || m.counterparty || 'No description'}</p>
                         </div>
-                        <div className="mt-2 pt-2 border-t border-slate-100 flex justify-between items-baseline">
-                          <span className="text-2xs text-slate-400">{m.date}</span>
-                          <span className="font-extrabold text-slate-900">{formatMoney(m.amount)}</span>
+                        <div className="mt-3 flex items-baseline justify-between border-t border-white/[0.06] pt-2">
+                          <span className="font-mono text-[11px] text-slate-500">{m.date}</span>
+                          <span className="text-xs font-extrabold tabular-nums text-white">{formatMoney(m.amount)}</span>
                         </div>
                       </div>
                     ))}
                   </div>
                 </div>
               ))}
+              {filteredClusters.length === 0 && <p className="rounded-xl border border-dashed border-white/10 py-10 text-center text-sm text-slate-500">No groups match your search.</p>}
             </div>
           </div>
         )}
 
-        {/* TAB 5: AUDIT TRAIL */}
         {activeTab === 'audit' && results && (
-          <div className="bg-white rounded-2xl border border-slate-200/80 p-6 shadow-xs space-y-4">
+          <div className="glass animate-fade-up space-y-4 rounded-3xl p-6">
             <div>
-              <h3 className="font-bold text-slate-900 text-base">Reconciliation Audit Trail</h3>
-              <p className="text-xs text-slate-500 mt-0.5">
-                Detailed event history showing matching stages, confidence gating, and exception handling.
-              </p>
+              <h3 className="text-base font-bold text-white">Audit trail</h3>
+              <p className="mt-1 text-xs text-slate-400">Every stage, gate, and decision — fully traceable for auditors.</p>
             </div>
-
-            <div className="overflow-y-auto max-h-96 space-y-2 border border-slate-100 rounded-xl p-4 bg-slate-50/50 font-mono text-xs">
+            <div className="max-h-[28rem] space-y-2 overflow-y-auto rounded-2xl border border-white/[0.06] bg-black/30 p-3 font-mono text-[11px]">
               {(results.audit_trail || []).map((entry, idx) => (
-                <div key={idx} className="p-2.5 rounded-lg bg-white border border-slate-200/60 shadow-2xs">
-                  <div className="flex justify-between items-center text-slate-400 text-2xs mb-1">
-                    <span>{entry.ts}</span>
-                    <span className="px-1.5 py-0.5 rounded bg-slate-100 text-slate-700 font-bold uppercase">
-                      {entry.stage} : {entry.event}
-                    </span>
+                <div key={idx} className="rounded-xl border border-white/[0.06] bg-white/[0.03] p-3">
+                  <div className="mb-1.5 flex flex-wrap items-center justify-between gap-2 text-[10px] text-slate-500">
+                    <span className="font-mono tabular-nums">{entry.ts}</span>
+                    <span className="rounded bg-indigo-500/15 px-1.5 py-1 font-bold uppercase tracking-wide text-indigo-300 ring-1 ring-indigo-400/20">{entry.stage} · {entry.event}</span>
                   </div>
-                  <pre className="text-slate-700 text-2xs whitespace-pre-wrap overflow-x-auto">
-                    {JSON.stringify(entry.detail, null, 2)}
-                  </pre>
+                  <pre className="whitespace-pre-wrap break-all text-[11px] leading-relaxed text-slate-300">{JSON.stringify(entry.detail, null, 2)}</pre>
                 </div>
               ))}
+              {(!results.audit_trail || results.audit_trail.length === 0) && <p className="py-8 text-center font-sans text-xs text-slate-500">No audit events recorded.</p>}
             </div>
           </div>
         )}
 
-        {/* TAB 6: EXPORT CENTER */}
         {activeTab === 'export' && results && (
-          <div className="bg-white rounded-2xl border border-slate-200/80 p-6 shadow-xs space-y-6">
+          <div className="glass animate-fade-up space-y-6 rounded-3xl p-6">
             <div>
-              <h3 className="font-bold text-slate-900 text-base">Export & Reporting Center</h3>
-              <p className="text-xs text-slate-500 mt-0.5">
-                Download auditable reports for internal finance operations, auditors, or ERP integration.
-              </p>
+              <h3 className="text-base font-bold text-white">Export & reporting</h3>
+              <p className="mt-1 text-xs text-slate-400">Auditable packs for finance ops, auditors, or ERP write-back.</p>
             </div>
-
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-              <a
-                href="/api/download/markdown"
-                target="_blank"
-                rel="noreferrer"
-                className="p-5 rounded-2xl border border-slate-200 bg-slate-50/50 hover:bg-indigo-50/30 hover:border-indigo-300 transition-all flex flex-col justify-between cursor-pointer"
-              >
-                <div>
-                  <FileText className="w-8 h-8 text-indigo-600 mb-3" />
-                  <h4 className="font-bold text-slate-900 text-sm">Executive Report</h4>
-                  <p className="text-xs text-slate-500 mt-1">Detailed markdown summary with cash snapshot.</p>
-                </div>
-                <div className="mt-4 flex items-center text-xs font-semibold text-indigo-600">
-                  <span>Download .md</span>
-                  <ArrowRight className="w-3.5 h-3.5 ml-1" />
-                </div>
-              </a>
-
-              <a
-                href="/api/download/csv"
-                target="_blank"
-                rel="noreferrer"
-                className="p-5 rounded-2xl border border-slate-200 bg-slate-50/50 hover:bg-emerald-50/30 hover:border-emerald-300 transition-all flex flex-col justify-between cursor-pointer"
-              >
-                <div>
-                  <FileSpreadsheet className="w-8 h-8 text-emerald-600 mb-3" />
-                  <h4 className="font-bold text-slate-900 text-sm">Exceptions CSV</h4>
-                  <p className="text-xs text-slate-500 mt-1">Spreadsheet list of unresolved transactions.</p>
-                </div>
-                <div className="mt-4 flex items-center text-xs font-semibold text-emerald-600">
-                  <span>Download .csv</span>
-                  <ArrowRight className="w-3.5 h-3.5 ml-1" />
-                </div>
-              </a>
-
-              <a
-                href="/api/download/json"
-                target="_blank"
-                rel="noreferrer"
-                className="p-5 rounded-2xl border border-slate-200 bg-slate-50/50 hover:bg-sky-50/30 hover:border-sky-300 transition-all flex flex-col justify-between cursor-pointer"
-              >
-                <div>
-                  <FileCheck className="w-8 h-8 text-sky-600 mb-3" />
-                  <h4 className="font-bold text-slate-900 text-sm">ERP Payload JSON</h4>
-                  <p className="text-xs text-slate-500 mt-1">Machine-readable payload for accounting write-back.</p>
-                </div>
-                <div className="mt-4 flex items-center text-xs font-semibold text-sky-600">
-                  <span>Download .json</span>
-                  <ArrowRight className="w-3.5 h-3.5 ml-1" />
-                </div>
-              </a>
-
-              <a
-                href="/api/download/audit"
-                target="_blank"
-                rel="noreferrer"
-                className="p-5 rounded-2xl border border-slate-200 bg-slate-50/50 hover:bg-purple-50/30 hover:border-purple-300 transition-all flex flex-col justify-between cursor-pointer"
-              >
-                <div>
-                  <ShieldCheck className="w-8 h-8 text-purple-600 mb-3" />
-                  <h4 className="font-bold text-slate-900 text-sm">Audit Trail</h4>
-                  <p className="text-xs text-slate-500 mt-1">Complete verification history and reasoning log.</p>
-                </div>
-                <div className="mt-4 flex items-center text-xs font-semibold text-purple-600">
-                  <span>Download Audit Log</span>
-                  <ArrowRight className="w-3.5 h-3.5 ml-1" />
-                </div>
-              </a>
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+              {[
+                { href: '/api/download/markdown', icon: FileText, title: 'Executive report', desc: 'Markdown summary with cash snapshot.', cta: 'Download .md', chip: ACCENTS.indigo.chip, line: ACCENTS.indigo.line, iconColor: 'text-indigo-300' },
+                { href: '/api/download/csv', icon: FileSpreadsheet, title: 'Exceptions CSV', desc: 'Unresolved transactions spreadsheet.', cta: 'Download .csv', chip: ACCENTS.emerald.chip, line: ACCENTS.emerald.line, iconColor: 'text-emerald-300' },
+                { href: '/api/download/json', icon: FileCheck, title: 'ERP payload', desc: 'Machine-readable JSON for write-back.', cta: 'Download .json', chip: ACCENTS.sky.chip, line: ACCENTS.sky.line, iconColor: 'text-sky-300' },
+                { href: '/api/download/audit', icon: ShieldCheck, title: 'Audit trail', desc: 'Full verification & reasoning log.', cta: 'Download log', chip: ACCENTS.violet.chip, line: ACCENTS.violet.line, iconColor: 'text-violet-300' },
+              ].map((card) => {
+                const Icon = card.icon;
+                return (
+                  <a key={card.href} href={card.href} target="_blank" rel="noreferrer" className="group relative flex flex-col justify-between overflow-hidden rounded-2xl border border-white/[0.06] bg-white/[0.03] p-5 transition-all hover:-translate-y-0.5 hover:border-white/15 hover:bg-white/[0.05]">
+                    <div className={cx('pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r to-transparent', card.line)} />
+                    <div>
+                      <div className={cx('flex h-9 w-9 items-center justify-center rounded-xl', card.chip)}>
+                        <Icon className={cx('h-5 w-5', card.iconColor)} />
+                      </div>
+                      <h4 className="mt-3 text-sm font-bold text-white">{card.title}</h4>
+                      <p className="mt-1 text-xs leading-relaxed text-slate-400">{card.desc}</p>
+                    </div>
+                    <div className="mt-5 flex items-center gap-1 text-xs font-semibold text-white">
+                      <span className="underline decoration-white/20 underline-offset-4 group-hover:decoration-white/40">{card.cta}</span>
+                      <ArrowRight className="h-3.5 w-3.5 opacity-60 transition-transform group-hover:translate-x-0.5" />
+                    </div>
+                  </a>
+                );
+              })}
+            </div>
+            <div className="flex flex-wrap items-center gap-2 rounded-xl border border-white/[0.06] bg-black/20 px-4 py-3 text-xs text-slate-400">
+              <span className="font-semibold text-slate-300">Batch</span>
+              <span className="rounded bg-white/10 px-2 py-1 font-mono text-white">{results.batch_id}</span>
+              <span className="hidden sm:inline">·</span>
+              <span>{results.total_records} records · {results.metrics.matched_records} matched · {results.exceptions.length} exceptions</span>
             </div>
           </div>
         )}
       </main>
 
-      {/* Footer */}
-      <footer className="border-t border-slate-200 bg-white py-4 mt-auto">
-        <div className="max-w-7xl mx-auto px-4 text-center text-xs text-slate-400">
-          AI Finance Controller • Autonomous Financial Operations & Multi-Source Reconciliation Platform
+      <footer className="relative border-t border-white/[0.06] py-5">
+        <div className="mx-auto max-w-7xl px-4 text-center text-[11px] font-medium tracking-wide text-slate-500 sm:px-6 lg:px-8">
+          AI Finance Controller · Autonomous financial operations & multi-source reconciliation
         </div>
       </footer>
     </div>

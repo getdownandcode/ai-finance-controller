@@ -3,7 +3,7 @@
 Production hardening:
 - Centralized config (config.py)
 - Structured logging (no stray prints in request path)
-- Health endpoint for load-balancers (Fly.io / Docker)
+- Health endpoint for load-balancers (Render / Docker)
 - Validated CORS (no wildcard + credentials)
 - Upload size + record-count guards
 - Shared reconciliation pipeline (app/pipeline.py)
