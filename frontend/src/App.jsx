@@ -33,28 +33,17 @@ import {
 
 const cx = (...c) => c.filter(Boolean).join(' ');
 
-const ACCENTS = {
-  emerald: { line: 'from-emerald-400/70 via-emerald-400/10', chip: 'bg-emerald-500/15 text-emerald-300 ring-1 ring-emerald-400/20' },
-  indigo: { line: 'from-indigo-400/70 via-indigo-400/10', chip: 'bg-indigo-500/15 text-indigo-300 ring-1 ring-indigo-400/20' },
-  rose: { line: 'from-rose-400/70 via-rose-400/10', chip: 'bg-rose-500/15 text-rose-300 ring-1 ring-rose-400/20' },
-  sky: { line: 'from-sky-400/70 via-sky-400/10', chip: 'bg-sky-500/15 text-sky-300 ring-1 ring-sky-400/20' },
-  amber: { line: 'from-amber-400/70 via-amber-400/10', chip: 'bg-amber-500/15 text-amber-300 ring-1 ring-amber-400/20' },
-  violet: { line: 'from-violet-400/70 via-violet-400/10', chip: 'bg-violet-500/15 text-violet-300 ring-1 ring-violet-400/20' },
-};
-
-function StatCard({ label, value, sub, icon: Icon, accent, badge }) {
-  const a = ACCENTS[accent];
+function StatCard({ label, value, sub, icon: Icon, badge }) {
   return (
-    <div className="glass group relative overflow-hidden rounded-2xl p-5 transition-colors hover:border-white/15">
-      <div className={cx('pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r to-transparent', a.line)} />
+    <div className="glass group relative overflow-hidden rounded-2xl p-5 transition-all hover:border-white/15">
       <div className="flex items-center justify-between">
         <span className="text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-400">{label}</span>
-        <div className={cx('flex h-8 w-8 items-center justify-center rounded-xl', a.chip)}>
+        <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-white/[0.05] text-slate-300 ring-1 ring-white/10 transition-colors group-hover:bg-white/10 group-hover:text-white">
           <Icon className="h-4 w-4" />
         </div>
       </div>
       <div className="mt-3 flex flex-wrap items-baseline gap-2">
-        <span className={cx('text-[26px] font-extrabold tracking-tight tabular-nums leading-none', accent === 'rose' ? 'text-rose-300' : 'text-white')}>{value}</span>
+        <span className="text-[26px] font-extrabold tracking-tight tabular-nums leading-none text-white">{value}</span>
         {badge}
       </div>
       <p className="mt-2 text-xs leading-relaxed text-slate-400">{sub}</p>
@@ -458,197 +447,150 @@ export default function App() {
         {activeTab === 'ingest' && (
           <div className="animate-fade-up space-y-6">
             {results && (
-              <div className="flex items-center justify-between rounded-2xl border border-emerald-400/20 bg-emerald-500/10 px-4 py-3">
+              <div className="flex items-center justify-between rounded-2xl border border-white/[0.08] bg-white/[0.025] px-5 py-3.5">
                 <div className="flex items-center gap-3">
-                  <CheckCircle2 className="h-5 w-5 text-emerald-300" />
+                  <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-emerald-500/15 text-emerald-300 ring-1 ring-emerald-400/20">
+                    <CheckCircle2 className="h-4 w-4" />
+                  </div>
                   <div>
-                    <p className="text-xs font-bold text-white">Session active: {results.batch_id}</p>
-                    <p className="text-[11px] text-emerald-200/80">{results.total_records} records · {formatPercent(results.metrics.raw_match_rate)} matched — dashboard preserved like ChatGPT</p>
+                    <p className="text-xs font-bold text-white">Active Session: {results.batch_id}</p>
+                    <p className="text-[11px] text-slate-400">{results.total_records} records · {formatPercent(results.metrics.raw_match_rate)} matched</p>
                   </div>
                 </div>
-                <button onClick={() => setActiveTab('dashboard')} className="rounded-xl bg-white px-3 py-1.5 text-xs font-bold text-slate-900 hover:bg-slate-100">View dashboard →</button>
+                <button onClick={() => setActiveTab('dashboard')} className="rounded-xl bg-white px-3.5 py-1.5 text-xs font-bold text-slate-900 hover:bg-slate-100 transition cursor-pointer">View dashboard →</button>
               </div>
             )}
-            <div className="glass overflow-hidden rounded-3xl">
-              <div className="relative overflow-hidden p-6 sm:p-8">
-                <div className="pointer-events-none absolute -right-16 -top-16 h-64 w-64 rounded-full bg-gradient-to-tr from-indigo-500/15 via-violet-500/15 to-fuchsia-500/10 blur-2xl" />
-                <div className="relative flex flex-wrap items-start justify-between gap-4">
-                  <div className="max-w-2xl">
-                    <span className="inline-flex items-center gap-1.5 rounded-full border border-indigo-400/20 bg-indigo-500/10 px-3 py-1 text-[11px] font-semibold text-indigo-300">
-                      <Sparkles className="h-3 w-3" />
-                      AI-powered matching engine
-                      <span className="ml-1 hidden rounded-full bg-white/10 px-1.5 py-0.5 text-[10px] font-bold tracking-wide text-indigo-200 sm:inline">AUTO · FUZZY · LLM</span>
-                    </span>
-                    <h2 className="mt-4 text-2xl font-extrabold tracking-tight text-white sm:text-[30px] sm:leading-none">
-                      Reconcile your books in <span className="text-gradient">one pass</span>
-                    </h2>
-                    <p className="mt-3 max-w-xl text-sm leading-relaxed text-slate-400">
-                      Drop in CSVs from your bank, ledger, or billing system. The engine auto-detects columns, normalizes amounts &amp; dates, and links transactions across sources. Sessions persist like ChatGPT — reload and your dashboard stays.
-                    </p>
-                    <div className="mt-4 flex flex-wrap items-center gap-2 text-[11px] text-slate-400">
-                      <span className="inline-flex items-center gap-1.5 rounded-full border border-white/10 bg-white/[0.03] px-2.5 py-1"><ShieldCheck className="h-3 w-3 text-emerald-400" /> No data stored</span>
-                      <span className="inline-flex items-center gap-1.5 rounded-full border border-white/10 bg-white/[0.03] px-2.5 py-1"><FileSpreadsheet className="h-3 w-3 text-sky-400" /> CSV auto-mapping</span>
-                      <span className="inline-flex items-center gap-1.5 rounded-full border border-white/10 bg-white/[0.03] px-2.5 py-1"><History className="h-3 w-3 text-indigo-400" /> ChatGPT-like history</span>
-                    </div>
-                  </div>
-                  {results && (
-                    <div className="hidden items-center gap-2 rounded-2xl border border-white/10 bg-white/[0.04] px-4 py-3 sm:flex">
-                      <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-emerald-500/15 text-emerald-300 ring-1 ring-emerald-400/20">
-                        <CheckCircle2 className="h-4 w-4" />
+            <div className="glass overflow-hidden rounded-3xl p-6 sm:p-8">
+              <div className="max-w-3xl">
+                <h2 className="text-xl font-bold tracking-tight text-white sm:text-2xl">
+                  Reconcile Financial Records
+                </h2>
+                <p className="mt-2 text-xs leading-relaxed text-slate-400 sm:text-sm">
+                  Upload CSV statements from your bank, general ledger, or billing system to automatically match transactions, identify discrepancies, and balance your books.
+                </p>
+              </div>
+
+              <form onSubmit={handleCustomReconcile} className="relative mt-8 space-y-6">
+                <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+                  {[
+                    {
+                      key: 'bank',
+                      file: bankFile,
+                      setter: setBankFile,
+                      id: 'bank-file',
+                      icon: Building2,
+                      title: 'Bank Feed',
+                      desc: 'Statements, settlements & wires',
+                    },
+                    {
+                      key: 'ledger',
+                      file: ledgerFile,
+                      setter: setLedgerFile,
+                      id: 'ledger-file',
+                      icon: FileSpreadsheet,
+                      title: 'General Ledger',
+                      desc: 'QuickBooks, Xero & ERP journals',
+                    },
+                    {
+                      key: 'inv',
+                      file: invoicesFile,
+                      setter: setInvoicesFile,
+                      id: 'invoice-file',
+                      icon: Receipt,
+                      title: 'Invoices',
+                      desc: 'Billing & AP/AR items · optional',
+                    },
+                  ].map((s) => {
+                    const Icon = s.icon;
+                    return (
+                      <div
+                        key={s.key}
+                        className={cx(
+                          'group relative flex flex-col justify-between rounded-2xl border p-5 text-center transition-all duration-200',
+                          s.file 
+                            ? 'border-indigo-400/40 bg-indigo-500/[0.04]' 
+                            : 'border-white/[0.08] bg-white/[0.015] hover:border-white/15 hover:bg-white/[0.03]'
+                        )}
+                      >
+                        <div>
+                          <div className={cx(
+                            'mx-auto flex h-10 w-10 items-center justify-center rounded-xl ring-1 ring-white/10 transition-colors',
+                            s.file ? 'bg-white text-slate-900' : 'bg-white/[0.05] text-slate-300 group-hover:text-white'
+                          )}>
+                            <Icon className="h-5 w-5" />
+                          </div>
+                          <h4 className="mt-3 text-sm font-bold text-white">{s.title}</h4>
+                          <p className="mt-1 text-xs text-slate-400">{s.desc}</p>
+                        </div>
+                        <div className="mt-5">
+                          {s.file ? (
+                            <div className="flex items-center justify-between gap-2 rounded-xl border border-white/10 bg-black/30 px-3 py-2 text-xs font-medium backdrop-blur">
+                              <span className="min-w-0 truncate text-slate-200">{s.file.name}</span>
+                              <button type="button" onClick={() => s.setter(null)} className="flex h-6 w-6 shrink-0 items-center justify-center rounded-lg bg-white/10 text-slate-400 hover:bg-white/15 hover:text-white cursor-pointer">
+                                <X className="h-3.5 w-3.5" />
+                              </button>
+                            </div>
+                          ) : (
+                            <>
+                              <input type="file" id={s.id} accept=".csv,text/csv" onChange={(e) => s.setter(e.target.files?.[0] || null)} className="hidden" />
+                              <label htmlFor={s.id} className="inline-flex cursor-pointer items-center gap-1.5 rounded-xl border border-white/10 bg-white/[0.05] px-3.5 py-2 text-xs font-semibold text-slate-200 transition hover:bg-white/10 hover:text-white">
+                                <FileUp className="h-3.5 w-3.5" />
+                                Select CSV
+                              </label>
+                            </>
+                          )}
+                        </div>
                       </div>
-                      <div>
-                        <p className="text-xs font-bold text-white">Last run · {results.batch_id}</p>
-                        <p className="text-[11px] text-slate-400">{results.total_records} records · {formatPercent(results.metrics.raw_match_rate)} matched</p>
-                      </div>
-                    </div>
-                  )}
+                    );
+                  })}
                 </div>
 
-                <form onSubmit={handleCustomReconcile} className="relative mt-8 space-y-6">
-                  <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
-                    {[
-                      {
-                        key: 'bank',
-                        file: bankFile,
-                        setter: setBankFile,
-                        id: 'bank-file',
-                        icon: Building2,
-                        title: 'Bank Feed',
-                        desc: 'Statements, settlements & wires',
-                        chip: 'bg-indigo-500/15 text-indigo-300 ring-indigo-400/20',
-                        active: 'border-indigo-400/40 bg-indigo-500/[0.06]',
-                        idle: 'hover:border-indigo-400/30 hover:bg-indigo-500/[0.03]',
-                      },
-                      {
-                        key: 'ledger',
-                        file: ledgerFile,
-                        setter: setLedgerFile,
-                        id: 'ledger-file',
-                        icon: FileSpreadsheet,
-                        title: 'General Ledger',
-                        desc: 'QuickBooks, Xero & ERP journals',
-                        chip: 'bg-emerald-500/15 text-emerald-300 ring-emerald-400/20',
-                        active: 'border-emerald-400/40 bg-emerald-500/[0.06]',
-                        idle: 'hover:border-emerald-400/30 hover:bg-emerald-500/[0.03]',
-                      },
-                      {
-                        key: 'inv',
-                        file: invoicesFile,
-                        setter: setInvoicesFile,
-                        id: 'invoice-file',
-                        icon: Receipt,
-                        title: 'Invoices',
-                        desc: 'Billing & AP/AR items · optional',
-                        chip: 'bg-amber-500/15 text-amber-300 ring-amber-400/20',
-                        active: 'border-amber-400/40 bg-amber-500/[0.06]',
-                        idle: 'hover:border-amber-400/30 hover:bg-amber-500/[0.03]',
-                      },
-                    ].map((s) => {
-                      const Icon = s.icon;
-                      return (
-                        <div
-                          key={s.key}
-                          className={cx(
-                            'group relative flex flex-col justify-between rounded-2xl border-2 border-dashed p-5 text-center transition-all duration-200',
-                            s.file ? cx('border-solid', s.active) : cx('border-white/10 bg-white/[0.015]', s.idle)
-                          )}
-                        >
-                          <div>
-                            <div className={cx('mx-auto flex h-11 w-11 items-center justify-center rounded-xl ring-1', s.file ? 'bg-white text-slate-900' : s.chip)}>
-                              <Icon className="h-5 w-5" />
-                            </div>
-                            <h4 className="mt-3 text-sm font-bold text-white">{s.title}</h4>
-                            <p className="mt-1 text-xs text-slate-400">{s.desc}</p>
-                          </div>
-                          <div className="mt-5">
-                            {s.file ? (
-                              <div className="flex items-center justify-between gap-2 rounded-xl border bg-black/20 px-3 py-2.5 text-xs font-medium backdrop-blur">
-                                <span className="min-w-0 truncate text-slate-200">{s.file.name}</span>
-                                <button type="button" onClick={() => s.setter(null)} className="flex h-6 w-6 shrink-0 items-center justify-center rounded-lg bg-white/10 text-slate-400 hover:bg-white/15 hover:text-white cursor-pointer">
-                                  <X className="h-3.5 w-3.5" />
-                                </button>
-                              </div>
-                            ) : (
-                              <>
-                                <input type="file" id={s.id} accept=".csv,text/csv" onChange={(e) => s.setter(e.target.files?.[0] || null)} className="hidden" />
-                                <label htmlFor={s.id} className="inline-flex cursor-pointer items-center gap-1.5 rounded-xl border border-white/10 bg-white/[0.06] px-3.5 py-2 text-xs font-semibold text-white shadow-sm transition hover:bg-white/10">
-                                  <FileUp className="h-3.5 w-3.5" />
-                                  Select CSV
-                                </label>
-                              </>
-                            )}
-                          </div>
-                        </div>
-                      );
-                    })}
-                  </div>
-
-                  <div className="grid grid-cols-1 gap-4 border-t border-white/[0.06] pt-6 sm:grid-cols-3">
-                    <label className="space-y-1.5">
-                      <span className="text-xs font-semibold text-slate-300">Bank opening balance</span>
-                      <div className="relative">
-                        <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-xs text-slate-500">$</span>
-                        <input type="number" step="0.01" value={bankOpening} onChange={(e) => setBankOpening(parseFloat(e.target.value) || 0)} className={cx(inputCls, 'pl-7')} placeholder="0.00" />
-                      </div>
-                    </label>
-                    <label className="space-y-1.5">
-                      <span className="text-xs font-semibold text-slate-300">Ledger opening balance</span>
-                      <div className="relative">
-                        <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-xs text-slate-500">$</span>
-                        <input type="number" step="0.01" value={ledgerOpening} onChange={(e) => setLedgerOpening(parseFloat(e.target.value) || 0)} className={cx(inputCls, 'pl-7')} placeholder="0.00" />
-                      </div>
-                    </label>
-                    <label className="space-y-1.5">
-                      <span className="text-xs font-semibold text-slate-300">Matching engine</span>
-                      <select value={matchingStrategy} onChange={(e) => setMatchingStrategy(e.target.value)} className={selectCls}>
-                        <option value="auto">Adaptive Hybrid — deterministic + AI</option>
-                        <option value="gemini">AI Reasoner priority</option>
-                        <option value="off">Deterministic only — no AI</option>
-                      </select>
-                    </label>
-                  </div>
-
-                  <div className="flex flex-col-reverse items-stretch justify-between gap-3 border-t border-white/[0.06] pt-6 sm:flex-row sm:items-center">
-                    <button type="button" onClick={handleRunSampleData} disabled={loading} className="inline-flex items-center justify-center gap-1.5 text-xs font-medium text-slate-400 underline decoration-white/20 underline-offset-4 hover:text-indigo-300 hover:decoration-indigo-400/40 disabled:opacity-50 cursor-pointer">
-                      <Database className="h-3.5 w-3.5" />
-                      Or try with a sample benchmark dataset
-                    </button>
-                    <button
-                      type="submit"
-                      disabled={loading || !hasFiles}
-                      className={cx(
-                        'inline-flex items-center justify-center gap-2 rounded-xl px-6 py-3 text-sm font-semibold transition-all focus-ring cursor-pointer',
-                        !hasFiles
-                          ? 'cursor-not-allowed border border-white/10 bg-white/5 text-slate-500'
-                          : 'bg-gradient-to-r from-indigo-500 to-violet-500 text-white shadow-lg shadow-indigo-500/25 hover:from-indigo-400 hover:to-violet-400 hover:shadow-indigo-500/30'
-                      )}
-                    >
-                      <Play className="h-4 w-4" />
-                      Run reconciliation
-                      <ArrowRight className="h-4 w-4 opacity-70" />
-                    </button>
-                  </div>
-                </form>
-              </div>
-            </div>
-
-            <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
-              {[
-                { title: 'Auto column mapping', desc: 'Dates, currencies, references & descriptions are detected and cleaned automatically.', icon: Sparkles, accent: 'indigo' },
-                { title: 'Three-tier matching', desc: 'Exact → fuzzy scoring → AI reasoner with confidence gating.', icon: Layers, accent: 'violet' },
-                { title: 'Auditable by design', desc: 'Every match and exception carries evidence + a full JSON trail.', icon: ShieldCheck, accent: 'emerald' },
-              ].map((f) => {
-                const Icon = f.icon;
-                return (
-                  <div key={f.title} className="rounded-2xl border border-white/[0.06] bg-white/[0.02] p-4">
-                    <div className={cx('flex h-8 w-8 items-center justify-center rounded-xl ring-1', ACCENTS[f.accent].chip)}>
-                      <Icon className="h-4 w-4" />
+                <div className="grid grid-cols-1 gap-4 border-t border-white/[0.06] pt-6 sm:grid-cols-3">
+                  <label className="space-y-1.5">
+                    <span className="text-xs font-semibold text-slate-300">Bank opening balance</span>
+                    <div className="relative">
+                      <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-xs text-slate-500">$</span>
+                      <input type="number" step="0.01" value={bankOpening} onChange={(e) => setBankOpening(parseFloat(e.target.value) || 0)} className={cx(inputCls, 'pl-7')} placeholder="0.00" />
                     </div>
-                    <h4 className="mt-3 text-xs font-bold text-white">{f.title}</h4>
-                    <p className="mt-1 text-xs leading-relaxed text-slate-400">{f.desc}</p>
-                  </div>
-                );
-              })}
+                  </label>
+                  <label className="space-y-1.5">
+                    <span className="text-xs font-semibold text-slate-300">Ledger opening balance</span>
+                    <div className="relative">
+                      <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-xs text-slate-500">$</span>
+                      <input type="number" step="0.01" value={ledgerOpening} onChange={(e) => setLedgerOpening(parseFloat(e.target.value) || 0)} className={cx(inputCls, 'pl-7')} placeholder="0.00" />
+                    </div>
+                  </label>
+                  <label className="space-y-1.5">
+                    <span className="text-xs font-semibold text-slate-300">Matching engine</span>
+                    <select value={matchingStrategy} onChange={(e) => setMatchingStrategy(e.target.value)} className={selectCls}>
+                      <option value="auto" className="bg-[#0b0f1d]">Adaptive Hybrid (Exact + Fuzzy + AI)</option>
+                      <option value="gemini" className="bg-[#0b0f1d]">AI Reasoner priority</option>
+                      <option value="off" className="bg-[#0b0f1d]">Deterministic only (No AI)</option>
+                    </select>
+                  </label>
+                </div>
+
+                <div className="flex flex-col-reverse items-stretch justify-between gap-3 border-t border-white/[0.06] pt-6 sm:flex-row sm:items-center">
+                  <button type="button" onClick={handleRunSampleData} disabled={loading} className="inline-flex items-center justify-center gap-1.5 text-xs font-medium text-slate-400 hover:text-slate-200 disabled:opacity-50 cursor-pointer">
+                    <Database className="h-3.5 w-3.5" />
+                    Or run with benchmark sample data
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={loading || !hasFiles}
+                    className={cx(
+                      'inline-flex items-center justify-center gap-2 rounded-xl px-6 py-3 text-sm font-semibold transition-all focus-ring cursor-pointer',
+                      !hasFiles
+                        ? 'cursor-not-allowed border border-white/10 bg-white/5 text-slate-500'
+                        : 'bg-white text-slate-950 shadow-md hover:bg-slate-100'
+                    )}
+                  >
+                    <Play className="h-4 w-4 fill-current" />
+                    Run reconciliation
+                    <ArrowRight className="h-4 w-4 opacity-70" />
+                  </button>
+                </div>
+              </form>
             </div>
           </div>
         )}
@@ -658,19 +600,17 @@ export default function App() {
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
               <StatCard
                 label="Match rate"
-                accent="emerald"
                 icon={CheckCircle2}
                 value={formatPercent(results.metrics.raw_match_rate)}
                 badge={
                   results.metrics.has_ground_truth ? (
-                    <span className="rounded-full border border-emerald-400/20 bg-emerald-500/10 px-2 py-1 text-[11px] font-semibold text-emerald-300">{formatPercent(results.metrics.validated_match_rate)} validated</span>
+                    <span className="rounded-full border border-emerald-400/20 bg-emerald-500/10 px-2 py-0.5 text-[11px] font-semibold text-emerald-300">{formatPercent(results.metrics.validated_match_rate)} validated</span>
                   ) : null
                 }
                 sub={`${results.metrics.matched_records} of ${results.total_records} records reconciled`}
               />
               <StatCard
                 label="Accuracy · F1"
-                accent="indigo"
                 icon={TrendingUp}
                 value={results.metrics.f1 !== null ? formatPercent(results.metrics.f1) : 'N/A'}
                 badge={<span className="text-[11px] font-medium text-slate-400">P {results.metrics.precision !== null ? formatPercent(results.metrics.precision) : 'N/A'}</span>}
@@ -678,14 +618,12 @@ export default function App() {
               />
               <StatCard
                 label="Exception exposure"
-                accent="rose"
                 icon={AlertCircle}
                 value={formatMoney(results.cash_position.exception_exposure_total)}
                 sub={`${results.exceptions.length} unresolved · flagged for review`}
               />
               <StatCard
                 label="Reconciled variance"
-                accent="sky"
                 icon={DollarSign}
                 value={formatMoney(results.cash_position.reconciled_difference)}
                 sub="Bank cash vs. ledger delta"
@@ -912,18 +850,17 @@ export default function App() {
             </div>
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
               {[
-                { href: '/api/download/markdown', icon: FileText, title: 'Executive report', desc: 'Markdown summary with cash snapshot.', cta: 'Download .md', chip: ACCENTS.indigo.chip, line: ACCENTS.indigo.line, iconColor: 'text-indigo-300' },
-                { href: '/api/download/csv', icon: FileSpreadsheet, title: 'Exceptions CSV', desc: 'Unresolved transactions spreadsheet.', cta: 'Download .csv', chip: ACCENTS.emerald.chip, line: ACCENTS.emerald.line, iconColor: 'text-emerald-300' },
-                { href: '/api/download/json', icon: FileCheck, title: 'ERP payload', desc: 'Machine-readable JSON for write-back.', cta: 'Download .json', chip: ACCENTS.sky.chip, line: ACCENTS.sky.line, iconColor: 'text-sky-300' },
-                { href: '/api/download/audit', icon: ShieldCheck, title: 'Audit trail', desc: 'Full verification & reasoning log.', cta: 'Download log', chip: ACCENTS.violet.chip, line: ACCENTS.violet.line, iconColor: 'text-violet-300' },
+                { href: '/api/download/markdown', icon: FileText, title: 'Executive report', desc: 'Markdown summary with cash snapshot.', cta: 'Download .md' },
+                { href: '/api/download/csv', icon: FileSpreadsheet, title: 'Exceptions CSV', desc: 'Unresolved transactions spreadsheet.', cta: 'Download .csv' },
+                { href: '/api/download/json', icon: FileCheck, title: 'ERP payload', desc: 'Machine-readable JSON for write-back.', cta: 'Download .json' },
+                { href: '/api/download/audit', icon: ShieldCheck, title: 'Audit trail', desc: 'Full verification & reasoning log.', cta: 'Download log' },
               ].map((card) => {
                 const Icon = card.icon;
                 return (
-                  <a key={card.href} href={card.href} target="_blank" rel="noreferrer" className="group relative flex flex-col justify-between overflow-hidden rounded-2xl border border-white/[0.06] bg-white/[0.03] p-5 transition-all hover:-translate-y-0.5 hover:border-white/15 hover:bg-white/[0.05]">
-                    <div className={cx('pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r to-transparent', card.line)} />
+                  <a key={card.href} href={card.href} target="_blank" rel="noreferrer" className="group relative flex flex-col justify-between overflow-hidden rounded-2xl border border-white/[0.08] bg-white/[0.025] p-5 transition-all hover:border-white/15 hover:bg-white/[0.04]">
                     <div>
-                      <div className={cx('flex h-9 w-9 items-center justify-center rounded-xl', card.chip)}>
-                        <Icon className={cx('h-5 w-5', card.iconColor)} />
+                      <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-white/[0.05] text-slate-300 ring-1 ring-white/10 transition-colors group-hover:bg-white/10 group-hover:text-white">
+                        <Icon className="h-5 w-5" />
                       </div>
                       <h4 className="mt-3 text-sm font-bold text-white">{card.title}</h4>
                       <p className="mt-1 text-xs leading-relaxed text-slate-400">{card.desc}</p>
