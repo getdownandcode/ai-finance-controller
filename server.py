@@ -49,6 +49,8 @@ app.add_middleware(
 
 REPORTS_DIR = settings.reports_dir
 REPORTS_DIR.mkdir(parents=True, exist_ok=True)
+SESSIONS_DIR = REPORTS_DIR / "sessions"
+SESSIONS_DIR.mkdir(parents=True, exist_ok=True)
 DIST_DIR = Path("frontend/dist")
 
 MAX_UPLOAD_BYTES = settings.max_upload_bytes
@@ -63,6 +65,57 @@ async def log_requests(request: Request, call_next):
     log.info("%s %s -> %d (%.0fms)", request.method, request.url.path,
              response.status_code, (time.time() - start) * 1000)
     return response
+
+
+# ---------------------------------------------------------------------------
+# Session persistence (ChatGPT-like)
+# ---------------------------------------------------------------------------
+def _save_session(payload: dict) -> None:
+    """Persist full reconciliation payload so history survives restarts."""
+    try:
+        bid = payload.get("batch_id", f"session_{int(time.time())}")
+        # sanitize batch_id for filesystem
+        safe = "".join(c if c.isalnum() or c in "-_." else "_" for c in bid)[:80]
+        payload["_saved_at"] = time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())
+        (SESSIONS_DIR / f"{safe}.json").write_text(json.dumps(payload, indent=2, default=str), encoding="utf-8")
+        # keep only last 50 sessions
+        sessions = sorted(SESSIONS_DIR.glob("*.json"), key=lambda p: p.stat().st_mtime, reverse=True)
+        for p in sessions[50:]:
+            try:
+                p.unlink()
+            except Exception:
+                pass
+    except Exception:
+        log.exception("Failed to save session")
+
+
+def _list_sessions() -> list[dict]:
+    out = []
+    for p in sorted(SESSIONS_DIR.glob("*.json"), key=lambda x: x.stat().st_mtime, reverse=True):
+        try:
+            data = json.loads(p.read_text(encoding="utf-8"))
+            out.append({
+                "batch_id": data.get("batch_id"),
+                "saved_at": data.get("_saved_at") or time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime(p.stat().st_mtime)),
+                "total_records": data.get("total_records", 0),
+                "source_counts": data.get("source_counts", {}),
+                "metrics": {
+                    "raw_match_rate": data.get("metrics", {}).get("raw_match_rate"),
+                    "matched_records": data.get("metrics", {}).get("matched_records"),
+                    "f1": data.get("metrics", {}).get("f1"),
+                    "precision": data.get("metrics", {}).get("precision"),
+                    "recall": data.get("metrics", {}).get("recall"),
+                    "exceptions": data.get("metrics", {}).get("exceptions"),
+                },
+                "cash_position": {
+                    "reconciled_difference": data.get("cash_position", {}).get("reconciled_difference"),
+                },
+                "reasoner_mode": data.get("reasoner_mode"),
+                "pipeline_stats": data.get("pipeline_stats", {}),
+            })
+        except Exception:
+            continue
+    return out
 
 
 # ---------------------------------------------------------------------------
@@ -135,13 +188,15 @@ async def reconcile_custom_files(
         if total_rows == 0:
             raise HTTPException(status_code=400, detail="No records found in uploaded files")
 
-        return run_reconciliation(
+        payload = run_reconciliation(
             bank_df=bank_df, ledger_df=ledger_df, invoices_df=invoices_df, gt_df=gt_df,
             bank_opening=bank_opening, ledger_opening=ledger_opening,
             llm_mode=llm_mode,
             batch_id=f"custom_upload_{int(time.time())}",
             reports_dir=REPORTS_DIR,
         )
+        _save_session(payload)
+        return payload
     except HTTPException:
         raise
     except Exception as exc:
@@ -165,7 +220,7 @@ def reconcile_demo(seed: int = Form(42), llm_mode: str = Form("auto")):
         gt_df = pd.read_csv(data_dir / "ground_truth.csv")
         meta = json.loads((data_dir / "batch_meta.json").read_text())
 
-        return run_reconciliation(
+        payload = run_reconciliation(
             bank_df=bank_df, ledger_df=ledger_df, invoices_df=invoices_df, gt_df=gt_df,
             bank_opening=meta.get("opening_balances", {}).get("bank", 42500.0),
             ledger_opening=meta.get("opening_balances", {}).get("ledger", 42500.0),
@@ -173,11 +228,38 @@ def reconcile_demo(seed: int = Form(42), llm_mode: str = Form("auto")):
             batch_id=meta.get("batch_id", f"demo_seed_{seed}"),
             reports_dir=REPORTS_DIR,
         )
+        _save_session(payload)
+        return payload
     except HTTPException:
         raise
     except Exception as exc:
         log.exception("reconcile-demo failed")
         raise HTTPException(status_code=500, detail=str(exc)) from exc
+
+
+# --- Session history (ChatGPT-like) ---
+@app.get("/api/sessions")
+def list_sessions():
+    return {"sessions": _list_sessions()}
+
+
+@app.get("/api/session/{batch_id}")
+def get_session(batch_id: str):
+    safe = "".join(c if c.isalnum() or c in "-_." else "_" for c in batch_id)[:80]
+    p = SESSIONS_DIR / f"{safe}.json"
+    if not p.exists():
+        raise HTTPException(status_code=404, detail="Session not found")
+    return json.loads(p.read_text(encoding="utf-8"))
+
+
+@app.delete("/api/session/{batch_id}")
+def delete_session(batch_id: str):
+    safe = "".join(c if c.isalnum() or c in "-_." else "_" for c in batch_id)[:80]
+    p = SESSIONS_DIR / f"{safe}.json"
+    if not p.exists():
+        raise HTTPException(status_code=404, detail="Session not found")
+    p.unlink()
+    return {"deleted": batch_id}
 
 
 @app.get("/api/download/{report_type}")

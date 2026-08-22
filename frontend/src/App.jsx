@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Activity,
   AlertCircle,
@@ -6,6 +6,7 @@ import {
   Building2,
   CheckCircle2,
   ChevronRight,
+  Clock,
   Database,
   DollarSign,
   Download,
@@ -14,12 +15,17 @@ import {
   FileText,
   FileUp,
   FileWarning,
+  History,
   Layers,
+  Menu,
+  MessageSquare,
   Play,
+  Plus,
   Receipt,
   Search,
   ShieldCheck,
   Sparkles,
+  Trash2,
   TrendingUp,
   Upload,
   X,
@@ -56,10 +62,16 @@ function StatCard({ label, value, sub, icon: Icon, accent, badge }) {
   );
 }
 
+const LS_KEY = 'afc_session';
+const LS_TAB = 'afc_activeTab';
+const LS_SIDEBAR = 'afc_sidebarOpen';
+
 export default function App() {
-  const [activeTab, setActiveTab] = useState('ingest');
+  const [activeTab, setActiveTab] = useState(() => localStorage.getItem(LS_TAB) || 'ingest');
   const [loading, setLoading] = useState(false);
-  const [results, setResults] = useState(null);
+  const [results, setResults] = useState(() => {
+    try { const raw = localStorage.getItem(LS_KEY); return raw ? JSON.parse(raw) : null; } catch { return null; }
+  });
   const [error, setError] = useState(null);
   const [bankFile, setBankFile] = useState(null);
   const [ledgerFile, setLedgerFile] = useState(null);
@@ -70,6 +82,46 @@ export default function App() {
   const [exceptionFilter, setExceptionFilter] = useState('ALL');
   const [exceptionSearch, setExceptionSearch] = useState('');
   const [clusterSearch, setClusterSearch] = useState('');
+  const [sessions, setSessions] = useState([]);
+  const [sidebarOpen, setSidebarOpen] = useState(() => localStorage.getItem(LS_SIDEBAR) !== '0');
+
+  // persist activeTab
+  useEffect(() => { localStorage.setItem(LS_TAB, activeTab); }, [activeTab]);
+  useEffect(() => { localStorage.setItem(LS_SIDEBAR, sidebarOpen ? '1' : '0'); }, [sidebarOpen]);
+
+  // persist results to localStorage (ChatGPT-like: dashboard survives refresh)
+  useEffect(() => {
+    try {
+      if (results) localStorage.setItem(LS_KEY, JSON.stringify(results));
+      else localStorage.removeItem(LS_KEY);
+    } catch {}
+  }, [results]);
+
+  // fetch session history from backend on mount and after each reconcile
+  const fetchSessions = async () => {
+    try {
+      const r = await fetch('/api/sessions');
+      if (r.ok) { const j = await r.json(); setSessions(j.sessions || []); }
+    } catch {}
+  };
+  useEffect(() => { fetchSessions(); }, []);
+  // if we have a persisted result but no sessions yet, still show it; on first load try to sync
+  useEffect(() => {
+    if (results && sessions.length === 0) {
+      // already have local session, ensure sidebar shows current
+      setSessions((prev) => {
+        const exists = prev.find(s => s.batch_id === results.batch_id);
+        if (exists) return prev;
+        return [{ batch_id: results.batch_id, saved_at: results._saved_at || new Date().toISOString(), total_records: results.total_records, source_counts: results.source_counts, metrics: results.metrics, cash_position: results.cash_position, reasoner_mode: results.reasoner_mode }, ...prev];
+      });
+    }
+  }, [results, sessions.length]);
+
+  const persistAndShow = (data) => {
+    setResults(data);
+    setActiveTab('dashboard');
+    fetchSessions();
+  };
 
   const handleCustomReconcile = async (e) => {
     if (e) e.preventDefault();
@@ -93,8 +145,7 @@ export default function App() {
         throw new Error(err.detail || 'Reconciliation execution failed');
       }
       const data = await res.json();
-      setResults(data);
-      setActiveTab('dashboard');
+      persistAndShow(data);
     } catch (e) {
       setError(e.message);
     } finally {
@@ -115,13 +166,42 @@ export default function App() {
         throw new Error(err.detail || 'Sample batch reconciliation failed');
       }
       const data = await res.json();
-      setResults(data);
-      setActiveTab('dashboard');
+      persistAndShow(data);
     } catch (e) {
       setError(e.message);
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleLoadSession = async (batchId) => {
+    setLoading(true);
+    setError(null);
+    try {
+      const r = await fetch(`/api/session/${encodeURIComponent(batchId)}`);
+      if (!r.ok) throw new Error('Session not found');
+      const data = await r.json();
+      setResults(data);
+      setActiveTab('dashboard');
+      localStorage.setItem(LS_KEY, JSON.stringify(data));
+    } catch (e) { setError(e.message); }
+    finally { setLoading(false); }
+  };
+
+  const handleDeleteSession = async (batchId, e) => {
+    if (e) e.stopPropagation();
+    try {
+      await fetch(`/api/session/${encodeURIComponent(batchId)}`, { method: 'DELETE' });
+      setSessions(prev => prev.filter(s => s.batch_id !== batchId));
+      if (results?.batch_id === batchId) { setResults(null); localStorage.removeItem(LS_KEY); setActiveTab('ingest'); }
+    } catch {}
+  };
+
+  const handleNewChat = () => {
+    setResults(null);
+    localStorage.removeItem(LS_KEY);
+    setActiveTab('ingest');
+    setError(null);
   };
 
   const formatMoney = (val) => {
@@ -131,6 +211,9 @@ export default function App() {
   const formatPercent = (val) => {
     if (val === undefined || val === null) return 'N/A';
     return `${(val * 100).toFixed(1)}%`;
+  };
+  const formatTime = (iso) => {
+    try { const d = new Date(iso); return d.toLocaleString(undefined, { month:'short', day:'numeric', hour:'2-digit', minute:'2-digit' }); } catch { return iso; }
   };
 
   const filteredExceptions = (results?.exceptions || []).filter((item) => {
@@ -192,14 +275,68 @@ export default function App() {
     'w-full rounded-xl border border-white/10 bg-white/[0.04] px-3 py-2.5 text-xs font-medium text-slate-200 outline-none transition focus:border-indigo-400/60 focus:bg-white/[0.06] focus:ring-2 focus:ring-indigo-500/20 cursor-pointer';
 
   return (
-    <div className="relative flex min-h-screen flex-col overflow-x-hidden text-slate-200 selection:bg-indigo-500/30">
+    <div className="relative flex min-h-screen overflow-hidden text-slate-200 selection:bg-indigo-500/30">
       <div className="pointer-events-none fixed inset-0 bg-aurora" />
       <div className="pointer-events-none fixed inset-0 bg-grid" />
 
-      <header className="sticky top-0 z-40 border-b border-white/[0.06] bg-[#070a12]/70 backdrop-blur-xl">
+      {/* ChatGPT-like sidebar - session history */}
+      <aside className={cx('relative z-30 flex shrink-0 flex-col border-r border-white/[0.06] bg-[#070a12]/90 backdrop-blur-xl transition-all duration-300', sidebarOpen ? 'w-[300px]' : 'w-0 overflow-hidden border-r-0')}>
+        <div className="flex h-[64px] shrink-0 items-center justify-between gap-2 border-b border-white/[0.06] px-4">
+          <div className="flex items-center gap-2">
+            <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-gradient-to-tr from-indigo-500 to-violet-500 text-white"><History className="h-4 w-4" /></div>
+            <span className="text-sm font-bold text-white">Sessions</span>
+            <span className="rounded-full bg-white/10 px-2 py-0.5 text-[11px] font-semibold text-slate-300">{sessions.length}</span>
+          </div>
+          <button onClick={() => setSidebarOpen(false)} className="rounded-lg p-1.5 text-slate-400 hover:bg-white/10 hover:text-white"><X className="h-4 w-4" /></button>
+        </div>
+        <div className="p-3">
+          <button onClick={handleNewChat} className="flex w-full items-center justify-center gap-2 rounded-xl border border-white/10 bg-white/[0.04] px-3 py-2.5 text-xs font-semibold text-white hover:bg-white/10">
+            <Plus className="h-4 w-4" /> New reconciliation
+          </button>
+        </div>
+        <div className="flex-1 overflow-y-auto px-3 pb-3">
+          {sessions.length === 0 && (
+            <div className="rounded-xl border border-dashed border-white/10 px-4 py-8 text-center">
+              <MessageSquare className="mx-auto h-6 w-6 text-slate-600" />
+              <p className="mt-2 text-xs font-semibold text-slate-400">No sessions yet</p>
+              <p className="mt-1 text-[11px] leading-relaxed text-slate-500">Run a reconciliation and it will appear here like a ChatGPT chat — click to restore.</p>
+            </div>
+          )}
+          <div className="space-y-2">
+            {sessions.map(s => {
+              const isActive = results?.batch_id === s.batch_id;
+              return (
+                <button key={s.batch_id} onClick={() => handleLoadSession(s.batch_id)} className={cx('group flex w-full flex-col rounded-xl border px-3 py-3 text-left transition', isActive ? 'border-indigo-400/40 bg-indigo-500/15' : 'border-white/[0.06] bg-white/[0.02] hover:bg-white/[0.06] hover:border-white/10')}>
+                  <div className="flex w-full items-center justify-between gap-2">
+                    <span className={cx('truncate font-mono text-xs font-bold', isActive ? 'text-white' : 'text-slate-200')}>{s.batch_id}</span>
+                    <span onClick={(e) => handleDeleteSession(s.batch_id, e)} className="hidden rounded-md p-1 text-slate-500 hover:bg-white/10 hover:text-rose-300 group-hover:flex"><Trash2 className="h-3.5 w-3.5" /></span>
+                  </div>
+                  <div className="mt-1 flex items-center gap-2 text-[11px] text-slate-400">
+                    <Clock className="h-3 w-3" /><span>{formatTime(s.saved_at)}</span><span>·</span><span>{s.total_records} rec</span>
+                  </div>
+                  <div className="mt-2 flex flex-wrap gap-1.5">
+                    <span className="rounded-full bg-emerald-500/15 px-2 py-0.5 text-[10px] font-semibold text-emerald-300">{s.metrics?.matched_records || 0} matched</span>
+                    {s.metrics?.f1 != null && <span className="rounded-full bg-indigo-500/15 px-2 py-0.5 text-[10px] font-semibold text-indigo-300">F1 {(s.metrics.f1*100).toFixed(0)}%</span>}
+                    {s.metrics?.exceptions != null && <span className="rounded-full bg-rose-500/15 px-2 py-0.5 text-[10px] font-semibold text-rose-300">{s.metrics.exceptions} exc</span>}
+                  </div>
+                </button>
+              );
+            })}
+          </div>
+        </div>
+        <div className="border-t border-white/[0.06] p-3 text-[11px] text-slate-500">
+          <p className="flex items-center gap-1.5"><ShieldCheck className="h-3 w-3 text-emerald-400" /> Sessions persist on server + browser</p>
+        </div>
+      </aside>
+
+      <div className="flex min-w-0 flex-1 flex-col">
+      <header className="sticky top-0 z-20 border-b border-white/[0.06] bg-[#070a12]/70 backdrop-blur-xl">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
           <div className="flex h-[64px] items-center justify-between gap-4">
             <div className="flex min-w-0 items-center gap-3">
+              {!sidebarOpen && (
+                <button onClick={() => setSidebarOpen(true)} className="flex h-8 w-8 items-center justify-center rounded-xl border border-white/10 bg-white/[0.04] text-slate-300 hover:bg-white/10 hover:text-white"><Menu className="h-4 w-4" /></button>
+              )}
               <div className="relative shrink-0">
                 <div className="absolute inset-0 rounded-xl bg-gradient-to-tr from-indigo-500 via-violet-500 to-fuchsia-500 opacity-60 blur-lg" />
                 <div className="relative flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-tr from-indigo-500 via-violet-500 to-fuchsia-500 text-white shadow-lg shadow-indigo-500/20">
@@ -238,6 +375,11 @@ export default function App() {
                 >
                   <Activity className="h-3.5 w-3.5" />
                   <span>Dashboard</span>
+                </button>
+              )}
+              {!sidebarOpen && sessions.length > 0 && (
+                <button onClick={() => setSidebarOpen(true)} className="hidden items-center gap-1.5 rounded-xl border border-white/10 bg-white/[0.04] px-3 py-2 text-xs font-semibold text-slate-300 hover:bg-white/10 sm:flex">
+                  <History className="h-3.5 w-3.5" /> {sessions.length}
                 </button>
               )}
             </div>
@@ -315,6 +457,18 @@ export default function App() {
 
         {activeTab === 'ingest' && (
           <div className="animate-fade-up space-y-6">
+            {results && (
+              <div className="flex items-center justify-between rounded-2xl border border-emerald-400/20 bg-emerald-500/10 px-4 py-3">
+                <div className="flex items-center gap-3">
+                  <CheckCircle2 className="h-5 w-5 text-emerald-300" />
+                  <div>
+                    <p className="text-xs font-bold text-white">Session active: {results.batch_id}</p>
+                    <p className="text-[11px] text-emerald-200/80">{results.total_records} records · {formatPercent(results.metrics.raw_match_rate)} matched — dashboard preserved like ChatGPT</p>
+                  </div>
+                </div>
+                <button onClick={() => setActiveTab('dashboard')} className="rounded-xl bg-white px-3 py-1.5 text-xs font-bold text-slate-900 hover:bg-slate-100">View dashboard →</button>
+              </div>
+            )}
             <div className="glass overflow-hidden rounded-3xl">
               <div className="relative overflow-hidden p-6 sm:p-8">
                 <div className="pointer-events-none absolute -right-16 -top-16 h-64 w-64 rounded-full bg-gradient-to-tr from-indigo-500/15 via-violet-500/15 to-fuchsia-500/10 blur-2xl" />
@@ -329,11 +483,12 @@ export default function App() {
                       Reconcile your books in <span className="text-gradient">one pass</span>
                     </h2>
                     <p className="mt-3 max-w-xl text-sm leading-relaxed text-slate-400">
-                      Drop in CSVs from your bank, ledger, or billing system. The engine auto-detects columns, normalizes amounts &amp; dates, and links transactions across sources.
+                      Drop in CSVs from your bank, ledger, or billing system. The engine auto-detects columns, normalizes amounts &amp; dates, and links transactions across sources. Sessions persist like ChatGPT — reload and your dashboard stays.
                     </p>
                     <div className="mt-4 flex flex-wrap items-center gap-2 text-[11px] text-slate-400">
                       <span className="inline-flex items-center gap-1.5 rounded-full border border-white/10 bg-white/[0.03] px-2.5 py-1"><ShieldCheck className="h-3 w-3 text-emerald-400" /> No data stored</span>
                       <span className="inline-flex items-center gap-1.5 rounded-full border border-white/10 bg-white/[0.03] px-2.5 py-1"><FileSpreadsheet className="h-3 w-3 text-sky-400" /> CSV auto-mapping</span>
+                      <span className="inline-flex items-center gap-1.5 rounded-full border border-white/10 bg-white/[0.03] px-2.5 py-1"><History className="h-3 w-3 text-indigo-400" /> ChatGPT-like history</span>
                     </div>
                   </div>
                   {results && (
@@ -796,6 +951,7 @@ export default function App() {
           AI Finance Controller · Autonomous financial operations & multi-source reconciliation
         </div>
       </footer>
+      </div>
     </div>
   );
 }
