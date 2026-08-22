@@ -1,72 +1,88 @@
-# AI Finance Controller — Production Agentic Reconciliation System
+# AI Finance Controller — Production Multi-Source Reconciliation Agent
 
-An autonomous AI Finance Controller Agent that closes a complete finance-ops reconciliation loop across multi-source financial feeds (**Bank Feed**, **Internal General Ledger**, and **Invoices**).
-
-The system includes both an **Interactive React Web UI** and a **CLI Tool**, powered by **Google Gemini API LLM Reasoning**, **Deterministic Exact Matching**, and **Multi-Signal Fuzzy Matching**.
+An enterprise-grade, autonomous financial reconciliation system that ingests multi-source feeds (**Bank Statements**, **General Ledger**, and **Invoices**) and closes the finance-ops loop with multi-tier deterministic matching, fuzzy scoring, and Google Gemini AI evidence reasoning.
 
 ---
 
-## Key Features
+## 🚀 Deployment Options (Git & Docker with CI/CD)
 
-1. **Modern Light-Theme React Web UI**:
-   - **Executive Dashboard**: Live KPI cards, Reconciled Cash Exposure Snapshot, Resolution Tier Breakdown.
-   - **Data Ingestion Hub**: Drag-and-drop CSV upload for custom files + 1-Click Synthetic Benchmark Demo loader.
-   - **Exceptions Triage Table**: Searchable & filterable table with reason codes (`POSSIBLE_DUPLICATE`, `DUPLICATE_CANDIDATE`, `LOW_CONFIDENCE`, etc.), confidence meters, and recommended human actions.
-   - **Reconciled Groups Inspector**: Visual clusters across Bank, Ledger, and Invoices.
-   - **Agent Audit Trail**: Chronological event log with step-by-step reasoning details.
-   - **Export Center**: 1-click download of `.md`, `.csv`, and `.json` audit reports.
-2. **Schema-Aware CSV Normalization**:
-   - Automatically maps non-standard column headers (e.g. `Tx_Amount`, `Total`, `Memo`, `Description`, `Ref_No`, `Invoice_Number`).
-   - Cleans formatting, currencies, symbols, negative amounts `($100)`, and date strings.
-3. **Multi-Tiered Decision Engine**:
-   - **Tier 1 (Exact Matcher)**: Deterministic matching for clean transactions (confidence `1.00`).
-   - **Tier 2 (Fuzzy Matcher)**: Multi-signal scoring for payment fees, date settlement lags, and description token overlap ($\ge 0.90$).
-   - **Tier 3 (Google Gemini LLM Reasoner)**: Agentic reasoning over complex ambiguous candidate sets, fee deductions (e.g. 2.9% + \$0.30), vendor aliases, and twin near-ties ($\ge 0.80$).
-4. **Zero Silent Drops Guarantee**:
-   - Every single record is accounted for. Unresolved records are triaged as explicit exceptions.
-5. **Reconciled Cash Position Snapshot**:
-   - Calculates Confirmed Bank Cash, Confirmed Ledger Cash, Reconciled Variance, and Unresolved Exception Exposure.
+### Option 1: Automated CI/CD via GitHub Actions (Recommended)
+
+This repository includes a preconfigured GitHub Actions workflow in [`.github/workflows/deploy.yml`](.github/workflows/deploy.yml).
+
+1. **Push to GitHub**:
+   ```bash
+   git remote add origin https://github.com/YOUR_USERNAME/ai-finance-controller.git
+   git branch -M main
+   git push -u origin main
+   ```
+
+2. **Add GitHub Repository Secrets** (under *Settings > Secrets and variables > Actions*):
+   - `GCP_PROJECT_ID`: Your Google Cloud project ID.
+   - `GCP_SA_KEY`: JSON service account key with *Cloud Run Admin*, *Artifact Registry Writer*, and *Service Account User* roles.
+   - `GEMINI_API_KEY`: Your Google Gemini API key.
+
+3. **Deploy**:
+   - Every push to `main` will automatically build the multi-stage Docker image, push it to Google Artifact Registry, and deploy to **Google Cloud Run**.
 
 ---
 
-## 🚀 How to Launch the Web UI
+### Option 2: Continuous Deployment directly from Cloud Run Console
 
-### Step 1: Start the Backend & Web App Server
+1. Open **[Google Cloud Console > Cloud Run](https://console.cloud.google.com/run)**.
+2. Click **Create Service**.
+3. Select **"Continuously deploy from a repository"**.
+4. Authorize and select your GitHub repository.
+5. Set Build Type to **Dockerfile**.
+6. Under *Container, Networking, Security > Environment variables*, add:
+   - `GEMINI_API_KEY`: `your_key_here`
+   - `RECON_LLM_MODEL`: `gemini-2.5-flash`
+7. Click **Create** — Cloud Run will build and host the live HTTPS URL!
+
+---
+
+### Option 3: Direct CLI Deployment via Cloud Build
+
+If you have `gcloud` installed locally:
 
 ```bash
-cd "/Users/amarkp/Documents/AI Finance Controller"
+# Authenticate & set project
+gcloud auth login
+gcloud config set project YOUR_GCP_PROJECT_ID
+
+# Deploy directly
+./deploy.sh
+```
+
+---
+
+## 💻 Local Development
+
+### 1. Install & Activate Environment
+```bash
+python3 -m venv .venv
 source .venv/bin/activate
+pip install -r requirements.txt
+```
+
+### 2. Launch Local Web UI Server
+```bash
 python server.py
 ```
-
-### Step 2: Open in Your Browser
-
-Navigate to **[http://127.0.0.1:8000](http://127.0.0.1:8000)** in your browser!
+Open **[http://127.0.0.1:8000](http://127.0.0.1:8000)** in your browser.
 
 ---
 
-## 💻 Optional: Running in Terminal CLI
+## 📂 Project Architecture
 
-```bash
-# Reconcile any custom user CSV files
-python run_agent.py \
-  --bank-csv "/path/to/my_bank_statement.csv" \
-  --ledger-csv "/path/to/my_quickbooks_ledger.csv" \
-  --invoices-csv "/path/to/my_invoices.csv" \
-  --reports-dir "reports"
-
-# Run 80-record synthetic benchmark
-python run_agent.py
-
-# Force offline deterministic mode
-python run_agent.py --llm off
+```text
+├── Dockerfile                  # Multi-stage production container build (Node.js + Python)
+├── deploy.sh                   # Direct Cloud Run deploy script
+├── .github/workflows/
+│   └── deploy.yml              # Automated GitHub Actions CI/CD pipeline
+├── server.py                   # FastAPI backend server & static asset host
+├── agents/                     # Controller, Matching, Exception, and Reporting agents
+├── tools/                      # Normalizer, Exact, Fuzzy, LLM batch reasoning, Cash position
+├── frontend/                   # React + Tailwind CSS light-theme Web UI
+└── evaluation/                 # Scoring & multi-format report generator
 ```
-
----
-
-## 📁 Generated Reports (`reports/`)
-
-- **`reports/recon_report.md`**: Executive markdown report with match rate, method breakdown, cash position, and exceptions.
-- **`reports/exceptions.csv`**: Structured exception list ready for accounting review in Excel / Sheets.
-- **`reports/recon_report.json`**: Machine-readable JSON summary for downstream ERP integration.
-- **`reports/audit_log.json`**: Comprehensive step-by-step audit log of every decision made by the agent.
