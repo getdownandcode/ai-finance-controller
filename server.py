@@ -408,6 +408,16 @@ if DIST_DIR.exists():
         # Don't intercept API or download routes
         if full_path.startswith("api/"):
             return JSONResponse(status_code=404, content={"detail": "Not found"})
+        # Serve real static files from dist (favicon, matchmind-logo, etc.)
+        if full_path and full_path != "/":
+            candidate = DIST_DIR / full_path
+            # prevent path traversal
+            try:
+                candidate.resolve().relative_to(DIST_DIR.resolve())
+            except Exception:
+                return FileResponse(DIST_DIR / "index.html")
+            if candidate.is_file():
+                return FileResponse(candidate)
         return FileResponse(DIST_DIR / "index.html")
 
 
