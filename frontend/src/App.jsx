@@ -259,6 +259,7 @@ export default function App() {
   const persistAndShow = (data) => {
     setResults(data);
     setActiveTab('dashboard');
+    window.scrollTo({ top: 0, behavior: 'smooth' });
     fetchSessions();
   };
 
@@ -270,6 +271,7 @@ export default function App() {
     }
     setLoading(true);
     setError(null);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
     try {
       const formData = new FormData();
       const meta = [];
@@ -302,6 +304,7 @@ export default function App() {
   const handleRunSampleData = async () => {
     setLoading(true);
     setError(null);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
     try {
       const formData = new FormData();
       formData.append('seed', 42);
@@ -905,24 +908,37 @@ export default function App() {
                     type="button"
                     onClick={handleRunSampleData}
                     disabled={loading}
-                    className="inline-flex items-center justify-center gap-1.5 text-xs font-medium text-muted-foreground hover:text-primary transition disabled:opacity-50 cursor-pointer"
+                    className="inline-flex items-center justify-center gap-2 text-xs font-medium text-muted-foreground hover:text-primary transition disabled:opacity-50 cursor-pointer"
                   >
-                    <Database className="h-3.5 w-3.5" />
-                    Or run with benchmark sample data
+                    {loading ? (
+                      <div className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+                    ) : (
+                      <Database className="h-3.5 w-3.5" />
+                    )}
+                    <span>{loading ? 'Reconciling sample data…' : 'Or run with benchmark sample data'}</span>
                   </button>
                   <button
                     type="submit"
                     disabled={loading || filesList.length === 0}
                     className={cx(
                       'inline-flex items-center justify-center gap-2 rounded-xl px-6 py-3 text-sm font-semibold transition-all focus-ring cursor-pointer',
-                      filesList.length === 0
+                      filesList.length === 0 || loading
                         ? 'cursor-not-allowed border border-border bg-muted text-muted-foreground'
                         : 'bg-primary text-primary-foreground shadow-md hover:opacity-90'
                     )}
                   >
-                    <Play className="h-4 w-4 fill-current" />
-                    Run autonomous reconciliation {filesList.length > 0 ? `(${filesList.length} files)` : ''}
-                    <ArrowRight className="h-4 w-4 opacity-70" />
+                    {loading ? (
+                      <>
+                        <div className="h-4 w-4 animate-spin rounded-full border-2 border-primary-foreground border-t-transparent" />
+                        <span>Reconciling records…</span>
+                      </>
+                    ) : (
+                      <>
+                        <Play className="h-4 w-4 fill-current" />
+                        <span>Run autonomous reconciliation {filesList.length > 0 ? `(${filesList.length} files)` : ''}</span>
+                        <ArrowRight className="h-4 w-4 opacity-70" />
+                      </>
+                    )}
                   </button>
                 </div>
               </form>
