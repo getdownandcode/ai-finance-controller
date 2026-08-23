@@ -259,6 +259,8 @@ def auth_me(request: Request):
 @app.post("/api/reconcile")
 async def reconcile_custom_files(
     request: Request,
+    files: list[UploadFile] = File(default=[]),
+    metadata: str = Form(default="[]"),
     bank_file: Optional[UploadFile] = File(None),
     ledger_file: Optional[UploadFile] = File(None),
     invoices_file: Optional[UploadFile] = File(None),
@@ -277,20 +279,60 @@ async def reconcile_custom_files(
     _validate_opening(ledger_opening, "ledger_opening")
 
     try:
-        bank_df = _read_csv_or_none(bank_file, "bank")
-        ledger_df = _read_csv_or_none(ledger_file, "ledger")
-        invoices_df = _read_csv_or_none(invoices_file, "invoices")
+        sources_list: list[dict] = []
         gt_df = _read_csv_or_none(ground_truth_file, "ground_truth")
 
-        total_rows = sum(len(df) for df in (bank_df, ledger_df, invoices_df) if df is not None)
+        # Parse dynamic multi-file metadata if present
+        meta_items = []
+        if metadata and metadata.strip():
+            try:
+                meta_items = json.loads(metadata)
+                if not isinstance(meta_items, list):
+                    meta_items = []
+            except Exception:
+                meta_items = []
+
+        if files:
+            for idx, uploaded_file in enumerate(files):
+                if not uploaded_file.filename:
+                    continue
+                file_meta = meta_items[idx] if idx < len(meta_items) else {}
+                cat = file_meta.get("category") or "bank"
+                label = file_meta.get("label") or uploaded_file.filename.replace(".csv", "")
+                op_bal = float(file_meta.get("opening_balance", 0.0) or 0.0)
+                src_key = file_meta.get("source_key") or f"{cat}:{label.lower().replace(' ', '_')}"
+
+                df = _read_csv_or_none(uploaded_file, label)
+                if df is not None and not df.empty:
+                    sources_list.append({
+                        "df": df,
+                        "category": cat,
+                        "label": label,
+                        "source_key": src_key,
+                        "opening_balance": op_bal,
+                    })
+
+        # Fallback to legacy fields if no dynamic files were supplied
+        if not sources_list:
+            bank_df = _read_csv_or_none(bank_file, "bank")
+            ledger_df = _read_csv_or_none(ledger_file, "ledger")
+            invoices_df = _read_csv_or_none(invoices_file, "invoices")
+            if bank_df is not None:
+                sources_list.append({"df": bank_df, "category": "bank", "label": "Bank Feed", "source_key": "bank", "opening_balance": bank_opening})
+            if ledger_df is not None:
+                sources_list.append({"df": ledger_df, "category": "ledger", "label": "General Ledger", "source_key": "ledger", "opening_balance": ledger_opening})
+            if invoices_df is not None:
+                sources_list.append({"df": invoices_df, "category": "invoice", "label": "Invoices", "source_key": "invoice", "opening_balance": 0.0})
+
+        total_rows = sum(len(s["df"]) for s in sources_list)
         if total_rows > MAX_RECORDS:
             raise HTTPException(status_code=400, detail=f"Too many records ({total_rows} > {MAX_RECORDS})")
         if total_rows == 0:
             raise HTTPException(status_code=400, detail="No records found in uploaded files")
 
         payload = run_reconciliation(
-            bank_df=bank_df, ledger_df=ledger_df, invoices_df=invoices_df, gt_df=gt_df,
-            bank_opening=bank_opening, ledger_opening=ledger_opening,
+            sources=sources_list,
+            gt_df=gt_df,
             llm_mode=llm_mode,
             batch_id=f"custom_upload_{int(time.time())}",
             reports_dir=REPORTS_DIR,

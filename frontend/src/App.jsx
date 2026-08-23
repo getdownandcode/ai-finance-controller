@@ -8,6 +8,7 @@ import {
   CheckCircle2,
   ChevronRight,
   Clock,
+  CreditCard,
   Database,
   DollarSign,
   Download,
@@ -16,6 +17,7 @@ import {
   FileText,
   FileUp,
   FileWarning,
+  FolderPlus,
   History,
   Layers,
   Menu,
@@ -30,6 +32,7 @@ import {
   Trash2,
   TrendingUp,
   Upload,
+  UploadCloud,
   X,
   Zap,
 } from 'lucide-react';
@@ -104,6 +107,39 @@ function StatCard({ label, value, sub, icon: Icon, badge }) {
   );
 }
 
+const CATEGORIES = [
+  { id: 'bank', label: 'Bank Account', icon: Building2, desc: 'Checking, wire & settlement feeds' },
+  { id: 'ledger', label: 'General Ledger', icon: FileSpreadsheet, desc: 'QuickBooks, NetSuite, ERP journals' },
+  { id: 'invoice', label: 'Invoices / Billing', icon: Receipt, desc: 'AP/AR billing, customer invoices' },
+  { id: 'gateway', label: 'Payment Gateway / Card', icon: CreditCard, desc: 'Stripe, Adyen, corporate cards' },
+];
+
+function detectCategoryAndLabel(filename) {
+  const clean = filename.replace(/\.[^/.]+$/, "");
+  const lower = clean.toLowerCase();
+  if (lower.includes("bank") || lower.includes("chase") || lower.includes("svb") || lower.includes("bofa") || lower.includes("statement") || lower.includes("feed") || lower.includes("checking") || lower.includes("savings")) {
+    return { category: 'bank', label: clean.replace(/[-_]/g, ' ') };
+  }
+  if (lower.includes("ledger") || lower.includes("qbo") || lower.includes("quickbooks") || lower.includes("xero") || lower.includes("journal") || lower.includes("gl") || lower.includes("erp") || lower.includes("netsuite")) {
+    return { category: 'ledger', label: clean.replace(/[-_]/g, ' ') };
+  }
+  if (lower.includes("inv") || lower.includes("bill") || lower.includes("ar") || lower.includes("ap") || lower.includes("receipt") || lower.includes("payable") || lower.includes("receivable")) {
+    return { category: 'invoice', label: clean.replace(/[-_]/g, ' ') };
+  }
+  if (lower.includes("stripe") || lower.includes("adyen") || lower.includes("paypal") || lower.includes("card") || lower.includes("gateway") || lower.includes("payout") || lower.includes("processor")) {
+    return { category: 'gateway', label: clean.replace(/[-_]/g, ' ') };
+  }
+  return { category: 'bank', label: clean.replace(/[-_]/g, ' ') };
+}
+
+function formatBytes(bytes) {
+  if (!bytes || bytes === 0) return '0 B';
+  const k = 1024;
+  const sizes = ['B', 'KB', 'MB', 'GB'];
+  const i = Math.floor(Math.log(bytes) / Math.log(k));
+  return `${parseFloat((bytes / Math.pow(k, i)).toFixed(1))} ${sizes[i]}`;
+}
+
 const LS_KEY = 'afc_session';
 const LS_TAB = 'afc_activeTab';
 const LS_SIDEBAR = 'afc_sidebarOpen';
@@ -162,16 +198,41 @@ export default function App() {
     try { const raw = localStorage.getItem(LS_KEY); return raw ? JSON.parse(raw) : null; } catch { return null; }
   });
   const [error, setError] = useState(null);
-  const [bankFile, setBankFile] = useState(null);
-  const [ledgerFile, setLedgerFile] = useState(null);
-  const [invoicesFile, setInvoicesFile] = useState(null);
-  const [bankOpening, setBankOpening] = useState("0");
-  const [ledgerOpening, setLedgerOpening] = useState("0");
+  const [filesList, setFilesList] = useState([]);
+  const [isDragging, setIsDragging] = useState(false);
   const [exceptionFilter, setExceptionFilter] = useState('ALL');
   const [exceptionSearch, setExceptionSearch] = useState('');
   const [clusterSearch, setClusterSearch] = useState('');
   const [sessions, setSessions] = useState([]);
   const [sidebarOpen, setSidebarOpen] = useState(() => localStorage.getItem(LS_SIDEBAR) !== '0');
+
+  const addFiles = (newFiles, defaultCategory = null) => {
+    if (!newFiles || newFiles.length === 0) return;
+    const items = Array.from(newFiles).map((file, idx) => {
+      const detected = detectCategoryAndLabel(file.name);
+      const category = defaultCategory || detected.category;
+      return {
+        id: `${Date.now()}_${idx}_${Math.random().toString(36).slice(2, 7)}`,
+        file,
+        name: file.name,
+        size: file.size,
+        category,
+        label: detected.label,
+        openingBalance: '0.00',
+      };
+    });
+    setFilesList((prev) => [...prev, ...items]);
+  };
+
+  const removeFile = (id) => {
+    setFilesList((prev) => prev.filter((f) => f.id !== id));
+  };
+
+  const updateFileItem = (id, key, value) => {
+    setFilesList((prev) =>
+      prev.map((f) => (f.id === id ? { ...f, [key]: value } : f))
+    );
+  };
 
   // persist activeTab
   useEffect(() => { localStorage.setItem(LS_TAB, activeTab); }, [activeTab]);
@@ -203,19 +264,25 @@ export default function App() {
 
   const handleCustomReconcile = async (e) => {
     if (e) e.preventDefault();
-    if (!bankFile && !ledgerFile && !invoicesFile) {
-      setError('Please upload at least one CSV file (Bank Statement, General Ledger, or Invoices).');
+    if (filesList.length === 0) {
+      setError('Please upload at least one CSV file (Bank Statement, General Ledger, Invoices, or Gateway).');
       return;
     }
     setLoading(true);
     setError(null);
     try {
       const formData = new FormData();
-      if (bankFile) formData.append('bank_file', bankFile);
-      if (ledgerFile) formData.append('ledger_file', ledgerFile);
-      if (invoicesFile) formData.append('invoices_file', invoicesFile);
-      formData.append('bank_opening', String(parseFloat(bankOpening) || 0));
-      formData.append('ledger_opening', String(parseFloat(ledgerOpening) || 0));
+      const meta = [];
+      filesList.forEach((item) => {
+        formData.append('files', item.file);
+        meta.push({
+          category: item.category,
+          label: item.label,
+          opening_balance: parseFloat(item.openingBalance) || 0.0,
+          source_key: `${item.category}:${item.label.toLowerCase().replace(/[^a-z0-9]/g, '_')}`,
+        });
+      });
+      formData.append('metadata', JSON.stringify(meta));
       formData.append('llm_mode', 'auto');
       formData.append('goal', 'reconcile');
       const res = await authFetch('/api/reconcile', { method: 'POST', body: formData });
@@ -294,6 +361,7 @@ export default function App() {
 
   const handleNewChat = () => {
     setResults(null);
+    setFilesList([]);
     localStorage.removeItem(LS_KEY);
     setActiveTab('ingest');
     setError(null);
@@ -652,114 +720,208 @@ export default function App() {
               </div>
 
               <form onSubmit={handleCustomReconcile} className="relative mt-8 space-y-6">
-                <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
-                  {[
-                    {
-                      key: 'bank',
-                      file: bankFile,
-                      setter: setBankFile,
-                      id: 'bank-file',
-                      icon: Building2,
-                      title: 'Bank Feed',
-                      desc: 'Statements, settlements & wires',
-                    },
-                    {
-                      key: 'ledger',
-                      file: ledgerFile,
-                      setter: setLedgerFile,
-                      id: 'ledger-file',
-                      icon: FileSpreadsheet,
-                      title: 'General Ledger',
-                      desc: 'QuickBooks, Xero & ERP journals',
-                    },
-                    {
-                      key: 'inv',
-                      file: invoicesFile,
-                      setter: setInvoicesFile,
-                      id: 'invoice-file',
-                      icon: Receipt,
-                      title: 'Invoices',
-                      desc: 'Billing & AP/AR items · optional',
-                    },
-                  ].map((s) => {
-                    const Icon = s.icon;
-                    return (
-                      <div
-                        key={s.key}
-                        className={cx(
-                          'group relative flex flex-col justify-between rounded-xl border p-5 text-center transition-all duration-200',
-                          s.file 
-                            ? 'border-primary/60 bg-primary/5' 
-                            : 'border-border bg-card hover:border-primary/40 hover:bg-accent/40'
-                        )}
+                {/* Primary Drag & Drop Zone */}
+                <div
+                  onDragOver={(e) => { e.preventDefault(); setIsDragging(true); }}
+                  onDragLeave={(e) => { e.preventDefault(); setIsDragging(false); }}
+                  onDrop={(e) => {
+                    e.preventDefault();
+                    setIsDragging(false);
+                    if (e.dataTransfer.files?.length) addFiles(e.dataTransfer.files);
+                  }}
+                  className={cx(
+                    'relative flex flex-col items-center justify-center rounded-2xl border-2 border-dashed p-8 text-center transition-all duration-200',
+                    isDragging
+                      ? 'border-primary bg-primary/10 shadow-lg scale-[1.005]'
+                      : 'border-border bg-muted/20 hover:border-primary/40 hover:bg-muted/40'
+                  )}
+                >
+                  <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-primary/15 text-primary ring-1 ring-primary/30 shadow-sm">
+                    <UploadCloud className="h-7 w-7" />
+                  </div>
+                  <h3 className="mt-4 text-base font-bold text-white">
+                    Drag &amp; drop CSV files here
+                  </h3>
+                  <p className="mt-1 text-xs text-muted-foreground max-w-md">
+                    Upload multiple bank statements, ledger journals, invoice exports, and processor feeds (1 to 50+ files supported).
+                  </p>
+                  <div className="mt-4 flex flex-wrap items-center justify-center gap-2">
+                    <input
+                      type="file"
+                      id="bulk-csv-upload"
+                      accept=".csv,text/csv"
+                      multiple
+                      onChange={(e) => {
+                        if (e.target.files?.length) addFiles(e.target.files);
+                        e.target.value = '';
+                      }}
+                      className="hidden"
+                    />
+                    <label
+                      htmlFor="bulk-csv-upload"
+                      className="inline-flex cursor-pointer items-center gap-2 rounded-xl bg-primary px-4 py-2.5 text-xs font-bold text-primary-foreground shadow-sm hover:opacity-90 transition"
+                    >
+                      <FileUp className="h-4 w-4" /> Browse CSV Files
+                    </label>
+                  </div>
+
+                  {/* Quick Preset Buttons */}
+                  <div className="mt-6 flex flex-wrap items-center justify-center gap-2 border-t border-border/60 pt-4 text-xs">
+                    <span className="text-[11px] font-semibold text-muted-foreground mr-1">Quick add:</span>
+                    {CATEGORIES.map((cat) => {
+                      const CatIcon = cat.icon;
+                      return (
+                        <label
+                          key={cat.id}
+                          className="inline-flex cursor-pointer items-center gap-1.5 rounded-lg border border-border bg-card px-2.5 py-1.5 text-[11px] font-semibold text-foreground hover:border-primary/50 hover:text-primary transition"
+                        >
+                          <input
+                            type="file"
+                            accept=".csv,text/csv"
+                            multiple
+                            onChange={(e) => {
+                              if (e.target.files?.length) addFiles(e.target.files, cat.id);
+                              e.target.value = '';
+                            }}
+                            className="hidden"
+                          />
+                          <CatIcon className="h-3.5 w-3.5 text-primary" />
+                          <span>+ {cat.label}</span>
+                        </label>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                {/* Attached Files List */}
+                {filesList.length > 0 && (
+                  <div className="space-y-3">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <span className="text-sm font-bold text-white">Attached Statements &amp; Ledgers</span>
+                        <span className="rounded-full bg-primary/15 border border-primary/30 px-2.5 py-0.5 text-xs font-bold text-primary">
+                          {filesList.length} {filesList.length === 1 ? 'file' : 'files'}
+                        </span>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => setFilesList([])}
+                        className="text-xs font-semibold text-muted-foreground hover:text-destructive transition cursor-pointer"
                       >
-                        <div>
-                          <div className={cx(
-                            'mx-auto flex h-10 w-10 items-center justify-center rounded-lg ring-1 transition-colors',
-                            s.file ? 'bg-primary text-primary-foreground ring-primary' : 'bg-muted text-muted-foreground ring-border group-hover:text-primary group-hover:ring-primary/40'
-                          )}>
-                            <Icon className="h-5 w-5" />
-                          </div>
-                          <h4 className="mt-3 text-sm font-bold text-white">{s.title}</h4>
-                          <p className="mt-1 text-xs text-muted-foreground">{s.desc}</p>
-                        </div>
-                        <div className="mt-5">
-                          {s.file ? (
-                            <div className="flex items-center justify-between gap-2 rounded-lg border border-border bg-muted/80 px-3 py-2 text-xs font-medium backdrop-blur">
-                              <span className="min-w-0 truncate text-foreground">{s.file.name}</span>
-                              <button type="button" onClick={() => s.setter(null)} className="flex h-6 w-6 shrink-0 items-center justify-center rounded bg-muted text-muted-foreground hover:bg-accent hover:text-white cursor-pointer">
-                                <X className="h-3.5 w-3.5" />
+                        Clear all
+                      </button>
+                    </div>
+
+                    <div className="space-y-2">
+                      {filesList.map((item) => {
+                        const currentCat = CATEGORIES.find((c) => c.id === item.category) || CATEGORIES[0];
+                        const Icon = currentCat.icon;
+                        const isBalanceAccount = item.category === 'bank' || item.category === 'ledger' || item.category === 'gateway';
+
+                        return (
+                          <div
+                            key={item.id}
+                            className="flex flex-col gap-3 rounded-xl border border-border bg-card p-4 shadow-sm transition-all hover:border-border/80 sm:flex-row sm:items-center sm:justify-between"
+                          >
+                            <div className="flex items-center gap-3 min-w-0 flex-1">
+                              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary border border-primary/20">
+                                <Icon className="h-5 w-5" />
+                              </div>
+                              <div className="min-w-0 flex-1">
+                                <div className="flex flex-wrap items-center gap-2">
+                                  <input
+                                    type="text"
+                                    value={item.label}
+                                    onChange={(e) => updateFileItem(item.id, 'label', e.target.value)}
+                                    placeholder="Account or Feed Name"
+                                    className="rounded-lg border border-border bg-muted/50 px-2.5 py-1 text-xs font-bold text-foreground outline-none focus:border-primary focus:bg-background focus:ring-1 focus:ring-ring"
+                                  />
+                                  <select
+                                    value={item.category}
+                                    onChange={(e) => updateFileItem(item.id, 'category', e.target.value)}
+                                    className="rounded-lg border border-border bg-muted/50 px-2.5 py-1 text-xs font-semibold text-foreground outline-none focus:border-primary focus:bg-background cursor-pointer"
+                                  >
+                                    {CATEGORIES.map((c) => (
+                                      <option key={c.id} value={c.id} className="bg-card text-foreground">
+                                        {c.label}
+                                      </option>
+                                    ))}
+                                  </select>
+                                </div>
+                                <p className="mt-1 truncate text-[11px] text-muted-foreground">
+                                  {item.name} · {formatBytes(item.size)}
+                                </p>
+                              </div>
+                            </div>
+
+                            <div className="flex items-center justify-between sm:justify-end gap-3 shrink-0">
+                              {isBalanceAccount ? (
+                                <div className="flex items-center gap-2">
+                                  <span className="text-[11px] font-semibold text-muted-foreground">Opening:</span>
+                                  <div className="relative w-32">
+                                    <span className="pointer-events-none absolute left-2.5 top-1/2 -translate-y-1/2 text-xs text-muted-foreground">$</span>
+                                    <input
+                                      type="text"
+                                      inputMode="decimal"
+                                      value={item.openingBalance}
+                                      onChange={(e) => {
+                                        const v = e.target.value;
+                                        if (v === '' || v === '-' || v === '.' || /^-?\d*\.?\d*$/.test(v)) {
+                                          updateFileItem(item.id, 'openingBalance', v);
+                                        }
+                                      }}
+                                      onFocus={(e) => e.target.select()}
+                                      onBlur={() => {
+                                        if (item.openingBalance === '' || item.openingBalance === '-' || item.openingBalance === '.') {
+                                          updateFileItem(item.id, 'openingBalance', '0.00');
+                                        }
+                                      }}
+                                      className="w-full rounded-lg border border-input bg-muted/40 py-1.5 pl-6 pr-2.5 text-xs font-mono font-semibold text-foreground outline-none focus:border-primary focus:bg-background focus:ring-1 focus:ring-ring tabular-nums"
+                                      placeholder="0.00"
+                                    />
+                                  </div>
+                                </div>
+                              ) : (
+                                <div className="text-[11px] text-muted-foreground italic px-2">No opening balance</div>
+                              )}
+                              <button
+                                type="button"
+                                onClick={() => removeFile(item.id)}
+                                title="Remove file"
+                                className="flex h-8 w-8 items-center justify-center rounded-lg border border-border bg-muted/50 text-muted-foreground hover:bg-destructive hover:text-white hover:border-destructive transition cursor-pointer"
+                              >
+                                <Trash2 className="h-3.5 w-3.5" />
                               </button>
                             </div>
-                          ) : (
-                            <>
-                              <input type="file" id={s.id} accept=".csv,text/csv" onChange={(e) => s.setter(e.target.files?.[0] || null)} className="hidden" />
-                              <label htmlFor={s.id} className="inline-flex cursor-pointer items-center gap-1.5 rounded-lg border border-border bg-muted px-3.5 py-2 text-xs font-semibold text-foreground transition hover:border-primary/40 hover:text-primary">
-                                <FileUp className="h-3.5 w-3.5" />
-                                Select CSV
-                              </label>
-                            </>
-                          )}
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-
-                <div className="grid grid-cols-1 gap-4 border-t border-border pt-6 sm:grid-cols-2">
-                  <label className="space-y-1.5">
-                    <span className="text-xs font-semibold text-foreground">Bank opening balance</span>
-                    <div className="relative">
-                      <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-xs text-muted-foreground">$</span>
-                      <input type="text" inputMode="decimal" value={bankOpening} onChange={(e) => { const v = e.target.value; if (v === "" || v === "-" || v === "." || /^-?\d*\.?\d*$/.test(v)) setBankOpening(v); }} onFocus={(e) => e.target.select()} onBlur={() => { if (bankOpening === "" || bankOpening === "-" || bankOpening === ".") setBankOpening("0"); }} className={cx(inputCls, 'pl-7')} placeholder="0.00" />
+                          </div>
+                        );
+                      })}
                     </div>
-                  </label>
-                  <label className="space-y-1.5">
-                    <span className="text-xs font-semibold text-foreground">Ledger opening balance</span>
-                    <div className="relative">
-                      <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-xs text-muted-foreground">$</span>
-                      <input type="text" inputMode="decimal" value={ledgerOpening} onChange={(e) => { const v = e.target.value; if (v === "" || v === "-" || v === "." || /^-?\d*\.?\d*$/.test(v)) setLedgerOpening(v); }} onFocus={(e) => e.target.select()} onBlur={() => { if (ledgerOpening === "" || ledgerOpening === "-" || ledgerOpening === ".") setLedgerOpening("0"); }} className={cx(inputCls, 'pl-7')} placeholder="0.00" />
-                    </div>
-                  </label>
-                </div>
+                  </div>
+                )}
 
                 <div className="flex flex-col-reverse items-stretch justify-between gap-3 border-t border-border pt-6 sm:flex-row sm:items-center">
-                  <button type="button" onClick={handleRunSampleData} disabled={loading} className="inline-flex items-center justify-center gap-1.5 text-xs font-medium text-muted-foreground hover:text-primary transition disabled:opacity-50 cursor-pointer">
+                  <button
+                    type="button"
+                    onClick={handleRunSampleData}
+                    disabled={loading}
+                    className="inline-flex items-center justify-center gap-1.5 text-xs font-medium text-muted-foreground hover:text-primary transition disabled:opacity-50 cursor-pointer"
+                  >
                     <Database className="h-3.5 w-3.5" />
                     Or run with benchmark sample data
                   </button>
                   <button
                     type="submit"
-                    disabled={loading || !hasFiles}
+                    disabled={loading || filesList.length === 0}
                     className={cx(
                       'inline-flex items-center justify-center gap-2 rounded-xl px-6 py-3 text-sm font-semibold transition-all focus-ring cursor-pointer',
-                      !hasFiles
+                      filesList.length === 0
                         ? 'cursor-not-allowed border border-border bg-muted text-muted-foreground'
                         : 'bg-primary text-primary-foreground shadow-md hover:opacity-90'
                     )}
                   >
                     <Play className="h-4 w-4 fill-current" />
-                    Run autonomous reconciliation
+                    Run autonomous reconciliation {filesList.length > 0 ? `(${filesList.length} files)` : ''}
                     <ArrowRight className="h-4 w-4 opacity-70" />
                   </button>
                 </div>
@@ -891,6 +1053,30 @@ export default function App() {
                     <span className="text-muted-foreground">Invoices <strong className="font-bold text-destructive tabular-nums">{formatMoney(results.cash_position.exception_exposure_by_source?.invoice || 0)}</strong></span>
                   </div>
                 </div>
+
+                {results.cash_position?.accounts_breakdown?.length > 0 && (
+                  <div className="mt-5 rounded-xl border border-border bg-muted/20 p-4">
+                    <p className="text-xs font-bold text-white mb-3 flex items-center justify-between">
+                      <span>Multi-Account Cash Breakdown</span>
+                      <span className="text-[11px] font-normal text-muted-foreground">{results.cash_position.accounts_breakdown.length} accounts configured</span>
+                    </p>
+                    <div className="space-y-2">
+                      {results.cash_position.accounts_breakdown.map((acc, i) => (
+                        <div key={i} className="flex flex-col gap-2 rounded-lg border border-border bg-card px-3.5 py-2.5 text-xs sm:flex-row sm:items-center sm:justify-between">
+                          <div className="flex items-center gap-2">
+                            <span className="rounded bg-primary/10 border border-primary/20 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-primary">{acc.category}</span>
+                            <span className="font-bold text-foreground">{acc.account_name}</span>
+                          </div>
+                          <div className="flex flex-wrap items-center gap-4 text-xs">
+                            <span className="text-muted-foreground">Opening: <strong className="text-foreground font-semibold tabular-nums">{formatMoney(acc.opening_balance)}</strong></span>
+                            <span className="text-muted-foreground">Movements: <strong className={acc.movements >= 0 ? 'text-secondary font-semibold tabular-nums' : 'text-destructive font-semibold tabular-nums'}>{acc.movements >= 0 ? `+${formatMoney(acc.movements)}` : formatMoney(acc.movements)}</strong></span>
+                            <span className="text-muted-foreground">Confirmed: <strong className="text-white font-bold tabular-nums">{formatMoney(acc.confirmed_balance)}</strong></span>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
               </div>
 
               <div className="flex flex-col justify-between rounded-2xl border border-border bg-card p-6 shadow-sm">

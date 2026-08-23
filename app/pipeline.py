@@ -51,11 +51,12 @@ def _build_gt_map(gt_df: pd.DataFrame | None, all_records: dict[str, Record]) ->
 
 
 def run_reconciliation(
-    bank_df: pd.DataFrame | None,
-    ledger_df: pd.DataFrame | None,
-    invoices_df: pd.DataFrame | None,
+    bank_df: pd.DataFrame | None = None,
+    ledger_df: pd.DataFrame | None = None,
+    invoices_df: pd.DataFrame | None = None,
     gt_df: pd.DataFrame | None = None,
     *,
+    sources: list[dict] | None = None,
     bank_opening: float = 42500.0,
     ledger_opening: float = 42500.0,
     llm_mode: str = "auto",
@@ -69,36 +70,74 @@ def run_reconciliation(
     """Autonomous pipeline: goal → observe → plan → act → reflect until complete or blocked."""
     if mode == "fixed":
         log.warning("mode='fixed' is deprecated and ignored — running autonomous pipeline")
-    bank_records = _parse_df(bank_df, "bank")
-    ledger_records = _parse_df(ledger_df, "ledger")
-    invoice_records = _parse_df(invoices_df, "invoice")
 
-    all_parsed = bank_records + ledger_records + invoice_records
+    if sources is None:
+        sources = [
+            {"df": bank_df, "category": "bank", "label": "Bank Feed", "opening_balance": bank_opening, "source_key": "bank"},
+            {"df": ledger_df, "category": "ledger", "label": "General Ledger", "opening_balance": ledger_opening, "source_key": "ledger"},
+            {"df": invoices_df, "category": "invoice", "label": "Invoices", "opening_balance": 0.0, "source_key": "invoice"},
+        ]
+
+    # Filter out empty entries
+    active_sources = [s for s in sources if s.get("df") is not None and not s["df"].empty]
+
     all_records: dict[str, Record] = {}
-    for r in all_parsed:
-        if r.record_id in all_records:
-            existing = all_records[r.record_id]
-            if existing.source == r.source:
-                raise HTTPException(
-                    status_code=400,
-                    detail=f"Duplicate record_id '{r.record_id}' inside {r.source} file — each row needs a unique ID. Check for repeated '{r.record_id}' in your {r.source} CSV.",
-                )
-            new_id = f"{r.source}:{r.record_id}"
-            counter = 1
-            while new_id in all_records:
-                counter += 1
-                new_id = f"{r.source}:{r.record_id}#{counter}"
-            log.warning("Cross-source duplicate ID '%s' (sources %s vs %s) — auto-renamed to '%s'",
-                        r.record_id, existing.source, r.source, new_id)
-            r.record_id = new_id
-        all_records[r.record_id] = r
+    source_counts: dict[str, int] = {}
+    accounts_meta: list[dict] = []
+    total_bank_opening = 0.0
+    total_ledger_opening = 0.0
+
+    for s in active_sources:
+        df = s["df"]
+        cat = str(s.get("category", "bank")).lower().strip()
+        label = str(s.get("label") or cat).strip()
+        src_key = str(s.get("source_key") or f"{cat}:{label.lower().replace(' ', '_')}").strip()
+        op_bal = float(s.get("opening_balance", 0.0) or 0.0)
+
+        if cat == "bank" or cat.startswith("bank:") or cat.startswith("gateway:") or cat.startswith("card:"):
+            total_bank_opening += op_bal
+        elif cat == "ledger" or cat.startswith("ledger:"):
+            total_ledger_opening += op_bal
+
+        accounts_meta.append({
+            "label": label,
+            "category": cat,
+            "source_key": src_key,
+            "opening_balance": op_bal,
+        })
+
+        parsed_recs = _parse_df(df, src_key)
+        source_counts[label] = len(parsed_recs)
+
+        for r in parsed_recs:
+            if r.record_id in all_records:
+                existing = all_records[r.record_id]
+                if existing.source == r.source:
+                    raise HTTPException(
+                        status_code=400,
+                        detail=f"Duplicate record_id '{r.record_id}' inside {label} ({r.source}) — each row needs a unique ID. Check for repeated '{r.record_id}' in your CSV.",
+                    )
+                new_id = f"{r.source}:{r.record_id}"
+                counter = 1
+                while new_id in all_records:
+                    counter += 1
+                    new_id = f"{r.source}:{r.record_id}#{counter}"
+                log.warning("Cross-source duplicate ID '%s' (sources %s vs %s) — auto-renamed to '%s'",
+                            r.record_id, existing.source, r.source, new_id)
+                r.record_id = new_id
+            all_records[r.record_id] = r
+
     if not all_records:
         raise HTTPException(status_code=400, detail="No valid records could be parsed from the provided files.")
 
     if len(all_records) > 10000:
         log.warning("Large batch: %d records (check MAX_RECORDS)", len(all_records))
 
-    meta = {"batch_id": batch_id, "opening_balances": {"bank": bank_opening, "ledger": ledger_opening}}
+    meta = {
+        "batch_id": batch_id,
+        "opening_balances": {"bank": total_bank_opening, "ledger": total_ledger_opening},
+        "accounts": accounts_meta,
+    }
     cfg = AgentConfig(llm_mode=llm_mode)
     policy = Policy.load(policy_path)
 
@@ -131,7 +170,7 @@ def run_reconciliation(
     return {
         "batch_id": batch_id,
         "total_records": len(all_records),
-        "source_counts": {"bank": len(bank_records), "ledger": len(ledger_records), "invoice": len(invoice_records)},
+        "source_counts": source_counts,
         "metrics": metrics,
         "cash_position": cash,
         "matched_clusters": matched_clusters,
