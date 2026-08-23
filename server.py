@@ -1,4 +1,4 @@
-"""FastAPI backend for AI Finance Controller.
+"""FastAPI backend for MatchMind (formerly AI Finance Controller).
 
 Production hardening:
 - Centralized config (config.py)
@@ -50,7 +50,11 @@ app.add_middleware(
 
 REPORTS_DIR = settings.reports_dir
 REPORTS_DIR.mkdir(parents=True, exist_ok=True)
-SESSIONS_DIR = REPORTS_DIR / "sessions"
+# Persistent disk on Render (if you add a Disk at /data in render.yaml/dashboard, sessions survive deploys)
+if Path("/data").exists():
+    SESSIONS_DIR = Path("/data/sessions")
+else:
+    SESSIONS_DIR = REPORTS_DIR / "sessions"
 SESSIONS_DIR.mkdir(parents=True, exist_ok=True)
 DIST_DIR = Path("frontend/dist")
 
@@ -72,7 +76,6 @@ async def log_requests(request: Request, call_next):
 # Session persistence (ChatGPT-like) — per-user isolation
 # ---------------------------------------------------------------------------
 def _user_sessions_dir(username: str) -> Path:
-    # sanitize username for filesystem (case-insensitive)
     safe_user = "".join(c if c.isalnum() or c in "-_." else "_" for c in username.strip().lower())[:40]
     d = SESSIONS_DIR / safe_user
     d.mkdir(parents=True, exist_ok=True)

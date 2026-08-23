@@ -346,9 +346,8 @@ export default function App() {
         <div className="pointer-events-none fixed inset-0 bg-grid" />
         <div className="relative w-full max-w-md rounded-2xl border border-border bg-card p-8 shadow-xl">
           <div className="flex flex-col items-center text-center">
-            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary text-primary-foreground"><Layers className="h-5 w-5" /></div>
-            <h1 className="mt-4 text-xl font-bold text-white">AI Finance Controller</h1>
-            <p className="mt-1 text-xs text-muted-foreground">Sign in to access your private reconciliation workspace</p>
+            <img src="/matchmind-logo.svg" alt="MatchMind" className="h-10 w-auto" />
+            <p className="mt-3 text-xs text-muted-foreground">Sign in to access your private reconciliation workspace</p>
           </div>
           <div className="mt-6 flex rounded-xl border border-border bg-muted p-1">
             <button onClick={() => setAuthMode('login')} className={cx('flex-1 rounded-lg py-2 text-xs font-semibold transition', authMode==='login' ? 'bg-primary text-primary-foreground shadow' : 'text-muted-foreground hover:text-foreground')}>Log in</button>
@@ -458,12 +457,13 @@ export default function App() {
               {!sidebarOpen && (
                 <button onClick={() => setSidebarOpen(true)} className="flex h-8 w-8 items-center justify-center rounded-xl border border-border bg-card text-muted-foreground hover:bg-primary hover:text-primary-foreground hover:border-primary hover:shadow-md transition-all duration-200 cursor-pointer"><Menu className="h-4 w-4" /></button>
               )}
-              <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-primary text-primary-foreground shadow-sm">
-                <Layers className="h-5 w-5" />
+              <img src="/matchmind-logo.svg" alt="MatchMind" className="h-9 w-auto hidden sm:block" />
+              <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-primary text-primary-foreground shadow-sm sm:hidden">
+                <img src="/favicon.svg" alt="M" className="h-7 w-7" />
               </div>
-              <div className="min-w-0">
-                <h1 className="truncate text-[15px] font-bold tracking-tight text-white">AI Finance Controller</h1>
-                <p className="hidden truncate text-[11px] font-medium text-muted-foreground sm:block">Autonomous multi-source reconciliation</p>
+              <div className="min-w-0 sm:hidden">
+                <h1 className="truncate text-[15px] font-bold tracking-tight text-white">MatchMind</h1>
+                <p className="hidden truncate text-[11px] font-medium text-muted-foreground sm:block">Autonomous reconciliation</p>
               </div>
             </div>
 
@@ -1018,8 +1018,8 @@ export default function App() {
       </main>
 
       <footer className="relative border-t border-border py-5">
-        <div className="mx-auto max-w-7xl px-4 text-center text-[11px] font-medium tracking-wide text-muted-foreground sm:px-6 lg:px-8">
-          AI Finance Controller · Autonomous financial operations & multi-source reconciliation
+        <div className="mx-auto flex max-w-7xl items-center justify-center gap-2 px-4 text-center text-[11px] font-medium tracking-wide text-muted-foreground sm:px-6 lg:px-8">
+          <img src="/favicon.svg" alt="" className="h-4 w-4" /> MatchMind · Autonomous financial operations & multi-source reconciliation
         </div>
       </footer>
       </div>
