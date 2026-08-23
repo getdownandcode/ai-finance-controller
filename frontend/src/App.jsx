@@ -30,6 +30,8 @@ import {
   TrendingUp,
   Upload,
   UploadCloud,
+  Sun,
+  Moon,
   X,
 } from 'lucide-react';
 
@@ -85,7 +87,7 @@ function MatchMindLogo({ className = "h-8 w-auto", showWordmark = true }) {
       </svg>
       {showWordmark && (
         <div className="flex flex-col leading-tight">
-          <span className="font-mono text-[16px] font-extrabold tracking-tight text-white">
+          <span className="font-mono text-[16px] font-extrabold tracking-tight text-foreground">
             Match<span className="text-primary">Mind</span>
           </span>
           <span className="text-[10px] font-medium tracking-wider uppercase text-muted-foreground">
@@ -107,7 +109,7 @@ function StatCard({ label, value, sub, icon: Icon, badge }) {
         </div>
       </div>
       <div className="mt-4 flex flex-wrap items-baseline gap-2">
-        <span className="text-2xl font-bold tracking-tight tabular-nums leading-none text-white">{value}</span>
+        <span className="text-2xl font-bold tracking-tight tabular-nums leading-none text-foreground">{value}</span>
         {badge}
       </div>
       <p className="mt-2.5 text-xs leading-relaxed text-muted-foreground">{sub}</p>
@@ -213,6 +215,31 @@ export default function App() {
     setToken(null); setUser(null); localStorage.removeItem(LS_TOKEN); localStorage.removeItem(LS_USER);
     setResults(null); localStorage.removeItem(LS_KEY); setSessions([]); setActiveTab('ingest');
   };
+
+  const LS_THEME = "matchmind_theme";
+  const [theme, setTheme] = useState(() => {
+    try {
+      const saved = localStorage.getItem(LS_THEME);
+      if (saved) return saved;
+      return window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
+    } catch {
+      return "dark";
+    }
+  });
+
+  useEffect(() => {
+    try {
+      const root = document.documentElement;
+      if (theme === "dark") {
+        root.classList.add("dark");
+        root.classList.remove("light");
+      } else {
+        root.classList.remove("dark");
+        root.classList.add("light");
+      }
+      localStorage.setItem(LS_THEME, theme);
+    } catch {}
+  }, [theme]);
 
   const [activeTab, setActiveTab] = useState(() => localStorage.getItem(LS_TAB) || 'ingest');
   const [loading, setLoading] = useState(false);
@@ -575,7 +602,7 @@ export default function App() {
             <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary text-primary-foreground shadow-sm">
               <History className="h-4 w-4" />
             </div>
-            <span className="text-sm font-bold text-white">Sessions</span>
+            <span className="text-sm font-bold text-foreground">Sessions</span>
             <span className="rounded-full bg-muted px-2 py-0.5 text-[11px] font-semibold tabular-nums text-muted-foreground">{sessions.length}</span>
           </div>
           <button type="button" aria-label="Close sidebar" onClick={() => setSidebarOpen(false)} className={cx(btnGhost, 'h-8 w-8 p-0')}><X className="h-4 w-4" /></button>
@@ -597,7 +624,7 @@ export default function App() {
             {sessions.map(s => {
               const isActive = results?.batch_id === s.batch_id;
               return (
-                <button key={s.batch_id} type="button" onClick={() => handleLoadSession(s.batch_id)} className={cx('group relative flex w-full flex-col rounded-xl border px-3 py-3 text-left transition-all duration-200', isActive ? 'border-primary/60 bg-primary/10 text-white shadow-sm' : 'border-border bg-card hover:border-primary/40 hover:bg-accent')}>
+                <button key={s.batch_id} type="button" onClick={() => handleLoadSession(s.batch_id)} className={cx('group relative flex w-full flex-col rounded-xl border px-3 py-3 text-left transition-all duration-200', isActive ? 'border-primary/60 bg-primary/10 text-foreground shadow-sm' : 'border-border bg-card hover:border-primary/40 hover:bg-accent')}>
                   {isActive && <span className="absolute bottom-2 left-0 top-2 w-0.5 rounded-full bg-primary" />}
                   <div className="flex w-full items-center justify-between gap-2">
                     <span className={cx('truncate font-mono text-xs font-bold', isActive ? 'text-primary' : 'text-foreground')}>{s.batch_id}</span>
@@ -630,7 +657,7 @@ export default function App() {
             <div className="flex min-w-0 items-center gap-2.5">
               <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary text-xs font-bold text-primary-foreground">{user?.[0]?.toUpperCase()}</div>
               <div className="min-w-0">
-                <p className="truncate text-xs font-bold text-white">{user}</p>
+                <p className="truncate text-xs font-bold text-foreground">{user}</p>
                 <p className="text-[11px] text-muted-foreground">Private workspace</p>
               </div>
             </div>
@@ -670,10 +697,19 @@ export default function App() {
               {!sidebarOpen && (
                 <div className="hidden items-center gap-2 rounded-full border border-border bg-card py-1 pl-1 pr-1.5 sm:flex">
                   <div className="flex h-6 w-6 items-center justify-center rounded-full bg-primary text-[11px] font-bold text-primary-foreground">{user?.[0]?.toUpperCase()}</div>
-                  <span className="pr-1 text-xs font-semibold text-white">{user}</span>
-                  <button type="button" onClick={handleLogout} className="rounded-full bg-muted px-2.5 py-1 text-[11px] font-semibold text-muted-foreground transition-all duration-200 hover:bg-destructive hover:text-white">Log out</button>
+                  <span className="pr-1 text-xs font-semibold text-foreground">{user}</span>
+                  <button type="button" onClick={handleLogout} className="rounded-full bg-muted px-2.5 py-1 text-[11px] font-semibold text-muted-foreground transition-all duration-200 hover:bg-destructive hover:text-foreground">Log out</button>
                 </div>
               )}
+              <button
+                type="button"
+                onClick={() => setTheme(t => t === "dark" ? "light" : "dark")}
+                aria-label="Toggle theme"
+                title={`Switch to ${theme === "dark" ? "light" : "dark"} mode`}
+                className="flex h-9 w-9 items-center justify-center rounded-xl border border-border bg-card text-muted-foreground transition-all duration-200 hover:border-primary hover:text-primary hover:shadow-sm cursor-pointer"
+              >
+                {theme === "dark" ? <Sun className="h-4 w-4 text-chart-2" /> : <Moon className="h-4 w-4 text-primary" />}
+              </button>
               <button
                 type="button"
                 onClick={() => setActiveTab('ingest')}
@@ -768,7 +804,7 @@ export default function App() {
               <div className="absolute inset-2 rounded-full bg-primary/10 blur-[1px]" />
             </div>
             <div>
-              <h3 className="text-sm font-bold text-white">Reconciling financial records…</h3>
+              <h3 className="text-sm font-bold text-foreground">Reconciling financial records…</h3>
               <p className="mx-auto mt-2 max-w-md text-xs leading-relaxed text-muted-foreground">Normalizing schemas, finding candidate pairs, executing multi-tier matching rules, and evaluating AI evidence.</p>
             </div>
             <div className="h-1.5 w-48 overflow-hidden rounded-full bg-muted">
@@ -786,7 +822,7 @@ export default function App() {
                     <CheckCircle2 className="h-4 w-4" />
                   </div>
                   <div className="min-w-0">
-                    <p className="truncate text-xs font-bold text-white">Active Session: {results.batch_id}</p>
+                    <p className="truncate text-xs font-bold text-foreground">Active Session: {results.batch_id}</p>
                     <p className="mt-0.5 text-[11px] text-muted-foreground">{results.total_records} records · {formatPercent(results.metrics.raw_match_rate)} matched</p>
                   </div>
                 </div>
@@ -795,7 +831,7 @@ export default function App() {
             )}
             <div className={cx(surface, 'p-5 sm:p-8')}>
               <div className="max-w-3xl">
-                <h2 className="text-xl font-bold tracking-tight text-white sm:text-2xl">
+                <h2 className="text-xl font-bold tracking-tight text-foreground sm:text-2xl">
                   Reconcile Financial Records
                 </h2>
                 <p className="mt-2.5 text-xs leading-relaxed text-muted-foreground sm:text-sm">
@@ -823,7 +859,7 @@ export default function App() {
                   <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-primary/15 text-primary shadow-sm ring-1 ring-primary/30">
                     <UploadCloud className="h-7 w-7" />
                   </div>
-                  <h3 className="mt-5 text-base font-bold text-white">
+                  <h3 className="mt-5 text-base font-bold text-foreground">
                     Drag &amp; drop CSV files here
                   </h3>
                   <p className="mt-2 max-w-md text-xs leading-relaxed text-muted-foreground">
@@ -882,7 +918,7 @@ export default function App() {
                   <div className="space-y-3">
                     <div className="flex flex-wrap items-center justify-between gap-2">
                       <div className="flex min-w-0 items-center gap-2.5">
-                        <span className="text-sm font-bold text-white">Attached Statements &amp; Ledgers</span>
+                        <span className="text-sm font-bold text-foreground">Attached Statements &amp; Ledgers</span>
                         <span className="rounded-full border border-primary/30 bg-primary/15 px-2.5 py-0.5 text-xs font-bold tabular-nums text-primary">
                           {filesList.length} {filesList.length === 1 ? 'file' : 'files'}
                         </span>
@@ -972,7 +1008,7 @@ export default function App() {
                                 type="button"
                                 onClick={() => removeFile(item.id)}
                                 title="Remove file"
-                                className="flex h-9 w-9 items-center justify-center rounded-lg border border-border bg-card text-muted-foreground transition-all duration-200 hover:border-destructive hover:bg-destructive hover:text-white"
+                                className="flex h-9 w-9 items-center justify-center rounded-lg border border-border bg-card text-muted-foreground transition-all duration-200 hover:border-destructive hover:bg-destructive hover:text-foreground"
                               >
                                 <Trash2 className="h-3.5 w-3.5" />
                               </button>
@@ -1034,7 +1070,7 @@ export default function App() {
                 <div className="flex min-w-0 items-center gap-3">
                   <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-primary/20 text-primary"><Bot className="h-4 w-4" /></div>
                   <div className="min-w-0">
-                    <p className="text-xs font-bold text-white">Autonomous Reconciliation · <span className={results.agent_status === 'complete' ? 'text-secondary' : results.agent_status === 'awaiting_approval' ? 'text-chart-2' : results.agent_status === 'blocked' ? 'text-destructive' : 'text-muted-foreground'}>{results.agent_status === 'complete' ? 'Completed' : results.agent_status}</span></p>
+                    <p className="text-xs font-bold text-foreground">Autonomous Reconciliation · <span className={results.agent_status === 'complete' ? 'text-secondary' : results.agent_status === 'awaiting_approval' ? 'text-chart-2' : results.agent_status === 'blocked' ? 'text-destructive' : 'text-muted-foreground'}>{results.agent_status === 'complete' ? 'Completed' : results.agent_status}</span></p>
                     <p className="mt-0.5 text-[11px] text-muted-foreground">{results.metrics?.matched_records || 0} of {results.total_records} records matched · {results.exceptions?.length || 0} exceptions cataloged</p>
                   </div>
                 </div>
@@ -1047,14 +1083,14 @@ export default function App() {
 
             {results.pending_approvals && results.pending_approvals.length > 0 && (
               <div className="rounded-2xl border border-chart-2/30 bg-chart-2/5 p-5 sm:p-6">
-                <h4 className="flex items-center gap-2 text-sm font-bold text-white"><ShieldAlert className="h-4 w-4 text-chart-2" /> Approvals Required — Review Pending Actions</h4>
+                <h4 className="flex items-center gap-2 text-sm font-bold text-foreground"><ShieldAlert className="h-4 w-4 text-chart-2" /> Approvals Required — Review Pending Actions</h4>
                 <p className="mt-1.5 text-xs leading-relaxed text-muted-foreground">Adjustments and high-value transactions require human sign-off before finalizing.</p>
                 <div className="mt-4 space-y-3">
                   {results.pending_approvals.map(apr => (
                     <div key={apr.id} className="rounded-xl border border-border bg-card p-4">
                       <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
                         <div className="min-w-0">
-                          <p className="font-mono text-xs font-bold text-white">{apr.action} · <span className="text-chart-2">{apr.status}</span></p>
+                          <p className="font-mono text-xs font-bold text-foreground">{apr.action} · <span className="text-chart-2">{apr.status}</span></p>
                           <p className="mt-1.5 text-xs leading-relaxed text-muted-foreground">{apr.reason}</p>
                           {apr.amount ? <p className="mt-1.5 font-mono text-xs text-foreground">amount {new Intl.NumberFormat('en-US',{style:'currency',currency:'USD'}).format(apr.amount)}</p> : null}
                           {apr.evidence?.length ? <p className="mt-1 font-mono text-[11px] text-muted-foreground">evidence: {apr.evidence.join(', ')}</p> : null}
@@ -1116,7 +1152,7 @@ export default function App() {
                       <DollarSign className="h-4 w-4" />
                     </div>
                     <div>
-                      <h3 className="text-sm font-bold text-white">Cash-position snapshot</h3>
+                      <h3 className="text-sm font-bold text-foreground">Cash-position snapshot</h3>
                       <p className="mt-0.5 text-xs text-muted-foreground">Live bank vs. ledger liquidity</p>
                     </div>
                   </div>
@@ -1126,7 +1162,7 @@ export default function App() {
                 <div className="mt-5 grid grid-cols-1 gap-4 sm:grid-cols-2">
                   <div className="rounded-xl border border-border bg-muted/40 p-4">
                     <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">Confirmed bank cash</p>
-                    <p className="mt-2.5 text-2xl font-bold tracking-tight tabular-nums text-white">{formatMoney(results.cash_position.confirmed_bank_cash)}</p>
+                    <p className="mt-2.5 text-2xl font-bold tracking-tight tabular-nums text-foreground">{formatMoney(results.cash_position.confirmed_bank_cash)}</p>
                     <div className="mt-4 space-y-2 text-xs">
                       <div className="flex justify-between gap-3 text-muted-foreground"><span>Opening balance</span><span className="font-semibold tabular-nums text-foreground">{formatMoney(results.cash_position.bank_opening)}</span></div>
                       <div className="flex justify-between gap-3 text-muted-foreground"><span>Matched movements</span><span className="font-semibold tabular-nums text-secondary">+{formatMoney(results.cash_position.matched_bank_movements)}</span></div>
@@ -1134,7 +1170,7 @@ export default function App() {
                   </div>
                   <div className="rounded-xl border border-border bg-muted/40 p-4">
                     <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">Confirmed ledger cash</p>
-                    <p className="mt-2.5 text-2xl font-bold tracking-tight tabular-nums text-white">{formatMoney(results.cash_position.confirmed_ledger_cash)}</p>
+                    <p className="mt-2.5 text-2xl font-bold tracking-tight tabular-nums text-foreground">{formatMoney(results.cash_position.confirmed_ledger_cash)}</p>
                     <div className="mt-4 space-y-2 text-xs">
                       <div className="flex justify-between gap-3 text-muted-foreground"><span>Opening balance</span><span className="font-semibold tabular-nums text-foreground">{formatMoney(results.cash_position.ledger_opening)}</span></div>
                       <div className="flex justify-between gap-3 text-muted-foreground"><span>Matched movements</span><span className="font-semibold tabular-nums text-secondary">+{formatMoney(results.cash_position.matched_ledger_movements)}</span></div>
@@ -1153,7 +1189,7 @@ export default function App() {
 
                 {results.cash_position?.accounts_breakdown?.length > 0 && (
                   <div className="mt-5 rounded-xl border border-border bg-muted/20 p-4">
-                    <p className="mb-3 flex flex-wrap items-center justify-between gap-2 text-xs font-bold text-white">
+                    <p className="mb-3 flex flex-wrap items-center justify-between gap-2 text-xs font-bold text-foreground">
                       <span>Multi-Account Cash Breakdown</span>
                       <span className="text-[11px] font-normal text-muted-foreground">{results.cash_position.accounts_breakdown.length} accounts configured</span>
                     </p>
@@ -1167,7 +1203,7 @@ export default function App() {
                           <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs">
                             <span className="text-muted-foreground">Opening: <strong className="font-semibold tabular-nums text-foreground">{formatMoney(acc.opening_balance)}</strong></span>
                             <span className="text-muted-foreground">Movements: <strong className={acc.movements >= 0 ? 'font-semibold tabular-nums text-secondary' : 'font-semibold tabular-nums text-destructive'}>{acc.movements >= 0 ? `+${formatMoney(acc.movements)}` : formatMoney(acc.movements)}</strong></span>
-                            <span className="text-muted-foreground">Confirmed: <strong className="font-bold tabular-nums text-white">{formatMoney(acc.confirmed_balance)}</strong></span>
+                            <span className="text-muted-foreground">Confirmed: <strong className="font-bold tabular-nums text-foreground">{formatMoney(acc.confirmed_balance)}</strong></span>
                           </div>
                         </div>
                       ))}
@@ -1178,7 +1214,7 @@ export default function App() {
 
               <div className={cx(surface, 'flex flex-col justify-between p-5 sm:p-6')}>
                 <div>
-                  <h3 className="text-sm font-bold text-white">Resolution breakdown</h3>
+                  <h3 className="text-sm font-bold text-foreground">Resolution breakdown</h3>
                   <p className="mt-0.5 text-xs text-muted-foreground">Distribution across tiers</p>
                   <div className="mt-6 space-y-5">
                     {[
@@ -1190,7 +1226,7 @@ export default function App() {
                       const pct = results.total_records ? (r.value / results.total_records) * 100 : 0;
                       return (
                         <div key={r.label}>
-                          <div className="mb-2 flex justify-between text-xs font-semibold"><span className={r.text}>{r.label}</span><span className="tabular-nums text-white">{r.value}</span></div>
+                          <div className="mb-2 flex justify-between text-xs font-semibold"><span className={r.text}>{r.label}</span><span className="tabular-nums text-foreground">{r.value}</span></div>
                           <div className="h-2.5 overflow-hidden rounded-full bg-muted">
                             <div className={cx('h-full rounded-full transition-all duration-700', r.color)} style={{ width: `${Math.max(pct, r.value ? 2 : 0)}%` }} />
                           </div>
@@ -1215,7 +1251,7 @@ export default function App() {
             <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
               <div>
                 <div className="flex items-center gap-2.5">
-                  <h3 className="text-base font-bold text-white">Exception Triage</h3>
+                  <h3 className="text-base font-bold text-foreground">Exception Triage</h3>
                   <span className="rounded-full border border-destructive/30 bg-destructive/10 px-2.5 py-0.5 text-xs font-bold text-destructive">
                     {results.exceptions?.length || 0} {results.exceptions?.length === 1 ? 'item' : 'items'}
                   </span>
@@ -1267,7 +1303,7 @@ export default function App() {
                   <tbody className="divide-y divide-border">
                     {filteredExceptions.map((item, idx) => (
                       <tr key={idx} className="transition-colors duration-150 hover:bg-muted/30">
-                        <td className="px-4 py-3.5 font-mono text-xs font-bold text-white whitespace-nowrap">{item.record_id}</td>
+                        <td className="px-4 py-3.5 font-mono text-xs font-bold text-foreground whitespace-nowrap">{item.record_id}</td>
                         <td className="px-3 py-3.5 capitalize text-foreground whitespace-nowrap">{item.source}</td>
                         <td className="px-4 py-3.5 whitespace-nowrap">{getReasonBadge(item.reason)}</td>
                         <td className="px-4 py-3.5 font-mono text-[11px] text-muted-foreground whitespace-nowrap">
@@ -1318,7 +1354,7 @@ export default function App() {
             <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
               <div>
                 <div className="flex items-center gap-2.5">
-                  <h3 className="text-base font-bold text-white">Reconciled Groups</h3>
+                  <h3 className="text-base font-bold text-foreground">Reconciled Groups</h3>
                   <span className="rounded-full border border-secondary/30 bg-secondary/10 px-2.5 py-0.5 text-xs font-bold text-secondary">
                     {results.matched_clusters?.length || 0} {results.matched_clusters?.length === 1 ? 'cluster' : 'clusters'}
                   </span>
@@ -1347,7 +1383,7 @@ export default function App() {
                 >
                   <div className="flex flex-wrap items-center justify-between gap-3">
                     <div className="flex items-center gap-2.5">
-                      <span className="font-mono text-xs font-bold text-white">{cluster.group_id}</span>
+                      <span className="font-mono text-xs font-bold text-foreground">{cluster.group_id}</span>
                       {getMethodBadge(cluster.method)}
                     </div>
                     <span className="rounded-full border border-border bg-card px-2.5 py-1 text-[11px] font-semibold text-foreground">
@@ -1362,7 +1398,7 @@ export default function App() {
                       >
                         <div>
                           <div className="flex items-center justify-between gap-2">
-                            <span className="font-mono text-xs font-bold text-white truncate">{m.record_id}</span>
+                            <span className="font-mono text-xs font-bold text-foreground truncate">{m.record_id}</span>
                             <span className="rounded-md bg-muted px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
                               {m.source}
                             </span>
@@ -1373,7 +1409,7 @@ export default function App() {
                         </div>
                         <div className="mt-3 flex items-baseline justify-between border-t border-border pt-2 text-xs">
                           <span className="font-mono text-[11px] text-muted-foreground">{m.date}</span>
-                          <span className={cx('font-bold tabular-nums', m.amount >= 0 ? 'text-white' : 'text-foreground')}>
+                          <span className={cx('font-bold tabular-nums', m.amount >= 0 ? 'text-foreground' : 'text-foreground')}>
                             {formatMoney(m.amount)}
                           </span>
                         </div>
@@ -1398,7 +1434,7 @@ export default function App() {
             <div className="flex items-center justify-between">
               <div>
                 <div className="flex items-center gap-2.5">
-                  <h3 className="text-base font-bold text-white">Audit Trail</h3>
+                  <h3 className="text-base font-bold text-foreground">Audit Trail</h3>
                   <span className="rounded-full border border-primary/30 bg-primary/10 px-2.5 py-0.5 text-xs font-bold text-primary">
                     {results.audit_trail?.length || 0} events
                   </span>
@@ -1436,7 +1472,7 @@ export default function App() {
         {activeTab === 'export' && results && (
           <div className={cx(surface, 'animate-fade-up space-y-6 p-5 sm:p-6')}>
             <div>
-              <h3 className="text-base font-bold text-white">Export &amp; Reporting</h3>
+              <h3 className="text-base font-bold text-foreground">Export &amp; Reporting</h3>
               <p className="mt-1 text-xs text-muted-foreground">
                 Auditable packages for finance ops, audit compliance, or ERP system write-back.
               </p>
@@ -1460,7 +1496,7 @@ export default function App() {
                       <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-card text-muted-foreground ring-1 ring-border transition-colors duration-200 group-hover:text-primary group-hover:ring-primary/40">
                         <Icon className="h-5 w-5" />
                       </div>
-                      <h4 className="mt-3.5 text-sm font-bold text-white">{card.title}</h4>
+                      <h4 className="mt-3.5 text-sm font-bold text-foreground">{card.title}</h4>
                       <p className="mt-1 text-xs leading-relaxed text-muted-foreground">{card.desc}</p>
                     </div>
                     <div className="mt-5 flex items-center gap-1 text-xs font-semibold text-primary">
