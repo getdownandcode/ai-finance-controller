@@ -1,19 +1,16 @@
-"""Controller Agent: owns the reconciliation loop.
+"""Recon state — single source of truth for grouping.
 
-observe -> plan -> act -> reflect, with full audit logging, confidence
-gating, conflict handling and a final no-silent-drops coverage check.
+The fixed controller loop has been removed. Reconciliation is now
+driven exclusively by the autonomous controller (observe → plan → act
+→ reflect). This module retains only the inspectable union-find state
+and the lightweight AgentConfig shim for policy overrides.
 """
 from __future__ import annotations
 
-import logging
 from dataclasses import dataclass
 from datetime import datetime, timezone
 
-from agents.exception_agent import ExceptionAgent
-from agents.matching_agent import MatchingAgent
 from tools.normalize import Record
-
-log = logging.getLogger(__name__)
 
 
 @dataclass
@@ -125,67 +122,14 @@ class ReconState:
 
 
 class ControllerAgent:
-    def __init__(self, records: dict[str, Record], meta: dict, cfg: AgentConfig | None = None):
-        self.cfg = cfg or AgentConfig()
-        self.state = ReconState(records, meta)
-        self.matching = MatchingAgent(self.state, self.cfg)
-        self.exception_agent = ExceptionAgent(self.state, self.cfg)
+    """Removed — autonomous controller is now the sole execution path.
 
-    # -- observe / plan / reflect ----------------------------------------------
-    def observe(self):
-        counts = {}
-        for r in self.state.records.values():
-            counts[r.source] = counts.get(r.source, 0) + 1
-        self.state.log("controller", "observe", record_counts=counts,
-                       unresolved=len(self.state.unresolved()))
-        log.info("observe: %d records (bank=%d ledger=%d invoice=%d)",
-                 sum(counts.values()), counts.get("bank", 0),
-                 counts.get("ledger", 0), counts.get("invoice", 0))
+    Kept as a thin alias so any stray import does not break; it forwards
+    to AutonomousController with policy bounds.
+    """
 
-    def plan(self) -> list[str]:
-        plan = ["exact_match", "fuzzy_match", "llm_evidence_reasoning", "exception_triage"]
-        self.state.log("controller", "plan", tool_order=plan,
-                       thresholds={"exact": 1.00, "fuzzy": self.cfg.fuzzy_accept,
-                                   "llm": self.cfg.llm_accept},
-                       llm_mode=self.cfg.llm_mode)
-        log.info("plan: %s (gates exact=1.00 fuzzy>=%.2f llm>=%.2f)",
-                 " -> ".join(plan), self.cfg.fuzzy_accept, self.cfg.llm_accept)
-        return plan
-
-    def reflect(self, stage: str, **obs):
-        self.state.log("controller", "reflect", pass_stage=stage, observation=obs)
-        log.info("reflect %s: %s", stage, obs)
-
-    # -- main loop ------------------------------------------------------------
-    def run(self) -> ReconState:
-        self.observe()
-        self.plan()
-
-        n_exact = self.matching.run_exact_pass()
-        self.reflect("exact_pass", pairs_merged=n_exact,
-                     remaining_unresolved=len(self.state.unresolved()))
-
-        fz = self.matching.run_fuzzy_pass()
-        self.reflect("fuzzy_pass", **fz,
-                     remaining_unresolved=len(self.state.unresolved()))
-
-        rs = self.matching.run_reasoning_pass()
-        self.reflect("reasoning_pass", **rs,
-                     remaining_unresolved=len(self.state.unresolved()))
-
-        raised = self.exception_agent.triage()
-        self.reflect("exception_triage", exceptions_raised=raised)
-
-        self._verify_coverage()
-        return self.state
-
-    def _verify_coverage(self):
-        """No silent drops: every record is matched or an explicit exception."""
-        covered = self.state.matched_ids() | self.state.exception_ids
-        missing = set(self.state.records) - covered
-        assert not missing, f"Records lost without trace: {missing}"
-        self.state.log("controller", "coverage_verified",
-                       matched=len(self.state.matched_ids()),
-                       exceptions=len(self.state.exception_ids), lost=len(missing))
-        log.info("verify coverage OK — matched=%d exceptions=%d lost=0",
-                 len(self.state.matched_ids()), len(self.state.exception_ids))
+    def __init__(self, *args, **kwargs):
+        raise RuntimeError(
+            "ControllerAgent (fixed pipeline) has been removed. "
+            "Use agents.autonomous_controller.AutonomousController instead."
+        )

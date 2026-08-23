@@ -1,4 +1,4 @@
-"""Shared reconciliation pipeline — autonomous by default, fixed as benchmark."""
+"""Shared reconciliation pipeline — autonomous, goal-driven, policy-bounded."""
 from __future__ import annotations
 
 import logging
@@ -7,7 +7,8 @@ from pathlib import Path
 import pandas as pd
 from fastapi import HTTPException
 
-from agents.controller_agent import AgentConfig, ControllerAgent
+from agents.autonomous_controller import AutonomousController
+from agents.controller_agent import AgentConfig
 from agents.reporting_agent import ReportingAgent
 from config.policy_loader import Policy
 from evaluation.score import evaluate
@@ -60,11 +61,14 @@ def run_reconciliation(
     llm_mode: str = "auto",
     batch_id: str = "custom_run",
     reports_dir: Path = Path("reports"),
-    mode: str = "autonomous",
     goal: str = "reconcile",
     policy_path: str | Path | None = None,
+    mode: str | None = None,
+    **kwargs,
 ) -> dict:
-    """Run pipeline — autonomous (default) or fixed, same output contract for backward compat."""
+    """Autonomous pipeline: goal → observe → plan → act → reflect until complete or blocked."""
+    if mode == "fixed":
+        log.warning("mode='fixed' is deprecated and ignored — running autonomous pipeline")
     bank_records = _parse_df(bank_df, "bank")
     ledger_records = _parse_df(ledger_df, "ledger")
     invoice_records = _parse_df(invoices_df, "invoice")
@@ -96,29 +100,18 @@ def run_reconciliation(
 
     meta = {"batch_id": batch_id, "opening_balances": {"bank": bank_opening, "ledger": ledger_opening}}
     cfg = AgentConfig(llm_mode=llm_mode)
-
-    # --- execution path ---------------------------------------------------
     policy = Policy.load(policy_path)
-    autonomous_state = None
-    if mode == "fixed":
-        controller = ControllerAgent(all_records, meta, cfg)
-        state = controller.run()
-        recon_state = state
-    else:
-        from agents.autonomous_controller import AutonomousController
-        controller = AutonomousController(all_records, meta, policy=policy, goal=goal, cfg=cfg)
-        autonomous_state = controller.run()
-        recon_state = autonomous_state.recon  # ReconState for scoring/reporting compat
+
+    controller = AutonomousController(all_records, meta, policy=policy, goal=goal, cfg=cfg)
+    autonomous_state = controller.run()
+    recon_state = autonomous_state.recon
 
     gt_map = _build_gt_map(gt_df, all_records)
     metrics = evaluate(recon_state, gt_map, all_records)
     cash = cash_position(all_records, recon_state.matched_ids(), recon_state.exception_ids, meta)
 
-    # Attach agent-specific evaluation
-    if autonomous_state is not None:
-        from evaluation.agent_metrics import compute_agent_metrics
-        agent_metrics = compute_agent_metrics(autonomous_state, recon_state, metrics, cash, policy)
-        metrics.update(agent_metrics)
+    from evaluation.agent_metrics import compute_agent_metrics
+    metrics.update(compute_agent_metrics(autonomous_state, recon_state, metrics, cash, policy))
 
     reporter = ReportingAgent(recon_state, metrics, cash, meta, cfg, reports_dir=reports_dir)
     reporter.write_all()
@@ -135,7 +128,7 @@ def run_reconciliation(
                 "members": cluster_members,
             })
 
-    payload: dict = {
+    return {
         "batch_id": batch_id,
         "total_records": len(all_records),
         "source_counts": {"bank": len(bank_records), "ledger": len(ledger_records), "invoice": len(invoice_records)},
@@ -146,24 +139,10 @@ def run_reconciliation(
         "audit_trail": recon_state.audit,
         "pipeline_stats": recon_state.stats,
         "reasoner_mode": recon_state.stats.get("reasoner_mode", llm_mode),
-        "mode": mode,
         "goal": goal,
         "policy": policy.model_dump(),
+        "agent_trace": autonomous_state.to_trace(),
+        "pending_approvals": [a.model_dump() for a in autonomous_state.pending_approvals],
+        "agent_status": autonomous_state.status,
+        "agent_steps": autonomous_state.step_count,
     }
-    if autonomous_state is not None:
-        payload["agent_trace"] = autonomous_state.to_trace()
-        payload["pending_approvals"] = [a.model_dump() for a in autonomous_state.pending_approvals]
-        payload["agent_status"] = autonomous_state.status
-        payload["agent_steps"] = autonomous_state.step_count
-    return payload
-
-
-def run_fixed_benchmark(*args, **kwargs) -> dict:
-    kwargs["mode"] = "fixed"
-    return run_reconciliation(*args, **kwargs)
-
-
-def run_autonomous(*args, goal: str = "reconcile", **kwargs) -> dict:
-    kwargs["mode"] = "autonomous"
-    kwargs["goal"] = goal
-    return run_reconciliation(*args, **kwargs)

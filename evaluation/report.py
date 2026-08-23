@@ -16,11 +16,14 @@ def render_markdown(ctx: dict) -> str:
     m, cash, state = ctx["metrics"], ctx["cash"], ctx["state"]
     mc = m["method_counts"]
     max_n = max(mc.values()) if mc else 1
+    reasoner = state.stats.get('reasoner_mode','n/a')
+    reasoning_label = "Agentic Reasoning (Tier 3) — " + ("Gemini" if "gemini" in reasoner else "Deterministic Policy Engine" if reasoner == "deterministic" else reasoner)
     L: list[str] = []
     L.append("# AI Finance Controller — Reconciliation Report\n")
     L.append(f"**Batch / Source:** `{ctx['batch_id']}`  ")
     L.append(f"**Records Processed:** {m['total_records']} (bank / ledger / invoice)  ")
-    L.append(f"**Reasoner Engine:** `{state.stats.get('reasoner_mode','n/a')}`\n")
+    L.append(f"**Reasoner Engine:** `{reasoner}`  ")
+    L.append(f"**Agent Steps:** `{state.stats.get('agent_steps','n/a')}`  ")
 
     L.append("## Headline Summary\n")
     L.append("```text")
@@ -46,7 +49,7 @@ def render_markdown(ctx: dict) -> str:
     L.append("|---|---:|---|")
     L.append(f"| Exact Match (Tier 1) | {mc['exact']} | `{_bar(mc['exact'], max_n)}` |")
     L.append(f"| Fuzzy Match (Tier 2) | {mc['fuzzy']} | `{_bar(mc['fuzzy'], max_n)}` |")
-    L.append(f"| Agentic LLM Reasoning (Tier 3) | {mc['llm']} | `{_bar(mc['llm'], max_n)}` |")
+    L.append(f"| {reasoning_label} | {mc['llm']} | `{_bar(mc['llm'], max_n)}` |")
     L.append(f"| Exceptions Triaged | {m['exceptions']} | `{_bar(m['exceptions'], max_n)}` |\n")
 
     L.append("## Cash-Position Snapshot\n")
