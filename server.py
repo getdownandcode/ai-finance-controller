@@ -72,8 +72,8 @@ async def log_requests(request: Request, call_next):
 # Session persistence (ChatGPT-like) — per-user isolation
 # ---------------------------------------------------------------------------
 def _user_sessions_dir(username: str) -> Path:
-    # sanitize username for filesystem
-    safe_user = "".join(c if c.isalnum() or c in "-_." else "_" for c in username)[:40]
+    # sanitize username for filesystem (case-insensitive)
+    safe_user = "".join(c if c.isalnum() or c in "-_." else "_" for c in username.strip().lower())[:40]
     d = SESSIONS_DIR / safe_user
     d.mkdir(parents=True, exist_ok=True)
     return d
@@ -207,8 +207,10 @@ def auth_login(payload: dict):
     password = str(payload.get("password") or "")
     if not verify_password(username, password):
         raise HTTPException(status_code=401, detail="Invalid username or password")
-    token = create_token(username)
-    return {"username": username, "token": token}
+    # normalize for token/session isolation (case-insensitive)
+    norm = username.strip().lower()
+    token = create_token(norm)
+    return {"username": norm, "token": token}
 
 
 @app.post("/api/auth/logout")

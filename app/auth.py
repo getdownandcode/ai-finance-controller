@@ -24,7 +24,25 @@ TOKEN_TTL_SECONDS = 7 * 24 * 3600  # 7 days
 def _load_json(path: Path, default):
     try:
         if path.exists():
-            return json.loads(path.read_text(encoding="utf-8"))
+            data = json.loads(path.read_text(encoding="utf-8"))
+            # migrate usernames to lowercase for case-insensitive login
+            if path == USERS_FILE and isinstance(data, dict):
+                migrated = {}
+                changed = False
+                for k, v in data.items():
+                    lk = k.strip().lower()
+                    if lk != k:
+                        changed = True
+                    # keep first occurrence, prefer lower
+                    if lk not in migrated:
+                        migrated[lk] = v
+                if changed:
+                    try:
+                        _save_json(path, migrated)
+                    except Exception:
+                        pass
+                    return migrated
+            return data
     except Exception:
         pass
     return default
@@ -39,7 +57,7 @@ def _hash_password(password: str, salt_hex: str) -> str:
     return dk.hex()
 
 def _validate_username(username: str):
-    u = username.strip()
+    u = username.strip().lower()
     if len(u) < 3 or len(u) > 32:
         raise HTTPException(status_code=400, detail="Username must be 3-32 characters")
     if not u.replace("_", "").replace("-", "").isalnum():
@@ -72,7 +90,8 @@ def register_user(username: str, password: str) -> dict:
 
 def verify_password(username: str, password: str) -> bool:
     users = _load_json(USERS_FILE, {})
-    rec = users.get(username)
+    lk = username.strip().lower()
+    rec = users.get(lk) or users.get(username)
     if not rec:
         return False
     return _hash_password(password, rec["salt"]) == rec["hash"]
