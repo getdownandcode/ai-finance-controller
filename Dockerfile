@@ -22,7 +22,7 @@ COPY actions/ ./actions/
 COPY evaluation/ ./evaluation/
 COPY app/ ./app/
 COPY config/ ./config/
-COPY server.py run_agent.py generate_data.py generate_complex_data.py ./
+COPY server.py run_agent.py generate_data.py ./
 
 COPY --from=frontend-builder /app/frontend/dist ./frontend/dist
 
