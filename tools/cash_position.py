@@ -2,38 +2,47 @@
 from __future__ import annotations
 
 
+def _normalize_category(src: str) -> str:
+    s = src.lower().strip()
+    if "bank" in s or "gateway" in s or "card" in s or "stripe" in s or "chase" in s:
+        return "bank"
+    if "ledger" in s or "journal" in s or "gl" in s:
+        return "ledger"
+    if "invoice" in s or "bill" in s or "ar" in s or "ap" in s:
+        return "invoice"
+    return s
+
+
 def cash_position(records: dict, matched_ids: set, exception_ids: set, meta: dict) -> dict:
     openings = meta.get("opening_balances", {"bank": 0.0, "ledger": 0.0})
     accounts_meta = meta.get("accounts", [])
 
-    # Calculate movements by exact source ID
+    # Calculate movements by category and by source key
     movements_by_src: dict[str, float] = {}
+    movements_by_cat: dict[str, float] = {"bank": 0.0, "ledger": 0.0, "invoice": 0.0}
+
     for r in records.values():
         if r.record_id in matched_ids:
             movements_by_src[r.source] = movements_by_src.get(r.source, 0.0) + r.amount
+            cat = _normalize_category(r.source)
+            movements_by_cat[cat] = movements_by_cat.get(cat, 0.0) + r.amount
 
-    # Aggregate by broad category
-    bank_mov = sum(
-        amt for src, amt in movements_by_src.items()
-        if src == "bank" or src.startswith("bank:") or src.startswith("gateway:") or src.startswith("card:")
-    )
-    ledger_mov = sum(
-        amt for src, amt in movements_by_src.items()
-        if src == "ledger" or src.startswith("ledger:")
-    )
-
-    exposure_by_src: dict[str, float] = {}
+    exposure_by_src: dict[str, float] = {"bank": 0.0, "ledger": 0.0, "invoice": 0.0}
     for rid in exception_ids:
         r = records[rid]
-        exposure_by_src[r.source] = exposure_by_src.get(r.source, 0.0) + abs(r.amount)
+        cat = _normalize_category(r.source)
+        exposure_by_src[cat] = exposure_by_src.get(cat, 0.0) + abs(r.amount)
 
     bank_opening = openings.get("bank", 0.0)
     ledger_opening = openings.get("ledger", 0.0)
 
+    bank_mov = movements_by_cat.get("bank", 0.0)
+    ledger_mov = movements_by_cat.get("ledger", 0.0)
+
     confirmed_bank = bank_opening + bank_mov
     confirmed_ledger = ledger_opening + ledger_mov
 
-    # Detailed per-account breakdown if multi-account metadata provided
+    # Detailed per-account breakdown
     accounts_breakdown = []
     if accounts_meta:
         for acc in accounts_meta:
@@ -60,6 +69,5 @@ def cash_position(records: dict, matched_ids: set, exception_ids: set, meta: dic
         "exception_exposure_total": round(sum(exposure_by_src.values()), 2),
         "exception_exposure_by_source": {k: round(v, 2) for k, v in exposure_by_src.items()},
         "accounts_breakdown": accounts_breakdown,
-        "note": ("Bank lines book processor fees net while the ledger books gross, "
-                 "so a small non-zero difference is expected and explained."),
+        "note": "Reconciled multi-source cash position computed automatically across bank settlements and ledger entries."
     }
