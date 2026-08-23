@@ -167,8 +167,6 @@ export default function App() {
   const [invoicesFile, setInvoicesFile] = useState(null);
   const [bankOpening, setBankOpening] = useState("0");
   const [ledgerOpening, setLedgerOpening] = useState("0");
-  const [matchingStrategy, setMatchingStrategy] = useState('auto');
-  const [goal, setGoal] = useState('reconcile');
   const [exceptionFilter, setExceptionFilter] = useState('ALL');
   const [exceptionSearch, setExceptionSearch] = useState('');
   const [clusterSearch, setClusterSearch] = useState('');
@@ -218,8 +216,8 @@ export default function App() {
       if (invoicesFile) formData.append('invoices_file', invoicesFile);
       formData.append('bank_opening', String(parseFloat(bankOpening) || 0));
       formData.append('ledger_opening', String(parseFloat(ledgerOpening) || 0));
-      formData.append('llm_mode', matchingStrategy);
-      formData.append('goal', goal);
+      formData.append('llm_mode', 'auto');
+      formData.append('goal', 'reconcile');
       const res = await authFetch('/api/reconcile', { method: 'POST', body: formData });
       if (!res.ok) {
         const err = await res.json();
@@ -240,8 +238,8 @@ export default function App() {
     try {
       const formData = new FormData();
       formData.append('seed', 42);
-      formData.append('llm_mode', matchingStrategy);
-      formData.append('goal', goal);
+      formData.append('llm_mode', 'auto');
+      formData.append('goal', 'reconcile');
       const res = await authFetch('/api/reconcile-demo', { method: 'POST', body: formData });
       if (!res.ok) {
         const err = await res.json();
@@ -729,7 +727,7 @@ export default function App() {
                   })}
                 </div>
 
-                <div className="grid grid-cols-1 gap-4 border-t border-border pt-6 sm:grid-cols-3">
+                <div className="grid grid-cols-1 gap-4 border-t border-border pt-6 sm:grid-cols-2">
                   <label className="space-y-1.5">
                     <span className="text-xs font-semibold text-foreground">Bank opening balance</span>
                     <div className="relative">
@@ -744,29 +742,6 @@ export default function App() {
                       <input type="text" inputMode="decimal" value={ledgerOpening} onChange={(e) => { const v = e.target.value; if (v === "" || v === "-" || v === "." || /^-?\d*\.?\d*$/.test(v)) setLedgerOpening(v); }} onFocus={(e) => e.target.select()} onBlur={() => { if (ledgerOpening === "" || ledgerOpening === "-" || ledgerOpening === ".") setLedgerOpening("0"); }} className={cx(inputCls, 'pl-7')} placeholder="0.00" />
                     </div>
                   </label>
-                  <label className="space-y-1.5">
-                    <span className="text-xs font-semibold text-foreground">Matching engine</span>
-                    <select value={matchingStrategy} onChange={(e) => setMatchingStrategy(e.target.value)} className={selectCls}>
-                      <option value="auto" className="bg-card text-foreground">Adaptive Hybrid (Exact + Fuzzy + AI)</option>
-                      <option value="gemini" className="bg-card text-foreground">AI Reasoner priority</option>
-                      <option value="off" className="bg-card text-foreground">Deterministic only (No AI)</option>
-                    </select>
-                  </label>
-                </div>
-
-                <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-                  <label className="space-y-1.5">
-                    <span className="text-xs font-semibold text-foreground">Goal</span>
-                    <select value={goal} onChange={(e) => setGoal(e.target.value)} className={selectCls}>
-                      <option value="reconcile" className="bg-card text-foreground">Reconcile — full (autonomous)</option>
-                      <option value="triage" className="bg-card text-foreground">Triage — exceptions only</option>
-                      <option value="calculate_cash" className="bg-card text-foreground">Cash position only</option>
-                    </select>
-                  </label>
-                  <div className="rounded-xl border border-border bg-muted/30 px-3 py-2.5 flex flex-col justify-center">
-                    <span className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wide">Bounded · Policy-gated</span>
-                    <span className="text-xs text-foreground font-mono">max 60 steps · approval ⊘ writes</span>
-                  </div>
                 </div>
 
                 <div className="flex flex-col-reverse items-stretch justify-between gap-3 border-t border-border pt-6 sm:flex-row sm:items-center">
@@ -785,7 +760,7 @@ export default function App() {
                     )}
                   >
                     <Play className="h-4 w-4 fill-current" />
-                    Run reconciliation
+                    Run autonomous reconciliation
                     <ArrowRight className="h-4 w-4 opacity-70" />
                   </button>
                 </div>
