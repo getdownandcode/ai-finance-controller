@@ -1,0 +1,43 @@
+record:
+  type: object
+  required: [record_id, source, date, amount]
+  properties:
+    record_id: {type: string}
+    source: {type: string, enum: [bank, ledger, invoice]}
+    date: {type: string, format: date}
+    amount: {type: number}
+    currency: {type: string}
+    reference: {type: string}
+    description: {type: string}
+
+tool_result:
+  type: object
+  required: [tool, success, data]
+  properties:
+    tool: {type: string}
+    success: {type: boolean}
+    data: {type: object}
+    error: {type: string}
+    cost: {type: number}
+    evidence: {type: array, items: {type: string}}
+
+agent_action:
+  type: object
+  required: [action, arguments, reason]
+  properties:
+    action: {type: string}
+    arguments: {type: object}
+    reason: {type: string}
+    expected_outcome: {type: string}
+    confidence: {type: number, minimum: 0, maximum: 1}
+
+approval_request:
+  type: object
+  required: [id, action, amount, reason, status]
+  properties:
+    id: {type: string}
+    action: {type: string}
+    amount: {type: number}
+    reason: {type: string}
+    evidence: {type: array, items: {type: string}}
+    status: {type: string, enum: [awaiting_approval, approved, rejected, expired]}

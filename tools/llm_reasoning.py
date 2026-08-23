@@ -275,7 +275,7 @@ def batch_reason_over_candidates(
         return results
 
     except Exception as e:
-        log.warning("Gemini batch failed: %s — falling back to deterministic", e, exc_info=True)
+        log.warning("Gemini batch failed: %s — falling back to deterministic", e)
         for rec, cands, evs in work_items:
             fb = _deterministic_reason(rec, cands, evs, cfg)
             fb.reasoner = "gemini_fallback:deterministic"

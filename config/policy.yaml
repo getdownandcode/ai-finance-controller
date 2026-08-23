@@ -1,0 +1,47 @@
+# Boundaries for open-ended finance control — agent is free inside these walls.
+matching:
+  exact_match_confidence: 1.0
+  fuzzy_match_confidence: 0.90
+  llm_match_confidence: 0.80
+  near_tie_threshold: 0.05
+  fuzzy_date_window_days: 3
+  retrieve_date_window_days: 6
+  retrieve_amount_pct: 0.08
+  max_date_difference_days: 6
+
+execution:
+  max_steps: 60
+  max_retries_per_tool: 2
+  max_llm_calls: 8
+  max_llm_tokens: 50000
+  allow_external_writes: false
+  require_approval_above_amount: 5000.0
+  require_approval_for_journal_entry: true
+  require_approval_for_cash_adjustment: true
+  stall_threshold_steps: 4
+  no_repeat_identical_actions: true
+  no_action_on_finalized_records: true
+
+exceptions:
+  require_reason: true
+  require_recommended_action: true
+  require_explanation: true
+  valid_reasons:
+    - POSSIBLE_DUPLICATE
+    - DUPLICATE_CANDIDATE
+    - LOW_CONFIDENCE
+    - NO_COUNTERPART
+    - AMOUNT_MISMATCH
+    - CURRENCY_MISMATCH
+    - DATE_OUT_OF_WINDOW
+    - MISSING_REFERENCE
+    - TOOL_ERROR
+    - AMOUNT_MISMATCH_FEE_NETTING
+
+approvals:
+  auto_approve_below_amount: 0.0
+  expiry_hours: 24
+
+audit:
+  require_complete_trace: true
+  preserve_action_history: true

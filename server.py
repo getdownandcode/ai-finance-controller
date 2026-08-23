@@ -26,6 +26,7 @@ from fastapi.staticfiles import StaticFiles
 from app.auth import create_token, get_current_user, register_user, revoke_token, verify_password, verify_token
 from app.pipeline import run_reconciliation
 from config import settings
+from config.policy_loader import Policy
 from generate_data import generate
 
 # ---------------------------------------------------------------------------
@@ -61,6 +62,8 @@ DIST_DIR = Path("frontend/dist")
 MAX_UPLOAD_BYTES = settings.max_upload_bytes
 MAX_RECORDS = settings.max_records
 ALLOWED_LLM_MODES = {"auto", "off", "gemini"}
+ALLOWED_GOALS = {"reconcile", "reconcile_all", "calculate_cash", "triage", "report"}
+ALLOWED_MODES = {"autonomous", "fixed"}
 
 
 @app.middleware("http")
@@ -183,13 +186,37 @@ def health():
 
 @app.get("/api/status")
 def get_status():
+    policy = Policy.load()
+    from tools.registry import ensure_registered
+    ensure_registered()
+    from tools.registry import tool_names, all_tools
+    tools_meta = {k: {"cost": v.cost, "risk_level": v.risk_level, "requires_approval": v.requires_approval, "changes_external_state": v.changes_external_state, "description": v.description} for k, v in all_tools().items()}
     return {
         "status": "ready",
         "has_gemini_key": settings.has_gemini_key,
         "gemini_model": settings.recon_llm_model,
         "supported_sources": ["bank", "ledger", "invoice"],
         "max_records": MAX_RECORDS,
+        "allowed_goals": sorted(ALLOWED_GOALS),
+        "allowed_modes": sorted(ALLOWED_MODES),
+        "policy": policy.model_dump(),
+        "tools": tools_meta,
     }
+
+
+@app.get("/api/policy")
+def get_policy(request: Request):
+    get_current_user(request)
+    return Policy.load().model_dump()
+
+
+@app.get("/api/tools")
+def list_tools(request: Request):
+    get_current_user(request)
+    from tools.registry import all_tools
+    from tools.registry import ensure_registered
+    ensure_registered()
+    return {k: {"description": v.description, "cost": v.cost, "risk_level": v.risk_level, "requires_approval": v.requires_approval, "changes_external_state": v.changes_external_state, "input_schema": v.input_schema} for k, v in all_tools().items()}
 
 
 # ---------------------------------------------------------------------------
@@ -241,10 +268,16 @@ async def reconcile_custom_files(
     bank_opening: float = Form(42500.0),
     ledger_opening: float = Form(42500.0),
     llm_mode: str = Form("auto"),
+    goal: str = Form("reconcile"),
+    mode: str = Form("autonomous"),
 ):
     username = get_current_user(request)
     if llm_mode not in ALLOWED_LLM_MODES:
         raise HTTPException(status_code=400, detail=f"llm_mode must be one of {ALLOWED_LLM_MODES}")
+    if goal not in ALLOWED_GOALS:
+        raise HTTPException(status_code=400, detail=f"goal must be one of {ALLOWED_GOALS}")
+    if mode not in ALLOWED_MODES:
+        raise HTTPException(status_code=400, detail=f"mode must be one of {ALLOWED_MODES}")
     _validate_opening(bank_opening, "bank_opening")
     _validate_opening(ledger_opening, "ledger_opening")
 
@@ -266,6 +299,8 @@ async def reconcile_custom_files(
             llm_mode=llm_mode,
             batch_id=f"custom_upload_{int(time.time())}",
             reports_dir=REPORTS_DIR,
+            mode=mode,
+            goal=goal,
         )
         payload["_owner"] = username
         _save_session(payload, username)
@@ -278,10 +313,14 @@ async def reconcile_custom_files(
 
 
 @app.post("/api/reconcile-demo")
-def reconcile_demo(request: Request, seed: int = Form(42), llm_mode: str = Form("auto")):
+def reconcile_demo(request: Request, seed: int = Form(42), llm_mode: str = Form("auto"), goal: str = Form("reconcile"), mode: str = Form("autonomous")):
     username = get_current_user(request)
     if llm_mode not in ALLOWED_LLM_MODES:
         raise HTTPException(status_code=400, detail=f"llm_mode must be one of {ALLOWED_LLM_MODES}")
+    if goal not in ALLOWED_GOALS:
+        raise HTTPException(status_code=400, detail=f"goal must be one of {ALLOWED_GOALS}")
+    if mode not in ALLOWED_MODES:
+        raise HTTPException(status_code=400, detail=f"mode must be one of {ALLOWED_MODES}")
     if not 0 <= seed <= 1_000_000:
         raise HTTPException(status_code=400, detail="seed out of range")
     try:
@@ -301,6 +340,8 @@ def reconcile_demo(request: Request, seed: int = Form(42), llm_mode: str = Form(
             llm_mode=llm_mode,
             batch_id=meta.get("batch_id", f"demo_seed_{seed}"),
             reports_dir=REPORTS_DIR,
+            mode=mode,
+            goal=goal,
         )
         payload["_owner"] = username
         _save_session(payload, username)
@@ -379,6 +420,107 @@ def delete_session(batch_id: str, request: Request):
         except Exception:
             pass
     raise HTTPException(status_code=404, detail="Session not found")
+
+
+@app.post("/api/approve/{batch_id}/{approval_id}")
+def approve_action(batch_id: str, approval_id: str, request: Request, payload: dict | None = None):
+    username = get_current_user(request)
+    safe = "".join(c if c.isalnum() or c in "-_." else "_" for c in batch_id)[:80]
+    p = _user_sessions_dir(username) / f"{safe}.json"
+    if not p.exists():
+        p = SESSIONS_DIR / f"{safe}.json"
+    if not p.exists():
+        raise HTTPException(status_code=404, detail="Session not found")
+    data = json.loads(p.read_text(encoding="utf-8"))
+    if data.get("_owner") and data.get("_owner") != username:
+        raise HTTPException(status_code=404, detail="Session not found")
+    # Mark approval as approved in stored trace
+    trace = data.get("agent_trace", {})
+    approvals = trace.get("pending_approvals", []) if isinstance(trace, dict) else []
+    # Also check top-level pending_approvals
+    top_pending = data.get("pending_approvals", [])
+    found = False
+    for lst in (approvals, top_pending):
+        for a in lst:
+            if a.get("id") == approval_id:
+                a["status"] = "approved"
+                found = True
+    if not found:
+        raise HTTPException(status_code=404, detail="Approval not found")
+    data["agent_status"] = "approved"
+    p.write_text(json.dumps(data, indent=2, default=str), encoding="utf-8")
+    return {"approved": approval_id, "batch_id": batch_id}
+
+
+@app.post("/api/reject/{batch_id}/{approval_id}")
+def reject_action(batch_id: str, approval_id: str, request: Request):
+    username = get_current_user(request)
+    safe = "".join(c if c.isalnum() or c in "-_." else "_" for c in batch_id)[:80]
+    p = _user_sessions_dir(username) / f"{safe}.json"
+    if not p.exists():
+        p = SESSIONS_DIR / f"{safe}.json"
+    if not p.exists():
+        raise HTTPException(status_code=404, detail="Session not found")
+    data = json.loads(p.read_text(encoding="utf-8"))
+    if data.get("_owner") and data.get("_owner") != username:
+        raise HTTPException(status_code=404, detail="Session not found")
+    trace = data.get("agent_trace", {})
+    approvals = trace.get("pending_approvals", []) if isinstance(trace, dict) else []
+    top_pending = data.get("pending_approvals", [])
+    found = False
+    for lst in (approvals, top_pending):
+        for a in lst:
+            if a.get("id") == approval_id:
+                a["status"] = "rejected"
+                found = True
+    if not found:
+        raise HTTPException(status_code=404, detail="Approval not found")
+    data["agent_status"] = "blocked"
+    p.write_text(json.dumps(data, indent=2, default=str), encoding="utf-8")
+    return {"rejected": approval_id, "batch_id": batch_id}
+
+
+@app.post("/api/benchmark")
+def benchmark(request: Request, seed: int = Form(42), llm_mode: str = Form("auto")):
+    username = get_current_user(request)
+    if llm_mode not in ALLOWED_LLM_MODES:
+        raise HTTPException(status_code=400, detail=f"llm_mode must be one of {ALLOWED_LLM_MODES}")
+    try:
+        data_dir = settings.data_dir
+        generate(seed=seed, data_dir=str(data_dir))
+        bank_df = pd.read_csv(data_dir / "bank_feed.csv")
+        ledger_df = pd.read_csv(data_dir / "ledger.csv")
+        invoices_df = pd.read_csv(data_dir / "invoices.csv")
+        gt_df = pd.read_csv(data_dir / "ground_truth.csv")
+        meta = json.loads((data_dir / "batch_meta.json").read_text())
+        kwargs = dict(
+            bank_df=bank_df, ledger_df=ledger_df, invoices_df=invoices_df, gt_df=gt_df,
+            bank_opening=meta.get("opening_balances", {}).get("bank", 42500.0),
+            ledger_opening=meta.get("opening_balances", {}).get("ledger", 42500.0),
+            llm_mode=llm_mode,
+            batch_id=meta.get("batch_id", f"demo_seed_{seed}"),
+            reports_dir=REPORTS_DIR,
+        )
+        fixed = run_reconciliation(**kwargs, mode="fixed")
+        autonomous = run_reconciliation(**kwargs, mode="autonomous")
+        return {
+            "seed": seed,
+            "fixed": {"metrics": fixed["metrics"], "steps": 4, "mode": "fixed", "batch_id": fixed["batch_id"]},
+            "autonomous": {"metrics": autonomous["metrics"], "steps": autonomous.get("agent_steps"), "mode": "autonomous", "batch_id": autonomous["batch_id"], "agent_trace": autonomous.get("agent_trace"), "agent_status": autonomous.get("agent_status")},
+            "comparison": {
+                "f1_fixed": fixed["metrics"].get("f1"),
+                "f1_autonomous": autonomous["metrics"].get("f1"),
+                "match_rate_fixed": fixed["metrics"].get("raw_match_rate"),
+                "match_rate_autonomous": autonomous["metrics"].get("raw_match_rate"),
+                "steps_fixed": 4,
+                "steps_autonomous": autonomous.get("agent_steps"),
+            },
+        }
+    except HTTPException:
+        raise
+    except Exception as exc:
+        log.exception("benchmark failed")
+        raise HTTPException(status_code=500, detail=str(exc)) from exc
 
 
 @app.get("/api/download/{report_type}")

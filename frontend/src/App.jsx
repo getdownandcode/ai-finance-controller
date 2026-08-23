@@ -3,6 +3,7 @@ import {
   Activity,
   AlertCircle,
   ArrowRight,
+  Bot,
   Building2,
   CheckCircle2,
   ChevronRight,
@@ -23,15 +24,67 @@ import {
   Plus,
   Receipt,
   Search,
+  ShieldAlert,
   ShieldCheck,
   Sparkles,
   Trash2,
   TrendingUp,
   Upload,
   X,
+  Zap,
 } from 'lucide-react';
 
 const cx = (...c) => c.filter(Boolean).join(' ');
+
+function MatchMindLogo({ className = "h-8 w-auto", showWordmark = true }) {
+  return (
+    <div className={cx("flex items-center gap-2.5 select-none", className)}>
+      <svg
+        className="h-8 w-8 shrink-0"
+        viewBox="0 0 48 48"
+        fill="none"
+        xmlns="http://www.w3.org/2000/svg"
+        role="img"
+        aria-label="MatchMind"
+      >
+        <defs>
+          <linearGradient id="mm-brand-grad" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" stopColor="#e78a53" />
+            <stop offset="100%" stopColor="#5f8787" />
+          </linearGradient>
+        </defs>
+        <rect width="48" height="48" rx="12" fill="url(#mm-brand-grad)" />
+        <g opacity="0.95">
+          <rect x="11" y="14" width="18" height="22" rx="3" fill="white" />
+          <rect x="19" y="10" width="18" height="22" rx="3" fill="none" stroke="white" strokeWidth="1.6" />
+        </g>
+        <path
+          d="M17 24.5 L21.5 29 L31 18.5"
+          stroke="#e78a53"
+          strokeWidth="2.6"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          fill="none"
+        />
+        <circle cx="34.5" cy="13.5" r="1.7" fill="white" opacity="0.95" />
+        <circle cx="36.5" cy="19" r="1.2" fill="white" opacity="0.85" />
+        <circle cx="32" cy="9.5" r="1.2" fill="white" opacity="0.85" />
+        <line x1="34.5" y1="13.5" x2="36.5" y2="19" stroke="white" strokeWidth="0.9" opacity="0.7" />
+        <line x1="34.5" y1="13.5" x2="32" y2="9.5" stroke="white" strokeWidth="0.9" opacity="0.7" />
+      </svg>
+      {showWordmark && (
+        <div className="flex flex-col leading-tight">
+          <span className="font-mono text-[16px] font-extrabold tracking-tight text-white">
+            Match<span className="text-primary">Mind</span>
+          </span>
+          <span className="text-[10px] font-medium tracking-wider uppercase text-muted-foreground">
+            Autonomous Finance
+          </span>
+        </div>
+      )}
+    </div>
+  );
+}
 
 function StatCard({ label, value, sub, icon: Icon, badge }) {
   return (
@@ -115,6 +168,8 @@ export default function App() {
   const [bankOpening, setBankOpening] = useState("0");
   const [ledgerOpening, setLedgerOpening] = useState("0");
   const [matchingStrategy, setMatchingStrategy] = useState('auto');
+  const [goal, setGoal] = useState('reconcile');
+  const [mode, setMode] = useState('autonomous');
   const [exceptionFilter, setExceptionFilter] = useState('ALL');
   const [exceptionSearch, setExceptionSearch] = useState('');
   const [clusterSearch, setClusterSearch] = useState('');
@@ -165,6 +220,8 @@ export default function App() {
       formData.append('bank_opening', String(parseFloat(bankOpening) || 0));
       formData.append('ledger_opening', String(parseFloat(ledgerOpening) || 0));
       formData.append('llm_mode', matchingStrategy);
+      formData.append('goal', goal);
+      formData.append('mode', mode);
       const res = await authFetch('/api/reconcile', { method: 'POST', body: formData });
       if (!res.ok) {
         const err = await res.json();
@@ -186,6 +243,8 @@ export default function App() {
       const formData = new FormData();
       formData.append('seed', 42);
       formData.append('llm_mode', matchingStrategy);
+      formData.append('goal', goal);
+      formData.append('mode', mode);
       const res = await authFetch('/api/reconcile-demo', { method: 'POST', body: formData });
       if (!res.ok) {
         const err = await res.json();
@@ -346,7 +405,7 @@ export default function App() {
         <div className="pointer-events-none fixed inset-0 bg-grid" />
         <div className="relative w-full max-w-md rounded-2xl border border-border bg-card p-8 shadow-xl">
           <div className="flex flex-col items-center text-center">
-            <img src="/matchmind-logo.svg" alt="MatchMind" className="h-10 w-auto" />
+            <MatchMindLogo className="h-10 mb-1" showWordmark={true} />
             <p className="mt-3 text-xs text-muted-foreground">Sign in to access your private reconciliation workspace</p>
           </div>
           <div className="mt-6 flex rounded-xl border border-border bg-muted p-1">
@@ -457,14 +516,7 @@ export default function App() {
               {!sidebarOpen && (
                 <button onClick={() => setSidebarOpen(true)} className="flex h-8 w-8 items-center justify-center rounded-xl border border-border bg-card text-muted-foreground hover:bg-primary hover:text-primary-foreground hover:border-primary hover:shadow-md transition-all duration-200 cursor-pointer"><Menu className="h-4 w-4" /></button>
               )}
-              <img src="/matchmind-logo.svg" alt="MatchMind" className="h-9 w-auto hidden sm:block" />
-              <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-primary text-primary-foreground shadow-sm sm:hidden">
-                <img src="/favicon.svg" alt="M" className="h-7 w-7" />
-              </div>
-              <div className="min-w-0 sm:hidden">
-                <h1 className="truncate text-[15px] font-bold tracking-tight text-white">MatchMind</h1>
-                <p className="hidden truncate text-[11px] font-medium text-muted-foreground sm:block">Autonomous reconciliation</p>
-              </div>
+              <MatchMindLogo />
             </div>
 
             <div className="flex shrink-0 items-center gap-2">
@@ -512,10 +564,11 @@ export default function App() {
             {[
               { id: 'ingest', label: 'Ingest', sub: '1', icon: Database },
               { id: 'dashboard', label: 'Dashboard', sub: '2', icon: Activity, disabled: !results },
-              { id: 'exceptions', label: `Exceptions ${results ? `· ${results.exceptions.length}` : ''}`, sub: '3', icon: FileWarning, disabled: !results },
-              { id: 'clusters', label: `Reconciled ${results ? `· ${results.matched_clusters.length}` : ''}`, sub: '4', icon: CheckCircle2, disabled: !results },
-              { id: 'audit', label: 'Audit', sub: '5', icon: FileText, disabled: !results },
-              { id: 'export', label: 'Export', sub: '6', icon: Download, disabled: !results },
+              { id: 'agent', label: `Agent ${results?.agent_trace ? `· ${results.agent_steps} steps` : ''}`, sub: '3', icon: Bot, disabled: !results },
+              { id: 'exceptions', label: `Exceptions ${results ? `· ${results.exceptions.length}` : ''}`, sub: '4', icon: FileWarning, disabled: !results },
+              { id: 'clusters', label: `Reconciled ${results ? `· ${results.matched_clusters.length}` : ''}`, sub: '5', icon: CheckCircle2, disabled: !results },
+              { id: 'audit', label: 'Audit', sub: '6', icon: FileText, disabled: !results },
+              { id: 'export', label: 'Export', sub: '7', icon: Download, disabled: !results },
             ].map((tab) => {
               const Icon = tab.icon;
               const isActive = activeTab === tab.id;
@@ -704,6 +757,28 @@ export default function App() {
                   </label>
                 </div>
 
+                <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+                  <label className="space-y-1.5">
+                    <span className="text-xs font-semibold text-foreground">Goal</span>
+                    <select value={goal} onChange={(e) => setGoal(e.target.value)} className={selectCls}>
+                      <option value="reconcile" className="bg-card text-foreground">Reconcile — full (autonomous)</option>
+                      <option value="triage" className="bg-card text-foreground">Triage — exceptions only</option>
+                      <option value="calculate_cash" className="bg-card text-foreground">Cash position only</option>
+                    </select>
+                  </label>
+                  <label className="space-y-1.5">
+                    <span className="text-xs font-semibold text-foreground">Controller</span>
+                    <select value={mode} onChange={(e) => setMode(e.target.value)} className={selectCls}>
+                      <option value="autonomous" className="bg-card text-foreground">Autonomous — plan + observe + critic</option>
+                      <option value="fixed" className="bg-card text-foreground">Fixed — exact→fuzzy→LLM (benchmark)</option>
+                    </select>
+                  </label>
+                  <div className="rounded-xl border border-border bg-muted/30 px-3 py-2.5 flex flex-col justify-center">
+                    <span className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wide">Bounded · Policy-gated</span>
+                    <span className="text-xs text-foreground font-mono">max 60 steps · approval ⊘ writes</span>
+                  </div>
+                </div>
+
                 <div className="flex flex-col-reverse items-stretch justify-between gap-3 border-t border-border pt-6 sm:flex-row sm:items-center">
                   <button type="button" onClick={handleRunSampleData} disabled={loading} className="inline-flex items-center justify-center gap-1.5 text-xs font-medium text-muted-foreground hover:text-primary transition disabled:opacity-50 cursor-pointer">
                     <Database className="h-3.5 w-3.5" />
@@ -731,6 +806,22 @@ export default function App() {
 
         {activeTab === 'dashboard' && results && (
           <div className="animate-fade-up space-y-6">
+            {results.agent_trace && (
+              <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-primary/20 bg-primary/5 px-4 py-3">
+                <div className="flex items-center gap-3">
+                  <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary text-primary-foreground"><Bot className="h-4 w-4" /></div>
+                  <div>
+                    <p className="text-xs font-bold text-white">Goal: <span className="font-mono text-primary">{results.goal || 'reconcile'}</span> · <span className={results.agent_status === 'complete' ? 'text-secondary' : results.agent_status === 'awaiting_approval' ? 'text-chart-2' : results.agent_status === 'blocked' ? 'text-destructive' : 'text-muted-foreground'}>{results.agent_status}</span> · {results.agent_steps} steps</p>
+                    <p className="text-[11px] text-muted-foreground">{results.mode === 'fixed' ? 'Fixed pipeline (benchmark)' : 'Autonomous — observe → plan → act → reflect'} · {(results.agent_trace?.actions || []).map(a=>a.tool).join(' → ') || '—'}</p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-2">
+                  {results.metrics?.agent_with_evidence_pct != null && <span className="rounded-full bg-card border border-border px-2.5 py-1 text-[11px] font-mono text-muted-foreground">evidence {(results.metrics.agent_with_evidence_pct*100).toFixed(0)}%</span>}
+                  {results.pending_approvals?.length > 0 && <span className="rounded-full bg-chart-2/15 border border-chart-2/30 px-2.5 py-1 text-[11px] font-bold text-chart-2">{results.pending_approvals.length} awaiting approval</span>}
+                  <button onClick={() => setActiveTab('agent')} className="rounded-lg bg-primary px-3 py-1.5 text-xs font-bold text-primary-foreground hover:opacity-90 cursor-pointer">View trace →</button>
+                </div>
+              </div>
+            )}
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
               <StatCard
                 label="Match rate"
@@ -839,6 +930,136 @@ export default function App() {
                 </div>
               </div>
             </div>
+          </div>
+        )}
+
+        {activeTab === 'agent' && results && (
+          <div className="animate-fade-up space-y-6">
+            {!results.agent_trace ? (
+              <div className="rounded-2xl border border-border bg-card p-8 text-center">
+                <Bot className="mx-auto h-8 w-8 text-muted-foreground" />
+                <p className="mt-3 text-sm font-bold text-white">Fixed-pipeline run</p>
+                <p className="mt-1 text-xs text-muted-foreground">No autonomous trace — switch controller to <span className="font-mono text-primary">autonomous</span> and re-run to see observe → plan → act → reflect.</p>
+                <div className="mt-4 rounded-xl bg-muted p-3 font-mono text-xs text-left">
+                  <p className="font-bold text-foreground">Fixed order:</p>
+                  <p className="text-muted-foreground">exact → fuzzy → LLM → exceptions (4 steps, no replanning)</p>
+                </div>
+              </div>
+            ) : (
+              <>
+                <div className="rounded-2xl border border-border bg-card p-6 shadow-sm">
+                  <div className="flex flex-wrap items-start justify-between gap-3">
+                    <div>
+                      <h3 className="text-base font-bold text-white flex items-center gap-2"><Zap className="h-4 w-4 text-primary" /> Live plan &amp; reasoning</h3>
+                      <p className="mt-1 text-xs text-muted-foreground">Goal <span className="font-mono text-primary">{results.agent_trace.goal}</span> · status <span className="font-mono text-foreground">{results.agent_trace.status}</span> · {results.agent_trace.step_count}/{results.agent_trace.max_steps} steps</p>
+                    </div>
+                    <div className="flex items-center gap-2 text-[11px]">
+                      <span className="rounded-full border border-border bg-muted px-2.5 py-1 font-mono">cost {results.metrics?.agent_total_cost ?? '—'}</span>
+                      <span className="rounded-full border border-border bg-muted px-2.5 py-1 font-mono">{results.metrics?.agent_steps_per_record ?? '—'} steps/rec</span>
+                      {results.agent_trace.blocked_reason && <span className="rounded-full bg-destructive/15 border border-destructive/30 px-2.5 py-1 font-bold text-destructive">{results.agent_trace.blocked_reason}</span>}
+                    </div>
+                  </div>
+                  <div className="mt-4 flex flex-wrap gap-1.5">
+                    {(results.agent_trace.actions || []).map((a, i) => (
+                      <span key={a.id || i} className="inline-flex items-center gap-1 rounded-full border border-primary/20 bg-primary/10 px-2.5 py-1 text-[11px] font-mono text-primary">
+                        <span className="flex h-4 w-4 items-center justify-center rounded-full bg-primary text-primary-foreground text-[10px] font-bold">{a.step}</span>
+                        {a.tool}
+                        <span className="text-muted-foreground">· {Math.round(a.confidence*100)}%</span>
+                      </span>
+                    ))}
+                    {(results.agent_trace.actions || []).length === 0 && <span className="text-xs text-muted-foreground">No actions yet.</span>}
+                  </div>
+                  <div className="mt-4 grid grid-cols-2 sm:grid-cols-4 gap-2 text-xs">
+                    <div className="rounded-lg bg-muted p-3"><p className="text-[11px] text-muted-foreground">Goal complete</p><p className="font-bold text-white">{results.metrics?.agent_goal_complete_rate != null ? `${(results.metrics.agent_goal_complete_rate*100).toFixed(0)}%` : '—'}</p></div>
+                    <div className="rounded-lg bg-muted p-3"><p className="text-[11px] text-muted-foreground">Silent-drop rate</p><p className="font-bold text-secondary">{results.metrics?.agent_silent_drop_rate != null ? `${(results.metrics.agent_silent_drop_rate*100).toFixed(1)}%` : '—'}</p></div>
+                    <div className="rounded-lg bg-muted p-3"><p className="text-[11px] text-muted-foreground">With evidence</p><p className="font-bold text-white">{results.metrics?.agent_with_evidence_pct != null ? `${(results.metrics.agent_with_evidence_pct*100).toFixed(0)}%` : '—'}</p></div>
+                    <div className="rounded-lg bg-muted p-3"><p className="text-[11px] text-muted-foreground">Approvals</p><p className="font-bold text-white">{results.pending_approvals?.length || 0} pending</p></div>
+                  </div>
+                </div>
+
+                {results.pending_approvals && results.pending_approvals.length > 0 && (
+                  <div className="rounded-2xl border border-chart-2/30 bg-chart-2/5 p-6">
+                    <h4 className="text-sm font-bold text-white flex items-center gap-2"><ShieldAlert className="h-4 w-4 text-chart-2" /> Approvals required — proposal only (no external writes)</h4>
+                    <p className="mt-1 text-xs text-muted-foreground">amounts above ${results.policy?.execution?.require_approval_above_amount ?? 5000} or any journal/cash action pauses for human review.</p>
+                    <div className="mt-4 space-y-3">
+                      {results.pending_approvals.map(apr => (
+                        <div key={apr.id} className="rounded-xl border border-border bg-card p-4">
+                          <div className="flex flex-wrap items-start justify-between gap-3">
+                            <div>
+                              <p className="font-mono text-xs font-bold text-white">{apr.action} · <span className="text-chart-2">{apr.status}</span></p>
+                              <p className="mt-1 text-xs text-muted-foreground">{apr.reason}</p>
+                              {apr.amount ? <p className="mt-1 text-xs font-mono text-foreground">amount {new Intl.NumberFormat('en-US',{style:'currency',currency:'USD'}).format(apr.amount)}</p> : null}
+                              {apr.evidence?.length ? <p className="mt-1 text-[11px] font-mono text-muted-foreground">evidence: {apr.evidence.join(', ')}</p> : null}
+                            </div>
+                            <div className="flex items-center gap-2">
+                              <button onClick={async()=>{
+                                const r = await authFetch(`/api/approve/${encodeURIComponent(results.batch_id)}/${encodeURIComponent(apr.id)}`,{method:'POST'});
+                                if(r.ok){ const j=await r.json(); setError(null); alert(`Approved ${j.approved}`); fetchSessions(); } else { const e=await r.json(); setError(e.detail); }
+                              }} className="rounded-lg bg-secondary px-3 py-1.5 text-xs font-bold text-secondary-foreground hover:opacity-90 cursor-pointer">Approve</button>
+                              <button onClick={async()=>{
+                                const r = await authFetch(`/api/reject/${encodeURIComponent(results.batch_id)}/${encodeURIComponent(apr.id)}`,{method:'POST'});
+                                if(r.ok){ alert(`Rejected ${apr.id}`); fetchSessions(); } else { const e=await r.json(); setError(e.detail); }
+                              }} className="rounded-lg border border-border bg-muted px-3 py-1.5 text-xs font-bold text-muted-foreground hover:bg-destructive hover:text-white cursor-pointer">Reject</button>
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+                  <div className="rounded-2xl border border-border bg-card p-6">
+                    <h4 className="text-sm font-bold text-white">Actions — inspectable & replayable</h4>
+                    <p className="text-xs text-muted-foreground">Each step: reason → expected → cost → verdict</p>
+                    <div className="mt-4 max-h-[32rem] space-y-2 overflow-y-auto pr-1">
+                      {(results.agent_trace.actions || []).map(a => (
+                        <div key={a.id} className="rounded-xl border border-border bg-background p-3">
+                          <div className="flex items-center justify-between gap-2">
+                            <span className="rounded bg-muted px-2 py-0.5 font-mono text-[11px] font-bold text-foreground">#{a.step} {a.tool}</span>
+                            <span className="text-[11px] font-mono text-muted-foreground">{a.confidence != null ? `${Math.round(a.confidence*100)}%` : ''} · cost {a.cost}</span>
+                          </div>
+                          <p className="mt-2 text-xs text-muted-foreground"><span className="font-semibold text-foreground">Reason:</span> {a.reason}</p>
+                          <p className="text-xs text-muted-foreground"><span className="font-semibold text-foreground">Expected:</span> {a.expected_outcome}</p>
+                          {a.arguments && Object.keys(a.arguments).length > 0 && <pre className="mt-2 whitespace-pre-wrap rounded bg-muted p-2 font-mono text-[11px] text-muted-foreground">{JSON.stringify(a.arguments, null, 2)}</pre>}
+                          {a.result && <pre className="mt-2 whitespace-pre-wrap rounded bg-card border border-border p-2 font-mono text-[11px] text-foreground/80">{JSON.stringify(a.result, null, 2).slice(0, 600)}</pre>}
+                        </div>
+                      ))}
+                      {(results.agent_trace.actions || []).length === 0 && <p className="py-6 text-center text-xs text-muted-foreground">No actions.</p>}
+                    </div>
+                  </div>
+                  <div className="rounded-2xl border border-border bg-card p-6">
+                    <h4 className="text-sm font-bold text-white">Observations — what the agent saw</h4>
+                    <p className="text-xs text-muted-foreground">Coverage, unresolved, exposure after each step</p>
+                    <div className="mt-4 max-h-[32rem] space-y-2 overflow-y-auto pr-1">
+                      {(results.agent_trace.observations || []).map((o, idx) => (
+                        <div key={idx} className="rounded-xl border border-border bg-background p-3">
+                          <div className="flex items-center justify-between text-[11px] font-mono text-muted-foreground">
+                            <span>step {o.step_count}</span>
+                            <span>{o.matched_count} matched · {o.exception_count} exc · {o.unresolved_count} unresolved</span>
+                          </div>
+                          <div className="mt-1 flex flex-wrap gap-1.5">
+                            {o.tools_used?.map(t => <span key={t} className="rounded-full bg-muted px-2 py-0.5 text-[10px] font-mono">{t}</span>)}
+                          </div>
+                          <p className="mt-1 text-[11px] font-mono text-muted-foreground">coverage {(o.coverage*100).toFixed(1)}% · exposure ${o.remaining_exposure} · conflict {o.has_conflicting_evidence ? 'yes' : 'no'}</p>
+                          {o.detail?.cash && <pre className="mt-2 whitespace-pre-wrap rounded bg-muted p-2 font-mono text-[11px] text-muted-foreground">{JSON.stringify({confirmed_bank: o.detail.cash.confirmed_bank_cash, confirmed_ledger: o.detail.cash.confirmed_ledger_cash}, null, 2)}</pre>}
+                        </div>
+                      ))}
+                      {(results.agent_trace.observations || []).length === 0 && <p className="py-6 text-center text-xs text-muted-foreground">No observations.</p>}
+                    </div>
+                  </div>
+                </div>
+
+                <div className="rounded-2xl border border-border bg-card p-6">
+                  <h4 className="text-sm font-bold text-white">Policy bounds — fully open inside walls</h4>
+                  <div className="mt-3 grid grid-cols-1 gap-4 sm:grid-cols-2 font-mono text-[11px]">
+                    <pre className="rounded-lg bg-muted p-3 text-muted-foreground whitespace-pre-wrap">{JSON.stringify(results.policy?.matching || {}, null, 2)}</pre>
+                    <pre className="rounded-lg bg-muted p-3 text-muted-foreground whitespace-pre-wrap">{JSON.stringify(results.policy?.execution || {}, null, 2)}</pre>
+                  </div>
+                  <p className="mt-3 text-xs text-muted-foreground">Funds never move without approval · <span className="font-mono">allow_external_writes=false</span> · approval required above ${results.policy?.execution?.require_approval_above_amount}.</p>
+                </div>
+              </>
+            )}
           </div>
         )}
 

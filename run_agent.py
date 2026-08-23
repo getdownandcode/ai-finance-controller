@@ -35,10 +35,14 @@ def main() -> None:
     ap.add_argument("--ground-truth-csv", default=None)
     ap.add_argument("--reports-dir", default=str(settings.reports_dir))
     ap.add_argument("--llm", choices=["auto", "off", "gemini"], default="auto")
+    ap.add_argument("--goal", choices=["reconcile", "reconcile_all", "calculate_cash", "triage", "report"], default="reconcile")
+    ap.add_argument("--mode", choices=["autonomous", "fixed"], default="autonomous")
+    ap.add_argument("--policy", default=None, help="Path to policy.yaml")
     ap.add_argument("--bank-opening", type=float, default=None)
     ap.add_argument("--ledger-opening", type=float, default=None)
     ap.add_argument("--seed", type=int, default=42)
     ap.add_argument("--regenerate", action="store_true")
+    ap.add_argument("--benchmark", action="store_true", help="Compare fixed vs autonomous")
     args = ap.parse_args()
 
     logging.basicConfig(level=getattr(logging, settings.log_level, logging.INFO),
@@ -77,16 +81,28 @@ def main() -> None:
         log.error("No records found. Check input CSVs.")
         return
 
-    log.info("Batch %s | bank=%d ledger=%d invoices=%d | llm=%s",
+    log.info("Batch %s | bank=%d ledger=%d invoices=%d | llm=%s goal=%s mode=%s",
              meta.get("batch_id"), len(bank_df) if bank_df is not None else 0,
              len(ledger_df) if ledger_df is not None else 0,
-             len(invoices_df) if invoices_df is not None else 0, args.llm)
+             len(invoices_df) if invoices_df is not None else 0, args.llm, args.goal, args.mode)
+
+    if args.benchmark:
+        from app.pipeline import run_fixed_benchmark, run_autonomous
+        bank_opening = b_open; ledger_opening = l_open
+        fixed = run_fixed_benchmark(bank_df=bank_df, ledger_df=ledger_df, invoices_df=invoices_df, gt_df=gt_df, bank_opening=bank_opening, ledger_opening=ledger_opening, llm_mode=args.llm, batch_id=meta.get("batch_id", "production_run"), reports_dir=Path(args.reports_dir))
+        autonomous = run_autonomous(bank_df=bank_df, ledger_df=ledger_df, invoices_df=invoices_df, gt_df=gt_df, bank_opening=bank_opening, ledger_opening=ledger_opening, llm_mode=args.llm, batch_id=meta.get("batch_id", "production_run"), reports_dir=Path(args.reports_dir), goal=args.goal, policy_path=args.policy)
+        print("\n=== BENCHMARK: fixed vs autonomous ===")
+        for label, res in [("fixed", fixed), ("autonomous", autonomous)]:
+            m = res["metrics"]
+            print(f"{label}: matched {m['matched_records']}/{m['total_records']} ({m['raw_match_rate']*100:.1f}%) | F1 {m.get('f1') if m.get('f1') is not None else 'N/A'} | steps {res.get('agent_steps', 4)} | status {res.get('agent_status', 'complete')}")
+        return
 
     result = run_reconciliation(
         bank_df=bank_df, ledger_df=ledger_df, invoices_df=invoices_df, gt_df=gt_df,
         bank_opening=b_open, ledger_opening=l_open,
         llm_mode=args.llm, batch_id=meta.get("batch_id", "production_run"),
         reports_dir=Path(args.reports_dir),
+        mode=args.mode, goal=args.goal, policy_path=args.policy,
     )
 
     # Human-readable summary mirrors server response
@@ -97,6 +113,10 @@ def main() -> None:
           f"Fuzzy {m['method_counts']['fuzzy']} "
           f"LLM {m['method_counts']['llm']} "
           f"Exceptions {m['exceptions']}")
+    if "agent_steps" in result:
+        print(f"Agent: goal={result.get('goal')} status={result.get('agent_status')} steps={result.get('agent_steps')} pending_approvals={len(result.get('pending_approvals', []))}")
+        if result.get("agent_trace"):
+            print(f"Actions: {' -> '.join(a['tool'] for a in result['agent_trace']['actions'])}")
     print(f"Reports written to {args.reports_dir}/")
 
 

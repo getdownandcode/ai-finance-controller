@@ -18,9 +18,11 @@ RUN pip install --no-cache-dir -r requirements.txt
 
 COPY agents/ ./agents/
 COPY tools/ ./tools/
+COPY actions/ ./actions/
 COPY evaluation/ ./evaluation/
 COPY app/ ./app/
-COPY config.py server.py run_agent.py generate_data.py ./
+COPY config/ ./config/
+COPY server.py run_agent.py generate_data.py generate_complex_data.py ./
 
 COPY --from=frontend-builder /app/frontend/dist ./frontend/dist
 
