@@ -447,7 +447,7 @@ export default function App() {
     );
   };
 
-  const hasFiles = Boolean(bankFile || ledgerFile || invoicesFile);
+  const hasFiles = filesList.length > 0;
   const inputCls =
     'w-full rounded-xl border border-input bg-card px-3 py-2.5 text-xs font-mono text-foreground placeholder:text-muted-foreground outline-none transition focus:border-primary focus:ring-1 focus:ring-ring';
   const selectCls =
