@@ -555,7 +555,7 @@ export default function App() {
             </div>
           </div>
 
-          <nav className="scrollbar-none flex gap-1 overflow-x-auto border-t border-border py-2">
+          <nav className="scrollbar-none flex items-center gap-2 overflow-x-auto border-t border-border py-2.5 px-1">
             {[
               { id: 'ingest', label: 'Ingest', sub: '1', icon: Database },
               { id: 'dashboard', label: 'Dashboard', sub: '2', icon: Activity, disabled: !results },
@@ -572,18 +572,18 @@ export default function App() {
                   onClick={() => !tab.disabled && setActiveTab(tab.id)}
                   disabled={tab.disabled}
                   className={cx(
-                    'group flex shrink-0 items-center gap-2 whitespace-nowrap rounded-lg px-3.5 py-2 text-xs font-medium transition-all duration-200',
+                    'group flex shrink-0 items-center gap-2 whitespace-nowrap rounded-xl px-4 py-2 text-xs font-semibold transition-all duration-200',
                     tab.disabled
-                      ? 'cursor-not-allowed text-muted-foreground/40'
+                      ? 'cursor-not-allowed text-muted-foreground/30'
                       : isActive
-                        ? 'bg-card text-primary ring-1 ring-primary/40 cursor-pointer shadow-sm'
-                        : 'text-muted-foreground hover:bg-primary/10 hover:text-primary hover:ring-1 hover:ring-primary/20 hover:shadow-sm cursor-pointer'
+                        ? 'bg-card text-primary border border-primary/50 shadow-sm cursor-pointer'
+                        : 'border border-transparent text-muted-foreground hover:bg-card hover:text-foreground hover:border-border cursor-pointer'
                   )}
                 >
-                  <span className={cx('flex h-5 w-5 items-center justify-center rounded text-[11px] font-bold', isActive ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground group-hover:text-foreground')}>
+                  <span className={cx('flex h-5 w-5 items-center justify-center rounded-lg text-[11px] font-bold transition-colors', isActive ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground group-hover:text-foreground')}>
                     {tab.sub}
                   </span>
-                  <Icon className={cx('h-3.5 w-3.5', isActive ? 'text-primary' : 'text-muted-foreground')} />
+                  <Icon className={cx('h-3.5 w-3.5 transition-colors', isActive ? 'text-primary' : 'text-muted-foreground group-hover:text-foreground')} />
                   <span>{tab.label}</span>
                 </button>
               );
