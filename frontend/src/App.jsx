@@ -444,7 +444,7 @@ export default function App() {
                 <p className="text-[11px] text-muted-foreground">Private workspace</p>
               </div>
             </div>
-            <button onClick={handleLogout} title="Log out" className="rounded-lg border border-border bg-muted px-2.5 py-1.5 text-[11px] font-semibold text-muted-foreground hover:border-destructive/40 hover:text-destructive transition">Log out</button>
+            <button onClick={handleLogout} title="Log out" className="rounded-lg border border-border bg-muted px-2.5 py-1.5 text-[11px] font-semibold text-muted-foreground hover:bg-destructive hover:text-destructive-foreground hover:border-destructive hover:shadow-md transition-all duration-200">Log out</button>
           </div>
           <p className="mt-2 flex items-center gap-1.5 text-[11px] text-muted-foreground"><ShieldCheck className="h-3 w-3 text-secondary" /> {user}'s sessions — isolated per account</p>
         </div>
@@ -456,7 +456,7 @@ export default function App() {
           <div className="flex h-[64px] items-center justify-between gap-4">
             <div className="flex min-w-0 items-center gap-3">
               {!sidebarOpen && (
-                <button onClick={() => setSidebarOpen(true)} className="flex h-8 w-8 items-center justify-center rounded-xl border border-border bg-card text-muted-foreground hover:border-primary/40 hover:text-white cursor-pointer"><Menu className="h-4 w-4" /></button>
+                <button onClick={() => setSidebarOpen(true)} className="flex h-8 w-8 items-center justify-center rounded-xl border border-border bg-card text-muted-foreground hover:bg-primary hover:text-primary-foreground hover:border-primary hover:shadow-md transition-all duration-200 cursor-pointer"><Menu className="h-4 w-4" /></button>
               )}
               <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-primary text-primary-foreground shadow-sm">
                 <Layers className="h-5 w-5" />
@@ -471,15 +471,15 @@ export default function App() {
               <div className="hidden items-center gap-2 rounded-full border border-border bg-card px-3 py-1.5 sm:flex">
                 <div className="h-6 w-6 rounded-full bg-primary flex items-center justify-center text-[11px] font-bold text-primary-foreground">{user?.[0]?.toUpperCase()}</div>
                 <span className="text-xs font-semibold text-white">{user}</span>
-                <button onClick={handleLogout} className="ml-1 rounded-md bg-muted px-2 py-1 text-[11px] font-semibold text-muted-foreground hover:text-destructive">Log out</button>
+                <button onClick={handleLogout} className="ml-1 rounded-md bg-muted px-2 py-1 text-[11px] font-semibold text-muted-foreground hover:bg-destructive hover:text-white hover:shadow-md transition-all duration-200">Log out</button>
               </div>
               <button
                 onClick={() => setActiveTab('ingest')}
                 className={cx(
-                  'inline-flex items-center gap-1.5 rounded-xl px-4 py-2 text-xs font-semibold transition-all focus-ring cursor-pointer',
+                  'inline-flex items-center gap-1.5 rounded-xl px-4 py-2 text-xs font-semibold transition-all duration-200 focus-ring cursor-pointer',
                   activeTab === 'ingest'
                     ? 'bg-primary text-primary-foreground shadow'
-                    : 'border border-border bg-card text-muted-foreground hover:border-primary/40 hover:text-white'
+                    : 'border border-border bg-card text-muted-foreground hover:bg-primary hover:text-primary-foreground hover:border-primary hover:shadow-md hover:scale-[1.02]'
                 )}
               >
                 <Upload className="h-3.5 w-3.5" />
@@ -490,10 +490,10 @@ export default function App() {
                 <button
                   onClick={() => setActiveTab('dashboard')}
                   className={cx(
-                    'inline-flex items-center gap-1.5 rounded-xl px-3.5 py-2 text-xs font-semibold transition-all focus-ring cursor-pointer',
+                    'inline-flex items-center gap-1.5 rounded-xl px-3.5 py-2 text-xs font-semibold transition-all duration-200 focus-ring cursor-pointer',
                     activeTab === 'dashboard'
                       ? 'bg-secondary text-secondary-foreground shadow'
-                      : 'border border-border bg-card text-muted-foreground hover:border-primary/40 hover:text-white'
+                      : 'border border-border bg-card text-muted-foreground hover:bg-secondary hover:text-secondary-foreground hover:border-secondary hover:shadow-md hover:scale-[1.02]'
                   )}
                 >
                   <Activity className="h-3.5 w-3.5" />
@@ -501,8 +501,8 @@ export default function App() {
                 </button>
               )}
               {!sidebarOpen && sessions.length > 0 && (
-                <button onClick={() => setSidebarOpen(true)} className="hidden items-center gap-1.5 rounded-xl border border-border bg-card px-3 py-2 text-xs font-semibold text-muted-foreground hover:border-primary/40 hover:text-white sm:flex cursor-pointer">
-                  <History className="h-3.5 w-3.5 text-primary" /> {sessions.length}
+                <button onClick={() => setSidebarOpen(true)} className="hidden items-center gap-1.5 rounded-xl border border-border bg-card px-3 py-2 text-xs font-semibold text-muted-foreground hover:bg-primary hover:text-primary-foreground hover:border-primary hover:shadow-md transition-all duration-200 sm:flex cursor-pointer">
+                  <History className="h-3.5 w-3.5" /> {sessions.length}
                 </button>
               )}
             </div>
@@ -525,12 +525,12 @@ export default function App() {
                   onClick={() => !tab.disabled && setActiveTab(tab.id)}
                   disabled={tab.disabled}
                   className={cx(
-                    'group flex shrink-0 items-center gap-2 whitespace-nowrap rounded-lg px-3.5 py-2 text-xs font-medium transition-all',
+                    'group flex shrink-0 items-center gap-2 whitespace-nowrap rounded-lg px-3.5 py-2 text-xs font-medium transition-all duration-200',
                     tab.disabled
                       ? 'cursor-not-allowed text-muted-foreground/40'
                       : isActive
                         ? 'bg-card text-primary ring-1 ring-primary/40 cursor-pointer shadow-sm'
-                        : 'text-muted-foreground hover:bg-card hover:text-foreground cursor-pointer'
+                        : 'text-muted-foreground hover:bg-primary/10 hover:text-primary hover:ring-1 hover:ring-primary/20 hover:shadow-sm cursor-pointer'
                   )}
                 >
                   <span className={cx('flex h-5 w-5 items-center justify-center rounded text-[11px] font-bold', isActive ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground group-hover:text-foreground')}>
