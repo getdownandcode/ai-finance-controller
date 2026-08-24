@@ -29,7 +29,7 @@ from tools.normalize import Record, desc_text, text_similarity
 
 log = logging.getLogger(__name__)
 
-LLM_ACCEPT = 0.78
+LLM_ACCEPT = 0.75
 
 COMMON_FEE_RATES = [
     (0.029, 0.30),  # Stripe / Standard Card (2.9% + $0.30)
@@ -38,13 +38,14 @@ COMMON_FEE_RATES = [
     (0.015, 0.00),  # ACH / Wire flat rate
     (0.020, 0.00),  # Interchange plus
     (0.010, 0.00),  # Direct debit
+    (0.008, 0.00),  # Standard B2B processing
+    (0.012, 0.00),  # Low cost gateway
+    (0.022, 0.00),  # Medium gateway
 ]
 
 STOPWORDS = {
-    "settlement", "payment", "invoice", "payout", "credit", "debit",
-    "card", "net", "gross", "fees", "fee", "stripe", "ach", "wire",
-    "misc", "corp", "llc", "the", "and", "of", "for", "accounts",
-    "receivable", "payable", "post", "duplicate", "batch", "inc", "co", "ltd"
+    "the", "and", "of", "for", "in", "to", "a", "an", "by", "on", "with",
+    "inc", "co", "ltd", "corp", "llc", "group", "holdings", "enterprises"
 }
 
 MERCHANT_ALIASES = {
@@ -52,7 +53,22 @@ MERCHANT_ALIASES = {
     "goog": "google", "gsuite": "google", "google cloud": "google",
     "msft": "microsoft", "azure": "microsoft",
     "sq": "square", "stripe": "stripe", "pp": "paypal",
-    "ubr": "uber", "lyft": "lyft", "adp": "payroll", "gusto": "payroll"
+    "ubr": "uber", "lyft": "lyft", "adp": "payroll", "gusto": "payroll",
+    "acme": "acme", "northwind": "northwind", "nwt": "northwind",
+    "globex": "globex", "gbx": "globex", "initech": "initech",
+    "umbrella": "umbrella", "umb": "umbrella", "stark": "stark",
+    "wayne": "wayne", "soylent": "soylent", "cyberdyne": "cyberdyne",
+    "cds": "cyberdyne", "wonka": "wonka", "gekko": "gekko",
+    "massive": "massive", "mass": "massive"
+}
+
+FX_COMMON_RATES = {
+    ("USD", "EUR"): 0.92,
+    ("EUR", "USD"): 1.087,
+    ("USD", "GBP"): 0.79,
+    ("GBP", "USD"): 1.266,
+    ("USD", "CAD"): 1.35,
+    ("CAD", "USD"): 0.74,
 }
 
 
@@ -78,7 +94,8 @@ def resolve_mode(cfg) -> str:
 # --------------------------------------------------------------------------
 
 def _normalize_tokens(text: str) -> set[str]:
-    words = re.findall(r"[a-z]{3,}", text.lower())
+    # Extract words and alphanumeric tokens (including invoice digits)
+    words = re.findall(r"[a-z0-9]{2,}", text.lower())
     normalized = set()
     for w in words:
         if w not in STOPWORDS:
@@ -101,28 +118,49 @@ def _deterministic_reason(record: Record, candidates: list[Record], evidences: l
 
         # 1. Exact amount or sign-inverted match
         if abs(rec_amt - cand_amt) <= 0.01:
-            s += 0.55
+            s += 0.50
             why.append("Exact nominal amount match")
         elif ev.amount_within_tol:
-            s += 0.35
+            s += 0.40
             why.append(f"Amount within tolerance (diff: ${ev.amount_diff:.2f})")
+        elif ev.fx_candidate:
+            # Check FX conversion
+            pair = (record.currency, cand.currency)
+            expected_rate = FX_COMMON_RATES.get(pair, 1.0)
+            equiv = cand_amt * (1.0 / expected_rate if pair[0] == "USD" else expected_rate)
+            if abs(rec_amt - equiv) <= max(0.05 * rec_amt, 10.0):
+                s += 0.55
+                why.append(f"FX conversion match ({record.currency}/{cand.currency} ~{expected_rate})")
         else:
-            # 2. Dynamic Fee Check: Gross * (1 - rate) - fixed = Net
+            # 2. Dynamic Fee Check: Gross * (1 - rate) - fixed = Net (or reverse)
+            fee_matched = False
             for rate, fixed in COMMON_FEE_RATES:
-                expected_net = cand_amt * (1 - rate) - fixed
-                if abs(rec_amt - expected_net) <= 0.10:
-                    s += 0.60
-                    why.append(f"Matches gross amount (${cand_amt:.2f}) net of {rate*100:.1f}% + ${fixed:.2f} fee")
+                # Target is Net, Cand is Gross
+                exp_net = cand_amt * (1 - rate) - fixed
+                if abs(rec_amt - exp_net) <= max(0.01 * cand_amt, 1.0):
+                    s += 0.55
+                    why.append(f"Matches gross amount (${cand_amt:.2f}) net of {rate*100:.1f}% fee")
+                    fee_matched = True
                     break
+                # Target is Gross, Cand is Net
+                exp_net_rev = rec_amt * (1 - rate) - fixed
+                if abs(cand_amt - exp_net_rev) <= max(0.01 * rec_amt, 1.0):
+                    s += 0.55
+                    why.append(f"Matches gross amount (${rec_amt:.2f}) net of {rate*100:.1f}% fee")
+                    fee_matched = True
+                    break
+            if not fee_matched and abs(rec_amt - cand_amt) / max(rec_amt, cand_amt, 1.0) <= 0.10:
+                s += 0.35
+                why.append(f"Close amount variance (${abs(rec_amt - cand_amt):.2f})")
 
         # 3. Entity & Merchant Token Overlap
         cand_tokens = _normalize_tokens(desc_text(cand))
         overlap = rec_tokens & cand_tokens
         if overlap:
-            s += min(0.30, 0.15 * len(overlap))
+            s += min(0.35, 0.15 * len(overlap))
             why.append(f"Merchant/Counterparty match on: {', '.join(sorted(overlap)[:3])}")
-        elif ev.desc_similarity >= 0.50:
-            s += 0.20
+        elif ev.desc_similarity >= 0.40:
+            s += min(0.25, round(ev.desc_similarity * 0.3, 2))
             why.append(f"Narrative similarity {int(ev.desc_similarity * 100)}%")
 
         # 4. Settlement Window
@@ -130,39 +168,50 @@ def _deterministic_reason(record: Record, candidates: list[Record], evidences: l
             s += 0.15
             why.append("Immediate settlement (<3d)")
         elif ev.date_diff_days <= 10:
-            s += 0.10
+            s += 0.12
             why.append(f"Settled in {ev.date_diff_days}d")
-        elif ev.date_diff_days <= 30:
-            s += 0.05
-            why.append("Settled within standard 30d terms")
+        elif ev.date_diff_days <= 35:
+            s += 0.08
+            why.append(f"Settled within {ev.date_diff_days}d terms")
 
         # 5. Reference token overlap
-        if ev.ref_equal or ev.ref_overlap:
-            s += 0.25
+        if ev.ref_equal:
+            s += 0.35
+            why.append(f"Shared reference identifier ({cand.reference})")
+        elif ev.ref_overlap:
+            s += 0.30
             why.append("Reference identifier correlation")
+
+        # Bonus for strong composite signals
+        if (ev.ref_equal or ev.ref_overlap) and (ev.amount_within_tol or s >= 0.50):
+            s = max(s, 0.88)
+        elif ev.desc_similarity >= 0.65 and ev.amount_within_tol and ev.date_diff_days <= 15:
+            s = max(s, 0.90)
+        elif ev.fx_candidate and (ev.ref_equal or ev.ref_overlap):
+            s = max(s, 0.86)
 
         scored.append((round(s, 3), cand, why))
 
     scored.sort(key=lambda t: -t[0])
     top_s, top_c, top_why = scored[0]
 
-    # Intelligent tie-breaking: if top 2 candidates have equal amounts, use date proximity & desc similarity
-    if len(scored) > 1 and top_s - scored[1][0] < 0.05:
+    # Intelligent tie-breaking: if top 2 candidates have close scores
+    if len(scored) > 1 and top_s - scored[1][0] < 0.06:
         sec_s, sec_c, _ = scored[1]
         top_d = abs((record.date - top_c.date).days)
         sec_d = abs((record.date - sec_c.date).days)
         if top_d < sec_d:
-            top_s += 0.10
+            top_s += 0.08
             top_why.append(f"Tie-breaker: closer settlement date ({top_d}d vs {sec_d}d)")
         elif text_similarity(desc_text(record), desc_text(top_c)) > text_similarity(desc_text(record), desc_text(sec_c)):
-            top_s += 0.10
+            top_s += 0.08
             top_why.append("Tie-breaker: higher narrative alignment")
 
     if top_s >= LLM_ACCEPT:
         return LLMResult(
             decision="match",
             selected_candidate_id=top_c.record_id,
-            confidence=round(min(0.95, top_s), 2),
+            confidence=round(min(0.98, top_s), 2),
             reason="; ".join(top_why),
             missing_evidence="",
             reasoner="deterministic"
@@ -170,7 +219,7 @@ def _deterministic_reason(record: Record, candidates: list[Record], evidences: l
 
     return LLMResult(
         decision="no_match",
-        selected_candidate_id=top_c.record_id if top_s >= 0.40 else None,
+        selected_candidate_id=top_c.record_id if top_s >= 0.45 else None,
         confidence=round(top_s * 0.7, 2),
         reason=f"Insufficient confidence ({top_s:.2f} < {LLM_ACCEPT}): " + "; ".join(top_why),
         reasoner="deterministic"

@@ -86,23 +86,34 @@ def norm_text(s: str) -> str:
 
 
 def extract_ref_tokens(text: str) -> set[str]:
-    """Pull candidate reference tokens: styled refs (INV-1042, PO-990) + bare digit runs."""
+    """Pull candidate reference tokens: styled refs (INV-1042, PO-990, EXP-2001, CN-9000), comma-separated refs, and digit runs."""
     if not text:
         return set()
     up = str(text).upper()
-    toks = set(re.findall(r"[A-Z]{2,4}-?\d{2,6}", up))
-    toks |= set(re.findall(r"\b\d{3,6}\b", up))
-    return {t.replace("-", "") for t in toks}
+    toks = set(re.findall(r"[A-Z]{2,6}-?\d{2,7}", up))
+    toks |= set(re.findall(r"[A-Z]{2,6}\s+\d{2,7}", up))
+    toks |= set(re.findall(r"\b\d{4,7}\b", up))
+    # Support comma/semicolon/space separated lists like INV-5049,INV-5050
+    for chunk in re.split(r"[,;/]+", up):
+        sub_toks = re.findall(r"[A-Z]{2,6}-?\d{2,7}", chunk.strip())
+        toks.update(sub_toks)
+    clean = set()
+    for t in toks:
+        c = re.sub(r"[\s\-]+", "", t).strip()
+        if c:
+            clean.add(c)
+    return clean
 
 
 def desc_text(rec: Record) -> str:
     """All free-text evidence on a record, used for similarity scoring."""
-    return f"{rec.description} {rec.counterparty} {rec.account}".strip()
+    return f"{rec.description} {rec.counterparty} {rec.account} {rec.reference}".strip()
 
 
 def amount_tolerance(amount: float) -> float:
-    """± max(2% of amount, $1.00) — the fuzzy amount tolerance."""
-    return max(0.02 * abs(amount), 1.0)
+    """Dynamic tolerance covering standard gateway fee rates (up to ~3.8% + $0.30 fixed fee or $2.00 min)."""
+    amt = abs(amount)
+    return max(0.038 * amt + 0.35, 2.0)
 
 
 # --------------------------------------------------------------------------
@@ -120,14 +131,20 @@ COLUMN_ALIASES = {
     ],
     "amount": [
         "amount", "net_amount", "gross_amount", "total", "value", "amt",
-        "balance", "payment_amount", "settlement_amount", "debit", "credit"
+        "balance", "payment_amount", "settlement_amount"
+    ],
+    "debit": [
+        "debit", "debit_amount", "dr", "payment", "withdrawal", "outflow", "paid_out"
+    ],
+    "credit": [
+        "credit", "credit_amount", "cr", "deposit", "inflow", "paid_in", "received"
     ],
     "currency": [
         "currency", "curr", "ccy", "currency_code"
     ],
     "reference": [
         "reference", "ref", "ref_num", "ref_no", "invoice_no", "inv_num",
-        "check_no", "cheque_no", "external_ref", "memo_ref", "reference_number"
+        "check_no", "cheque_no", "external_ref", "memo_ref", "reference_number", "invoice_id"
     ],
     "description": [
         "description", "desc", "memo", "narrative", "details",
@@ -162,10 +179,37 @@ def clean_amount(val: Any) -> float:
     if isinstance(val, (int, float)):
         return float(val)
     s = str(val).strip()
+    if not s:
+        return 0.0
     is_neg = False
     if s.startswith("(") and s.endswith(")"):
         is_neg = True
         s = s[1:-1].strip()
+    elif s.startswith("-"):
+        is_neg = True
+        s = s[1:].strip()
+    elif s.endswith("-"):
+        is_neg = True
+        s = s[:-1].strip()
+    elif s.endswith("CR") or s.endswith("cr"):
+        s = s[:-2].strip()
+    elif s.endswith("DR") or s.endswith("dr"):
+        is_neg = True
+        s = s[:-2].strip()
+
+    # Strip currency codes and symbols
+    s = re.sub(r"[A-Z]{3}|\$|€|£|¥|₹", "", s).strip()
+
+    # Handle European format: 1.234,56 -> 1234.56
+    if re.search(r"^\d{1,3}(\.\d{3})+,\d{2}$", s):
+        s = s.replace(".", "").replace(",", ".")
+    elif "," in s and "." in s and s.rfind(",") > s.rfind("."):
+        # e.g. 1.234,56
+        s = s.replace(".", "").replace(",", ".")
+    else:
+        # Standard US format: 1,234.56 -> 1234.56
+        s = s.replace(",", "")
+
     s = re.sub(r"[^\d.\-+]", "", s)
     try:
         amt = float(s)
@@ -177,6 +221,14 @@ def clean_amount(val: Any) -> float:
 def clean_date(val: Any) -> date:
     if isinstance(val, (date, datetime)):
         return val.date() if isinstance(val, datetime) else val
+    s = str(val).strip()
+    if not s or s.lower() in ("nan", "none", "nat"):
+        return date.today()
+    # Try direct isoformat first
+    try:
+        return date.fromisoformat(s[:10])
+    except Exception:
+        pass
     ts = pd.to_datetime(val, errors="coerce")
     if pd.isna(ts):
         import logging
@@ -190,6 +242,8 @@ def parse_records_from_dataframe(df: pd.DataFrame, source: str) -> list[Record]:
     id_col = _find_column(df, "record_id")
     date_col = _find_column(df, "date")
     amount_col = _find_column(df, "amount")
+    debit_col = _find_column(df, "debit")
+    credit_col = _find_column(df, "credit")
     curr_col = _find_column(df, "currency")
     ref_col = _find_column(df, "reference")
     desc_col = _find_column(df, "description")
@@ -202,7 +256,21 @@ def parse_records_from_dataframe(df: pd.DataFrame, source: str) -> list[Record]:
     for idx, row in enumerate(df.to_dict(orient="records")):
         rid = str(row[id_col]).strip() if id_col and pd.notna(row.get(id_col)) else f"{prefix}-{idx+1:03d}"
         d_val = clean_date(row[date_col]) if date_col and pd.notna(row.get(date_col)) else date.today()
-        amt_val = clean_amount(row[amount_col]) if amount_col and pd.notna(row.get(amount_col)) else 0.0
+
+        if amount_col and pd.notna(row.get(amount_col)) and str(row.get(amount_col)).strip() != "":
+            amt_val = clean_amount(row[amount_col])
+        elif debit_col or credit_col:
+            d_amt = clean_amount(row.get(debit_col)) if debit_col and pd.notna(row.get(debit_col)) else 0.0
+            c_amt = clean_amount(row.get(credit_col)) if credit_col and pd.notna(row.get(credit_col)) else 0.0
+            if c_amt != 0.0:
+                amt_val = abs(c_amt)
+            elif d_amt != 0.0:
+                amt_val = -abs(d_amt)
+            else:
+                amt_val = 0.0
+        else:
+            amt_val = 0.0
+
         curr_val = str(row[curr_col]).strip().upper() if curr_col and pd.notna(row.get(curr_col)) else "USD"
         ref_val = str(row[ref_col]).strip() if ref_col and pd.notna(row.get(ref_col)) else ""
         desc_val = str(row[desc_col]).strip() if desc_col and pd.notna(row.get(desc_col)) else ""

@@ -15,8 +15,9 @@ def compute_agent_metrics(agent_state, recon_state, metrics: dict, cash: dict, p
 
     steps = agent_state.step_count
     # coverage already includes exceptions — goal complete iff no missing
-    covered = matched + exceptions
-    goal_complete = 1.0 if (total > 0 and covered == total) else 0.0
+    covered_ids = recon_state.matched_ids() | recon_state.exception_ids
+    covered = len(covered_ids)
+    goal_complete = 1.0 if (total > 0 and covered >= total) else 0.0
 
     # Exception recall not applicable without gt, but we report rate
     valid_actions = sum(1 for a in agent_state.actions if a.result and a.result.get("success"))
@@ -38,7 +39,7 @@ def compute_agent_metrics(agent_state, recon_state, metrics: dict, cash: dict, p
     approval_rate = (pending + approved) / max(1, len(agent_state.pending_approvals)) if agent_state.pending_approvals else 0.0
 
     # Silent-drop rate — should be 0
-    missing = total - covered if total else 0
+    missing = max(0, total - covered) if total else 0
     silent_drop_rate = missing / total if total else 0.0
 
     # Efficiency: steps per record
@@ -49,7 +50,7 @@ def compute_agent_metrics(agent_state, recon_state, metrics: dict, cash: dict, p
         "agent_status": agent_state.status,
         "agent_steps": steps,
         "agent_goal_complete_rate": goal_complete,
-        "agent_coverage": round((matched + exceptions) / total, 4) if total else 1.0,
+        "agent_coverage": round(min(1.0, covered / total), 4) if total else 1.0,
         "agent_steps_per_record": round(steps_per_record, 3),
         "agent_total_cost": round(total_cost, 2),
         "agent_tool_calls": total_tool_calls,

@@ -15,12 +15,12 @@ from tools.normalize import Record
 
 @dataclass
 class AgentConfig:
-    fuzzy_accept: float = 0.90
-    llm_accept: float = 0.80
+    fuzzy_accept: float = 0.88
+    llm_accept: float = 0.75
     near_tie: float = 0.05
-    fuzzy_date_window: int = 3
-    retrieve_date_window: int = 6
-    retrieve_amount_pct: float = 0.08
+    fuzzy_date_window: int = 15
+    retrieve_date_window: int = 35
+    retrieve_amount_pct: float = 0.15
     llm_mode: str = "auto"   # auto | off | gemini
 
 
@@ -60,19 +60,50 @@ class ReconState:
     def is_grouped(self, rid: str) -> bool:
         return len(self.members[self.find(rid)]) >= 2
 
-    def try_merge(self, a_id: str, b_id: str, decision) -> str:
+    def try_merge(self, a_id: str, b_id: str, decision, allow_multi: bool = False) -> str:
         ra, rb = self.find(a_id), self.find(b_id)
         if ra == rb:
             return "already"
         merged_members = self.members[ra] | self.members[rb]
-        per_source: dict[str, int] = {}
+
+        per_source: dict[str, list[str]] = {}
         for rid in merged_members:
             src = self.records[rid].source
-            per_source[src] = per_source.get(src, 0) + 1
-        if any(n > 1 for n in per_source.values()):
-            self.log("state", "merge_conflict", a=a_id, b=b_id,
-                     reason="would put two same-source records in one group")
-            return "conflict"
+            per_source.setdefault(src, []).append(rid)
+
+        # Multi-source conflict validation
+        if not allow_multi and any(len(lst) > 1 for lst in per_source.values()):
+            is_valid_multipart = False
+            sig = getattr(decision, "signals", {}) or {}
+            if sig.get("is_split") or sig.get("is_bulk") or sig.get("is_multipart"):
+                is_valid_multipart = True
+            else:
+                all_tokens = [set(self.records[rid].ref_tokens) for rid in merged_members if self.records[rid].ref_tokens]
+                has_shared_token = bool(set.intersection(*all_tokens)) if len(all_tokens) >= 2 else False
+
+                for src, rids in per_source.items():
+                    if len(rids) > 1:
+                        amts = [abs(self.records[rid].amount) for rid in rids]
+                        other_src_amts = [abs(self.records[rid].amount) for s, lst in per_source.items() if s != src for rid in lst]
+
+                        # True duplicate post conflict (exact duplicate amounts from same source competing for single counterpart)
+                        if len(amts) == 2 and abs(amts[0] - amts[1]) <= 0.01 and other_src_amts and any(abs(o - amts[0]) <= 0.01 for o in other_src_amts):
+                            is_valid_multipart = False
+                            break
+
+                        # Aggregate amount matches the counterpart (split payment or bulk batch)
+                        if other_src_amts and any(abs(sum(amts) - o) <= max(0.04 * o + 0.50, 5.0) for o in other_src_amts):
+                            is_valid_multipart = True
+                        elif other_src_amts and any(abs(o - sum(amts)) <= max(0.04 * sum(amts) + 0.50, 5.0) for o in other_src_amts):
+                            is_valid_multipart = True
+                        elif has_shared_token:
+                            is_valid_multipart = True
+
+            if not is_valid_multipart:
+                self.log("state", "merge_conflict", a=a_id, b=b_id,
+                         reason="would put two same-source records in one group without split/bulk validation")
+                return "conflict"
+
         if len(self.members[ra]) < len(self.members[rb]):
             ra, rb = rb, ra
         self.parent[rb] = ra

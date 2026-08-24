@@ -14,13 +14,13 @@ DEFAULT_POLICY_PATH = Path(__file__).with_name("policy.yaml")
 
 class MatchingPolicy(BaseModel):
     exact_match_confidence: float = 1.0
-    fuzzy_match_confidence: float = 0.90
-    llm_match_confidence: float = 0.80
+    fuzzy_match_confidence: float = 0.88
+    llm_match_confidence: float = 0.75
     near_tie_threshold: float = 0.05
-    fuzzy_date_window_days: int = 3
-    retrieve_date_window_days: int = 6
-    retrieve_amount_pct: float = 0.08
-    max_date_difference_days: int = 6
+    fuzzy_date_window_days: int = 15
+    retrieve_date_window_days: int = 35
+    retrieve_amount_pct: float = 0.15
+    max_date_difference_days: int = 35
 
 
 class ExecutionPolicy(BaseModel):

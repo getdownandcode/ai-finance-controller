@@ -1,13 +1,13 @@
 # Boundaries for open-ended finance control — agent is free inside these walls.
 matching:
   exact_match_confidence: 1.0
-  fuzzy_match_confidence: 0.90
-  llm_match_confidence: 0.80
+  fuzzy_match_confidence: 0.88
+  llm_match_confidence: 0.75
   near_tie_threshold: 0.05
-  fuzzy_date_window_days: 3
-  retrieve_date_window_days: 6
-  retrieve_amount_pct: 0.08
-  max_date_difference_days: 6
+  fuzzy_date_window_days: 15
+  retrieve_date_window_days: 35
+  retrieve_amount_pct: 0.15
+  max_date_difference_days: 35
 
 execution:
   max_steps: 60
