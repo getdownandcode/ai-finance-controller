@@ -1243,6 +1243,116 @@ export default function App() {
                 </div>
               </div>
             </div>
+
+            {/* Forward Cash Runway Forecaster (30 / 60 / 90 Days) */}
+            {results.cash_position?.forward_cash_forecast && (
+              <div className={cx(surface, "p-5 sm:p-6")}>
+                <div className="flex flex-wrap items-start justify-between gap-3 border-b border-border pb-4">
+                  <div className="flex items-start gap-3">
+                    <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-chart-1/15 text-chart-1 ring-1 ring-chart-1/30">
+                      <TrendingUp className="h-4 w-4" />
+                    </div>
+                    <div>
+                      <h3 className="text-sm font-bold text-foreground">30 / 60 / 90-Day Forward Cash Runway Forecaster</h3>
+                      <p className="mt-0.5 text-xs text-muted-foreground">Reconciled liquidity + open receivables (AR) & payables (AP) aging model</p>
+                    </div>
+                  </div>
+                  <div className="flex flex-wrap items-center gap-2">
+                    <span className="rounded-full border border-secondary/30 bg-secondary/15 px-3 py-1 text-xs font-semibold text-secondary">
+                      Runway: {results.cash_position.forward_cash_forecast.runway_status}
+                    </span>
+                    <span className={cx(
+                      "rounded-full border px-3 py-1 text-xs font-semibold",
+                      results.cash_position.forward_cash_forecast.net_monthly_delta >= 0
+                        ? "border-chart-1/30 bg-chart-1/15 text-chart-1"
+                        : "border-destructive/30 bg-destructive/15 text-destructive"
+                    )}>
+                      {results.cash_position.forward_cash_forecast.net_monthly_delta >= 0 ? "+" : ""}
+                      {formatMoney(results.cash_position.forward_cash_forecast.net_monthly_delta)} / mo
+                    </span>
+                  </div>
+                </div>
+
+                {/* Trajectory Timeline Cards Grid */}
+                <div className="mt-5 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+                  {results.cash_position.forward_cash_forecast.timeline.map((pt, i) => (
+                    <div key={i} className="group relative overflow-hidden rounded-xl border border-border bg-muted/40 p-4 transition-all duration-200 hover:border-primary/40 hover:bg-card">
+                      <div className="flex items-center justify-between text-xs text-muted-foreground">
+                        <span className="font-semibold uppercase tracking-wider">{pt.label}</span>
+                        <span className="rounded bg-muted px-1.5 py-0.5 font-mono text-[10px]">T+{pt.days}d</span>
+                      </div>
+                      <p className="mt-3 text-xl font-bold tracking-tight tabular-nums text-foreground">{formatMoney(pt.cash)}</p>
+                      <div className="mt-3 space-y-1.5 border-t border-border/60 pt-2.5 text-xs">
+                        <div className="flex justify-between text-muted-foreground">
+                          <span>Expected Inflows</span>
+                          <span className="font-semibold tabular-nums text-secondary">+{formatMoney(pt.inflows)}</span>
+                        </div>
+                        <div className="flex justify-between text-muted-foreground">
+                          <span>Expected Outflows</span>
+                          <span className="font-semibold tabular-nums text-destructive">-{formatMoney(pt.outflows)}</span>
+                        </div>
+                        <div className="flex justify-between font-bold">
+                          <span className="text-muted-foreground">Net Delta</span>
+                          <span className={cx("tabular-nums", pt.net >= 0 ? "text-secondary" : "text-destructive")}>
+                            {pt.net >= 0 ? `+${formatMoney(pt.net)}` : formatMoney(pt.net)}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+
+                {/* Aging Pipeline Breakdown */}
+                <div className="mt-5 grid grid-cols-1 gap-4 sm:grid-cols-2">
+                  <div className="rounded-xl border border-border bg-card p-4">
+                    <div className="flex items-center justify-between border-b border-border pb-2.5">
+                      <span className="text-xs font-bold text-foreground">Receivables Pipeline (AR)</span>
+                      <span className="font-mono text-xs font-bold text-secondary">
+                        {formatMoney(results.cash_position.forward_cash_forecast.total_receivables_pipeline)}
+                      </span>
+                    </div>
+                    <div className="mt-3 grid grid-cols-3 gap-2 text-center text-xs">
+                      <div className="rounded-lg bg-muted/60 p-2">
+                        <p className="text-[10px] text-muted-foreground uppercase">0-30 Days</p>
+                        <p className="mt-1 font-bold tabular-nums text-foreground">{formatMoney(results.cash_position.forward_cash_forecast.receivables_aging.d0_30)}</p>
+                      </div>
+                      <div className="rounded-lg bg-muted/60 p-2">
+                        <p className="text-[10px] text-muted-foreground uppercase">31-60 Days</p>
+                        <p className="mt-1 font-bold tabular-nums text-foreground">{formatMoney(results.cash_position.forward_cash_forecast.receivables_aging.d31_60)}</p>
+                      </div>
+                      <div className="rounded-lg bg-muted/60 p-2">
+                        <p className="text-[10px] text-muted-foreground uppercase">61-90+ Days</p>
+                        <p className="mt-1 font-bold tabular-nums text-foreground">{formatMoney(results.cash_position.forward_cash_forecast.receivables_aging.d61_90 + results.cash_position.forward_cash_forecast.receivables_aging.d90_plus)}</p>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="rounded-xl border border-border bg-card p-4">
+                    <div className="flex items-center justify-between border-b border-border pb-2.5">
+                      <span className="text-xs font-bold text-foreground">Payables Pipeline (AP)</span>
+                      <span className="font-mono text-xs font-bold text-destructive">
+                        {formatMoney(results.cash_position.forward_cash_forecast.total_payables_pipeline)}
+                      </span>
+                    </div>
+                    <div className="mt-3 grid grid-cols-3 gap-2 text-center text-xs">
+                      <div className="rounded-lg bg-muted/60 p-2">
+                        <p className="text-[10px] text-muted-foreground uppercase">0-30 Days</p>
+                        <p className="mt-1 font-bold tabular-nums text-foreground">{formatMoney(results.cash_position.forward_cash_forecast.payables_aging.d0_30)}</p>
+                      </div>
+                      <div className="rounded-lg bg-muted/60 p-2">
+                        <p className="text-[10px] text-muted-foreground uppercase">31-60 Days</p>
+                        <p className="mt-1 font-bold tabular-nums text-foreground">{formatMoney(results.cash_position.forward_cash_forecast.payables_aging.d31_60)}</p>
+                      </div>
+                      <div className="rounded-lg bg-muted/60 p-2">
+                        <p className="text-[10px] text-muted-foreground uppercase">61-90+ Days</p>
+                        <p className="mt-1 font-bold tabular-nums text-foreground">{formatMoney(results.cash_position.forward_cash_forecast.payables_aging.d61_90 + results.cash_position.forward_cash_forecast.payables_aging.d90_plus)}</p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+
           </div>
         )}
 
