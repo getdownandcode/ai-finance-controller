@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Synthetic data generator with built-in ground truth.
+"""Synthetic data generator with built-in ground truth (Indian Fintech / Razorpay Edition).
 
 Distribution (29 matched groups + 3 orphan singletons = 80 records):
   clean exact-match groups .... 18  (~60% of records)
@@ -7,7 +7,8 @@ Distribution (29 matched groups + 3 orphan singletons = 80 records):
   ambiguous groups ............  3  (~10%)  -> fee-netting, nickname, hard duplicate
   true orphans ................  3  (~5%)   -> unidentified wire, double-post, open invoice
 
-Ground truth is written at generation time, so accuracy is never self-reported.
+Currency: INR (₹)
+Ecosystem: Razorpay Settlements, Smart Collect, Route, UPI, IMPS, NEFT, RTGS, TDS, GST.
 """
 from __future__ import annotations
 
@@ -19,11 +20,16 @@ from pathlib import Path
 
 import pandas as pd
 
-VENDORS = ["Acme Corporation", "Northwind Traders", "Globex Industries",
-           "Initech Systems", "Umbrella Logistics", "Stark Fabrication",
-           "Wayne Components", "Soylent Foods"]
-BANK_OPENING = 42_500.00
-LEDGER_OPENING = 42_500.00
+VENDORS = [
+    "Tata Consultancy Services Ltd", "Infosys Technologies Ltd",
+    "Reliance Jio Infocomm", "Zomato Media Pvt Ltd",
+    "Swiggy Bundl Technologies", "Flipkart Internet Pvt Ltd",
+    "Razorpay Software Pvt Ltd", "Airtel Telecommunications",
+    "Blue Dart Express", "Zepto Quick Commerce"
+]
+
+BANK_OPENING = 25_00_000.00  # ₹25 Lakhs
+LEDGER_OPENING = 25_00_000.00
 BASE = date(2026, 2, 1)
 
 
@@ -62,7 +68,7 @@ class Builder:
     def add_bank(self, d: date, amount: float, ref: str, desc: str) -> str:
         rid = f"B-{len(self.bank)+1:03d}"
         self.bank.append(dict(bank_id=rid, date=d.isoformat(), amount=money(amount),
-                              currency="USD", reference=ref, description=desc,
+                              currency="INR", reference=ref, description=desc,
                               balance_after=""))
         return rid
 
@@ -70,13 +76,13 @@ class Builder:
                    account: str = "accounts_receivable") -> str:
         rid = f"L-{len(self.ledger)+1:03d}"
         self.ledger.append(dict(ledger_id=rid, date=d.isoformat(), amount=money(amount),
-                                currency="USD", account=account, reference=ref,
+                                currency="INR", account=account, reference=ref,
                                 description=desc))
         return rid
 
     def add_invoice(self, d: date, amount: float, vendor: str, status: str, ref: str) -> str:
         self.invoices.append(dict(invoice_id=ref, invoice_date=d.isoformat(),
-                                  amount=money(amount), currency="USD", vendor=vendor,
+                                  amount=money(amount), currency="INR", vendor=vendor,
                                   status=status, reference=ref))
         return ref
 
@@ -87,13 +93,13 @@ class Builder:
     # -- group builders -------------------------------------------------------
     def clean_triple(self):
         gid, rng = self.new_group(), self.rng
-        inv, amt = self.next_inv(), money(rng.uniform(400, 4800))
+        inv, amt = self.next_inv(), money(rng.uniform(25000, 240000))
         vendor = rng.choice(VENDORS)
         off = rng.randint(0, 6)
-        b = self.add_bank(self.d(off), amt, inv, f"Stripe payout {inv}")
-        l = self.add_ledger(self.d(off), amt, inv, f"Invoice {inv.split('-')[1]} settlement")
+        b = self.add_bank(self.d(off), amt, inv, f"RAZORPAY PAYOUT {inv} SETTLEMENT")
+        l = self.add_ledger(self.d(off), amt, inv, f"Invoice {inv.split('-')[1]} settlement via Razorpay")
         i = self.add_invoice(self.d(off - 1), amt, vendor, "paid", inv)
-        note = f"Clean exact-match settlement of {inv}"
+        note = f"Clean exact-match settlement of {inv} (Razorpay payout)"
         self.gt_row(gid, b, "bank", "matched", note)
         self.gt_row(gid, l, "ledger", "matched", note)
         self.gt_row(gid, i, "invoice", "matched", note)
@@ -103,89 +109,90 @@ class Builder:
 
     def clean_pair_receipt(self):
         gid, rng = self.new_group(), self.rng
-        inv, amt = self.next_inv(), money(rng.uniform(400, 4800))
+        inv, amt = self.next_inv(), money(rng.uniform(18000, 195000))
         off = rng.randint(0, 6)
-        b = self.add_bank(self.d(off), amt, inv, f"WIRE CREDIT {inv} CUSTOMER PAYMENT")
-        l = self.add_ledger(self.d(off), amt, inv, f"Invoice {inv.split('-')[1]} settlement (wire)")
-        note = f"Wire receipt of {inv} booked directly (no invoice row in batch)"
+        b = self.add_bank(self.d(off), amt, inv, f"NEFT CR-HDFCN00{rng.randint(1000,9999)}-{inv}-CLIENT RECEIPT")
+        l = self.add_ledger(self.d(off), amt, inv, f"Invoice {inv.split('-')[1]} settlement (NEFT receipt)")
+        note = f"NEFT receipt of {inv} booked directly in HDFC / ICICI feed"
         self.gt_row(gid, b, "bank", "matched", note)
         self.gt_row(gid, l, "ledger", "matched", note)
 
     def payment_pair(self):
         gid, rng = self.new_group(), self.rng
-        ref, amt = self.next_exp(), -money(rng.uniform(300, 2500))
+        ref, amt = self.next_exp(), -money(rng.uniform(12000, 150000))
         vendor = rng.choice(VENDORS)
         off = rng.randint(0, 7)
-        b = self.add_bank(self.d(off), amt, ref, f"ACH DEBIT {vendor.upper()} SUPPLIES")
+        b = self.add_bank(self.d(off), amt, ref, f"RTGS/IMPS DR TO {vendor.upper()} VENDOR PAY")
         l = self.add_ledger(self.d(off), amt, ref, f"Vendor payment {vendor}",
                             account="accounts_payable")
-        note = f"Vendor payment {ref}"
+        note = f"Vendor payment {ref} to {vendor}"
         self.gt_row(gid, b, "bank", "matched", note)
         self.gt_row(gid, l, "ledger", "matched", note)
 
     def fuzzy_triple(self):
         gid, rng = self.new_group(), self.rng
-        inv, amt = self.next_inv(), money(rng.uniform(500, 4200))
-        vendor, fee = rng.choice(VENDORS), rng.uniform(0.008, 0.018)
+        inv, amt = self.next_inv(), money(rng.uniform(35000, 280000))
+        vendor, fee = rng.choice(VENDORS), rng.uniform(0.008, 0.0236)
         off = rng.randint(0, 5)
         i = self.add_invoice(self.d(off - 1), amt, vendor, "paid", inv)
-        l = self.add_ledger(self.d(off), amt, inv, f"Settlement of invoice {inv.split('-')[1]}")
+        l = self.add_ledger(self.d(off), amt, inv, f"Settlement of GST invoice {inv.split('-')[1]}")
         b = self.add_bank(self.d(off + rng.randint(2, 3)), amt * (1 - fee), inv,
-                          f"  STRIPE PAYOUT {inv} net of fees ")
-        note = f"Fuzzy: bank nets a {fee*100:.1f}% fee, +2/3d lag, reworded descriptions ({inv})"
+                          f"  RAZORPAY ROUTE SETTLEMENT {inv} NET OF MDR  ")
+        note = f"Fuzzy: bank nets a {fee*100:.2f}% MDR/TDS fee, +2/3d lag, reworded descriptions ({inv})"
         for rid, src in ((b, "bank"), (l, "ledger"), (i, "invoice")):
             self.gt_row(gid, rid, src, "matched", note)
 
     def fuzzy_pair(self):
         gid, rng = self.new_group(), self.rng
-        inv, amt = self.next_inv(), money(rng.uniform(500, 4200))
-        fee = rng.uniform(0.008, 0.018)
+        inv, amt = self.next_inv(), money(rng.uniform(30000, 220000))
+        fee = rng.uniform(0.008, 0.020)
         off = rng.randint(0, 6)
-        l = self.add_ledger(self.d(off), amt, inv, f"Invoice {inv.split('-')[1]} settlement")
+        l = self.add_ledger(self.d(off), amt, inv, f"Invoice {inv.split('-')[1]} client receipt")
         b = self.add_bank(self.d(off + rng.randint(1, 3)), amt * (1 - fee), inv,
-                          f"stripe payout {inv.lower()} (net)")
+                          f"razorpay payout {inv.lower()} (net of mdr)")
         note = f"Fuzzy pair: fee-netted bank line for {inv}"
         self.gt_row(gid, b, "bank", "matched", note)
         self.gt_row(gid, l, "ledger", "matched", note)
 
     def ambiguous_fee3(self):
-        """Bank line nets a 2.9% + $0.30 card fee and carries no reference."""
+        """Bank line nets standard Razorpay 2.0% + 18% GST (2.36% MDR) and carries no reference."""
         gid, rng = self.new_group(), self.rng
-        inv, amt = self.next_inv(), money(rng.uniform(2200, 3600))
+        inv, amt = self.next_inv(), money(rng.uniform(85000, 180000))
         vendor = rng.choice(VENDORS)
         off = rng.randint(0, 5)
         i = self.add_invoice(self.d(off - 1), amt, vendor, "paid", inv)
         l = self.add_ledger(self.d(off), amt, inv, f"Invoice {inv.split('-')[1]} settlement")
-        b = self.add_bank(self.d(off + 3), amt * 0.971 - 0.30, "",
-                          f"{vendor.upper()} NET SETTLEMENT")
-        note = f"Ambiguous: bank amount nets 2.9%+$0.30 card fee vs {inv}; needs reasoning"
+        # 2% MDR + 18% GST on MDR = 2.36%
+        b = self.add_bank(self.d(off + 3), amt * (1 - 0.0236), "",
+                          f"{vendor.upper()} RAZORPAY SMART COLLECT NET")
+        note = f"Ambiguous: bank amount nets 2.36% Razorpay MDR+GST vs {inv}; needs reasoning"
         for rid, src in ((b, "bank"), (l, "ledger"), (i, "invoice")):
             self.gt_row(gid, rid, src, "matched", note)
 
     def ambiguous_nickname(self):
-        """Bank uses a vendor nickname and has no reference; amount is exact."""
+        """Bank uses UPI merchant handle / vendor nickname and has no reference; amount is exact."""
         gid, rng = self.new_group(), self.rng
-        inv, amt = self.next_inv(), money(rng.uniform(500, 4200))
+        inv, amt = self.next_inv(), money(rng.uniform(25000, 190000))
         vendor = rng.choice(VENDORS)
         nick = vendor.split()[0].upper()
         off = rng.randint(0, 6)
         i = self.add_invoice(self.d(off - 1), amt, vendor, "paid", inv)
         l = self.add_ledger(self.d(off), amt, inv, f"Invoice {inv.split('-')[1]} settlement")
-        b = self.add_bank(self.d(off + 2), amt, "", f"{nick} CORP CARD SETTLEMENT")
-        note = f"Ambiguous: nickname description, missing reference ({inv}); needs reasoning"
+        b = self.add_bank(self.d(off + 2), amt, "", f"UPI/409823901/{nick} CORP VIRTUAL ACCT")
+        note = f"Ambiguous: UPI handle description, missing reference ({inv}); needs reasoning"
         for rid, src in ((b, "bank"), (l, "ledger"), (i, "invoice")):
             self.gt_row(gid, rid, src, "matched", note)
 
     def ambiguous_hard_duplicate(self):
         """Two twin invoices, same vendor/amount; bank line has no distinguishing signal."""
         gid, rng = self.new_group(), self.rng
-        vendor, amt = "Northwind Traders", money(rng.uniform(2400, 2800))
+        vendor, amt = "Tata Consultancy Services Ltd", money(rng.uniform(145000, 185000))
         off = rng.randint(0, 4)
         ia, ib = self.next_inv(), self.next_inv()
         i_a = self.add_invoice(self.d(off), amt, vendor, "paid", ia)
         i_b = self.add_invoice(self.d(off + 1), amt, vendor, "open", ib)
         l = self.add_ledger(self.d(off), amt, ia, f"Invoice {ia.split('-')[1]} settlement")
-        b = self.add_bank(self.d(off + 2), amt, "", "NORTHWIND TRADERS SETTLEMENT")
+        b = self.add_bank(self.d(off + 2), amt, "", "TATA CONSULTANCY SERVICES SETTLEMENT")
         note = f"Ambiguous hard case: bank line settles {ia} but is indistinguishable from {ib}"
         for rid, src in ((b, "bank"), (l, "ledger"), (i_a, "invoice")):
             self.gt_row(gid, rid, src, "matched", note)
@@ -195,14 +202,14 @@ class Builder:
 
     def orphan_bank(self):
         gid = self.new_group()
-        b = self.add_bank(self.d(4), 1245.00, "", "MISC CREDIT - UNIDENTIFIED WIRE")
-        self.gt_row(gid, b, "bank", "orphan", "True orphan: unidentified wire, no counterpart")
+        b = self.add_bank(self.d(4), 54000.00, "", "MISC CR - UNIDENTIFIED IMPS INFLOW REF 9382104")
+        self.gt_row(gid, b, "bank", "orphan", "True orphan: unidentified IMPS transfer, no counterpart")
 
     def orphan_duplicate_ledger(self):
         gid = self.new_group()
         t = self.first_clean_triple
         dup = self.add_ledger(t["date"], t["amount"], t["ref"],
-                              f"Invoice {t['num']} settlement (duplicate post)")
+                              f"Invoice {t['num']} settlement (duplicate post in Tally/ERP)")
         self.gt_row(gid, dup, "ledger", "orphan",
                     f"Double-posting of {t['ledger_id']}; must not be force-matched")
 
@@ -263,7 +270,7 @@ def generate(seed: int = 42, data_dir: str = "data") -> dict:
 
 
 if __name__ == "__main__":
-    ap = argparse.ArgumentParser(description="Generate synthetic reconciliation batch")
+    ap = argparse.ArgumentParser(description="Generate synthetic reconciliation batch (Indian Fintech / Razorpay Edition)")
     ap.add_argument("--seed", type=int, default=42)
     ap.add_argument("--data-dir", default="data")
     args = ap.parse_args()

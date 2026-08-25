@@ -1,31 +1,31 @@
 ledger_id,date,amount,currency,account,reference,description
-L-001,2026-02-06,3213.48,USD,accounts_receivable,INV-1001,Invoice 1001 settlement
-L-002,2026-02-02,1610.13,USD,accounts_receivable,INV-1002,Invoice 1002 settlement
-L-003,2026-02-05,3640.47,USD,accounts_receivable,INV-1003,Invoice 1003 settlement
-L-004,2026-02-01,2256.46,USD,accounts_receivable,INV-1004,Invoice 1004 settlement
-L-005,2026-02-05,1362.01,USD,accounts_receivable,INV-1005,Invoice 1005 settlement
-L-006,2026-02-02,1274.89,USD,accounts_receivable,INV-1006,Invoice 1006 settlement
-L-007,2026-02-07,2376.52,USD,accounts_receivable,INV-1007,Invoice 1007 settlement
-L-008,2026-02-06,4224.92,USD,accounts_receivable,INV-1008,Invoice 1008 settlement
-L-009,2026-02-02,2259.5,USD,accounts_receivable,INV-1009,Invoice 1009 settlement
-L-010,2026-02-01,1347.38,USD,accounts_receivable,INV-1010,Invoice 1010 settlement
-L-011,2026-02-03,808.08,USD,accounts_receivable,INV-1011,Invoice 1011 settlement
-L-012,2026-02-05,4128.98,USD,accounts_receivable,INV-1012,Invoice 1012 settlement (wire)
-L-013,2026-02-01,1563.89,USD,accounts_receivable,INV-1013,Invoice 1013 settlement (wire)
-L-014,2026-02-05,3610.82,USD,accounts_receivable,INV-1014,Invoice 1014 settlement (wire)
-L-015,2026-02-04,949.24,USD,accounts_receivable,INV-1015,Invoice 1015 settlement (wire)
-L-016,2026-02-06,-473.36,USD,accounts_payable,EXP-2001,Vendor payment Umbrella Logistics
-L-017,2026-02-01,-1570.17,USD,accounts_payable,EXP-2002,Vendor payment Northwind Traders
-L-018,2026-02-02,-1754.78,USD,accounts_payable,EXP-2003,Vendor payment Umbrella Logistics
-L-019,2026-02-04,3664.68,USD,accounts_receivable,INV-1016,Settlement of invoice 1016
-L-020,2026-02-03,1101.82,USD,accounts_receivable,INV-1017,Settlement of invoice 1017
-L-021,2026-02-02,2753.78,USD,accounts_receivable,INV-1018,Settlement of invoice 1018
-L-022,2026-02-06,2210.36,USD,accounts_receivable,INV-1019,Settlement of invoice 1019
-L-023,2026-02-01,3033.07,USD,accounts_receivable,INV-1020,Settlement of invoice 1020
-L-024,2026-02-05,1984.31,USD,accounts_receivable,INV-1021,Invoice 1021 settlement
-L-025,2026-02-04,1664.31,USD,accounts_receivable,INV-1022,Invoice 1022 settlement
-L-026,2026-02-02,2197.75,USD,accounts_receivable,INV-1023,Invoice 1023 settlement
-L-027,2026-02-06,2985.92,USD,accounts_receivable,INV-1024,Invoice 1024 settlement
-L-028,2026-02-03,2662.97,USD,accounts_receivable,INV-1025,Invoice 1025 settlement
-L-029,2026-02-02,2487.73,USD,accounts_receivable,INV-1026,Invoice 1026 settlement
-L-030,2026-02-06,3213.48,USD,accounts_receivable,INV-1001,Invoice 1001 settlement (duplicate post)
+L-001,2026-02-06,162476.76,INR,accounts_receivable,INV-1001,Invoice 1001 settlement via Razorpay
+L-002,2026-02-02,84131.3,INR,accounts_receivable,INV-1002,Invoice 1002 settlement via Razorpay
+L-003,2026-02-01,183341.31,INR,accounts_receivable,INV-1003,Invoice 1003 settlement via Razorpay
+L-004,2026-02-01,151955.89,INR,accounts_receivable,INV-1004,Invoice 1004 settlement via Razorpay
+L-005,2026-02-05,45144.48,INR,accounts_receivable,INV-1005,Invoice 1005 settlement via Razorpay
+L-006,2026-02-02,154434.03,INR,accounts_receivable,INV-1006,Invoice 1006 settlement via Razorpay
+L-007,2026-02-04,178944.22,INR,accounts_receivable,INV-1007,Invoice 1007 settlement via Razorpay
+L-008,2026-02-03,72394.73,INR,accounts_receivable,INV-1008,Invoice 1008 settlement via Razorpay
+L-009,2026-02-07,199027.55,INR,accounts_receivable,INV-1009,Invoice 1009 settlement via Razorpay
+L-010,2026-02-03,198251.14,INR,accounts_receivable,INV-1010,Invoice 1010 settlement via Razorpay
+L-011,2026-02-07,84742.34,INR,accounts_receivable,INV-1011,Invoice 1011 settlement via Razorpay
+L-012,2026-02-01,77577.23,INR,accounts_receivable,INV-1012,Invoice 1012 settlement (NEFT receipt)
+L-013,2026-02-07,35118.8,INR,accounts_receivable,INV-1013,Invoice 1013 settlement (NEFT receipt)
+L-014,2026-02-07,124859.51,INR,accounts_receivable,INV-1014,Invoice 1014 settlement (NEFT receipt)
+L-015,2026-02-05,147162.53,INR,accounts_receivable,INV-1015,Invoice 1015 settlement (NEFT receipt)
+L-016,2026-02-02,-146289.98,INR,accounts_payable,EXP-2001,Vendor payment Razorpay Software Pvt Ltd
+L-017,2026-02-06,-88181.61,INR,accounts_payable,EXP-2002,Vendor payment Zepto Quick Commerce
+L-018,2026-02-01,-91674.6,INR,accounts_payable,EXP-2003,Vendor payment Infosys Technologies Ltd
+L-019,2026-02-02,197009.51,INR,accounts_receivable,INV-1016,Settlement of GST invoice 1016
+L-020,2026-02-03,128130.93,INR,accounts_receivable,INV-1017,Settlement of GST invoice 1017
+L-021,2026-02-06,125694.34,INR,accounts_receivable,INV-1018,Settlement of GST invoice 1018
+L-022,2026-02-02,184237.1,INR,accounts_receivable,INV-1019,Settlement of GST invoice 1019
+L-023,2026-02-06,148253.75,INR,accounts_receivable,INV-1020,Settlement of GST invoice 1020
+L-024,2026-02-07,160076.71,INR,accounts_receivable,INV-1021,Invoice 1021 client receipt
+L-025,2026-02-03,73519.13,INR,accounts_receivable,INV-1022,Invoice 1022 client receipt
+L-026,2026-02-05,80870.77,INR,accounts_receivable,INV-1023,Invoice 1023 client receipt
+L-027,2026-02-04,114894.4,INR,accounts_receivable,INV-1024,Invoice 1024 settlement
+L-028,2026-02-02,170972.72,INR,accounts_receivable,INV-1025,Invoice 1025 settlement
+L-029,2026-02-02,155595.21,INR,accounts_receivable,INV-1026,Invoice 1026 settlement
+L-030,2026-02-06,162476.76,INR,accounts_receivable,INV-1001,Invoice 1001 settlement (duplicate post in Tally/ERP)

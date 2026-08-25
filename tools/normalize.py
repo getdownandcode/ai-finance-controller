@@ -36,7 +36,7 @@ class Record(BaseModel):
     source: str                     # "bank" | "ledger" | "invoice"
     date: date
     amount: float
-    currency: str = "USD"
+    currency: str = "INR"
     reference: str = ""
     description: str = ""
     counterparty: str = ""          # vendor / customer
@@ -86,7 +86,7 @@ def norm_text(s: str) -> str:
 
 
 def extract_ref_tokens(text: str) -> set[str]:
-    """Pull candidate reference tokens: styled refs (INV-1042, PO-990, EXP-2001, CN-9000), comma-separated refs, and digit runs."""
+    """Pull candidate reference tokens: styled refs (INV-1042, PO-990, EXP-2001, RZP-9000, GSTIN), comma-separated refs, and digit runs."""
     if not text:
         return set()
     up = str(text).upper()
@@ -111,9 +111,9 @@ def desc_text(rec: Record) -> str:
 
 
 def amount_tolerance(amount: float) -> float:
-    """Dynamic tolerance covering standard gateway fee rates (up to ~3.8% + $0.30 fixed fee or $2.00 min)."""
+    """Dynamic tolerance covering standard gateway fee rates (up to ~3.8% + ₹25 fixed fee or ₹100 min)."""
     amt = abs(amount)
-    return max(0.038 * amt + 0.35, 2.0)
+    return max(0.038 * amt + 25.0, 100.0)
 
 
 # --------------------------------------------------------------------------
@@ -123,40 +123,41 @@ def amount_tolerance(amount: float) -> float:
 COLUMN_ALIASES = {
     "record_id": [
         "record_id", "id", "bank_id", "ledger_id", "invoice_id",
-        "transaction_id", "trans_id", "tx_id", "entry_id", "ref_id", "document_id"
+        "transaction_id", "trans_id", "tx_id", "entry_id", "ref_id", "document_id", "utr", "rrn"
     ],
     "date": [
         "date", "transaction_date", "trans_date", "tx_date", "invoice_date",
-        "post_date", "booking_date", "value_date", "created_at", "timestamp"
+        "post_date", "booking_date", "value_date", "created_at", "timestamp", "txn_date"
     ],
     "amount": [
         "amount", "net_amount", "gross_amount", "total", "value", "amt",
-        "balance", "payment_amount", "settlement_amount"
+        "balance", "payment_amount", "settlement_amount", "inr_amount", "amount_inr"
     ],
     "debit": [
-        "debit", "debit_amount", "dr", "payment", "withdrawal", "outflow", "paid_out"
+        "debit", "debit_amount", "dr", "payment", "withdrawal", "outflow", "paid_out", "dr_amount"
     ],
     "credit": [
-        "credit", "credit_amount", "cr", "deposit", "inflow", "paid_in", "received"
+        "credit", "credit_amount", "cr", "deposit", "inflow", "paid_in", "received", "cr_amount"
     ],
     "currency": [
         "currency", "curr", "ccy", "currency_code"
     ],
     "reference": [
         "reference", "ref", "ref_num", "ref_no", "invoice_no", "inv_num",
-        "check_no", "cheque_no", "external_ref", "memo_ref", "reference_number", "invoice_id"
+        "check_no", "cheque_no", "external_ref", "memo_ref", "reference_number", "invoice_id",
+        "utr", "rrn", "payment_id", "payout_id", "gstin_ref"
     ],
     "description": [
         "description", "desc", "memo", "narrative", "details",
-        "line_description", "particulars", "transaction_details", "text"
+        "line_description", "particulars", "transaction_details", "text", "narration"
     ],
     "counterparty": [
         "counterparty", "vendor", "vendor_name", "customer", "customer_name",
-        "payee", "payer", "party", "beneficiary", "merchant"
+        "payee", "payer", "party", "beneficiary", "merchant", "party_name"
     ],
     "account": [
         "account", "account_name", "account_code", "gl_account",
-        "nominal_code", "category", "ledger_account"
+        "nominal_code", "category", "ledger_account", "tally_ledger"
     ],
     "status": [
         "status", "invoice_status", "payment_status", "state"
@@ -197,17 +198,16 @@ def clean_amount(val: Any) -> float:
         is_neg = True
         s = s[:-2].strip()
 
-    # Strip currency codes and symbols
-    s = re.sub(r"[A-Z]{3}|\$|€|£|¥|₹", "", s).strip()
+    # Strip currency codes and symbols (INR / Rs / ₹ / USD / $, etc.)
+    s = re.sub(r"[A-Z]{3}|rs\.?|inr|₹|\$|€|£|¥", "", s, flags=re.IGNORECASE).strip()
 
-    # Handle European format: 1.234,56 -> 1234.56
+    # Handle European format vs Indian/US format:
     if re.search(r"^\d{1,3}(\.\d{3})+,\d{2}$", s):
         s = s.replace(".", "").replace(",", ".")
     elif "," in s and "." in s and s.rfind(",") > s.rfind("."):
-        # e.g. 1.234,56
         s = s.replace(".", "").replace(",", ".")
     else:
-        # Standard US format: 1,234.56 -> 1234.56
+        # Standard Indian / US format: 1,50,000.00 or 1,234.56 -> 150000.00
         s = s.replace(",", "")
 
     s = re.sub(r"[^\d.\-+]", "", s)
@@ -271,7 +271,7 @@ def parse_records_from_dataframe(df: pd.DataFrame, source: str) -> list[Record]:
         else:
             amt_val = 0.0
 
-        curr_val = str(row[curr_col]).strip().upper() if curr_col and pd.notna(row.get(curr_col)) else "USD"
+        curr_val = str(row[curr_col]).strip().upper() if curr_col and pd.notna(row.get(curr_col)) else "INR"
         ref_val = str(row[ref_col]).strip() if ref_col and pd.notna(row.get(ref_col)) else ""
         desc_val = str(row[desc_col]).strip() if desc_col and pd.notna(row.get(desc_col)) else ""
         counterparty_val = str(row[counterparty_col]).strip() if counterparty_col and pd.notna(row.get(counterparty_col)) else ""

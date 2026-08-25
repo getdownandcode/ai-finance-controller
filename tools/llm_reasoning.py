@@ -1,11 +1,11 @@
-"""Tier 3 — Autonomous AI Evidence Reasoner (Powered by Google Gemini).
+"""Tier 3 — Autonomous AI Evidence Reasoner (Powered by Google Gemini / Indian Fintech Edition).
 
 Advanced Financial Intelligence Capabilities:
-- Semantic Counterparty & Merchant Resolution (maps abbreviations & aliases).
-- Dynamic Payment Processor Fee & Interchange Netting Solver (e.g. Stripe, PayPal, Square).
-- Settlement Lag & Net-30 Invoice Proximity Evaluation.
+- Semantic Counterparty & Merchant Resolution (maps Indian abbreviations & UPI/Payment handles).
+- Dynamic Payment Processor Fee & Interchange Netting Solver (e.g. Razorpay 2.36% MDR, Route, TDS 194C/194J).
+- Settlement Lag & Net-30/45 Invoice Proximity Evaluation.
 - Multi-Source Directionality & Debit/Credit Inversion Handling.
-- Intelligent Tie-Breaking for recurring subscriptions/payroll.
+- Intelligent Tie-Breaking for recurring subscriptions, GST settlements & vendor payouts.
 - Auditable Chain-of-Thought Rationale.
 """
 from __future__ import annotations
@@ -32,43 +32,46 @@ log = logging.getLogger(__name__)
 LLM_ACCEPT = 0.75
 
 COMMON_FEE_RATES = [
-    (0.029, 0.30),  # Stripe / Standard Card (2.9% + $0.30)
-    (0.027, 0.05),  # Square In-Person
-    (0.035, 0.00),  # Amex / High interchange
-    (0.015, 0.00),  # ACH / Wire flat rate
-    (0.020, 0.00),  # Interchange plus
-    (0.010, 0.00),  # Direct debit
-    (0.008, 0.00),  # Standard B2B processing
-    (0.012, 0.00),  # Low cost gateway
-    (0.022, 0.00),  # Medium gateway
+    (0.0236, 0.00),  # Razorpay Standard Gateway MDR (2.0% + 18% GST)
+    (0.0200, 0.00),  # Net Razorpay / Payment Gateway MDR (2.0%)
+    (0.0100, 0.00),  # Section 194-O E-Commerce TDS (1.0%)
+    (0.0200, 0.00),  # Section 194C Contractor TDS (2.0%)
+    (0.1000, 0.00),  # Section 194J Professional Services TDS (10.0%)
+    (0.0000, 5.90),  # Razorpay Payout IMPS Fee (₹5 + 18% GST)
+    (0.0000, 11.80), # Razorpay Payout NEFT/RTGS Fee (₹10 + 18% GST)
+    (0.0150, 0.00),  # Credit on UPI / Corporate Card Interchange (1.5%)
+    (0.0080, 0.00),  # B2B Net Banking gateway fee (0.8%)
+    (0.0290, 25.00), # International Cards (2.9% + ₹25)
 ]
 
 STOPWORDS = {
     "the", "and", "of", "for", "in", "to", "a", "an", "by", "on", "with",
-    "inc", "co", "ltd", "corp", "llc", "group", "holdings", "enterprises"
+    "inc", "co", "ltd", "corp", "llc", "group", "holdings", "enterprises",
+    "pvt", "private", "limited", "india", "technologies", "services"
 }
 
 MERCHANT_ALIASES = {
-    "amzn": "amazon", "aws": "amazon", "amazon web services": "amazon",
-    "goog": "google", "gsuite": "google", "google cloud": "google",
-    "msft": "microsoft", "azure": "microsoft",
-    "sq": "square", "stripe": "stripe", "pp": "paypal",
-    "ubr": "uber", "lyft": "lyft", "adp": "payroll", "gusto": "payroll",
-    "acme": "acme", "northwind": "northwind", "nwt": "northwind",
-    "globex": "globex", "gbx": "globex", "initech": "initech",
-    "umbrella": "umbrella", "umb": "umbrella", "stark": "stark",
-    "wayne": "wayne", "soylent": "soylent", "cyberdyne": "cyberdyne",
-    "cds": "cyberdyne", "wonka": "wonka", "gekko": "gekko",
-    "massive": "massive", "mass": "massive"
+    "rzp": "razorpay", "razorpay": "razorpay", "razorpayx": "razorpay",
+    "tcs": "tata consultancy services", "tata": "tata consultancy services",
+    "infy": "infosys", "infosys": "infosys",
+    "jio": "reliance jio", "reliance": "reliance jio",
+    "zomato": "zomato media", "swiggy": "swiggy bundl",
+    "flipkart": "flipkart internet", "fk": "flipkart",
+    "airtel": "airtel telecommunications", "bharti": "airtel telecommunications",
+    "bluedart": "blue dart express", "zepto": "zepto quick commerce",
+    "blinkit": "blinkit commerce", "paytm": "paytm one97", "phonepe": "phonepe",
+    "cred": "dreamplug cred", "zoho": "zoho corporation",
+    "aws": "amazon web services india", "gsuite": "google cloud india",
+    "amzn": "amazon pay india", "msft": "microsoft india"
 }
 
 FX_COMMON_RATES = {
-    ("USD", "EUR"): 0.92,
-    ("EUR", "USD"): 1.087,
-    ("USD", "GBP"): 0.79,
-    ("GBP", "USD"): 1.266,
-    ("USD", "CAD"): 1.35,
-    ("CAD", "USD"): 0.74,
+    ("INR", "USD"): 0.012,
+    ("USD", "INR"): 83.50,
+    ("INR", "EUR"): 0.011,
+    ("EUR", "INR"): 90.20,
+    ("INR", "GBP"): 0.0095,
+    ("GBP", "INR"): 105.40,
 }
 
 
@@ -94,7 +97,6 @@ def resolve_mode(cfg) -> str:
 # --------------------------------------------------------------------------
 
 def _normalize_tokens(text: str) -> set[str]:
-    # Extract words and alphanumeric tokens (including invoice digits)
     words = re.findall(r"[a-z0-9]{2,}", text.lower())
     normalized = set()
     for w in words:
@@ -117,101 +119,80 @@ def _deterministic_reason(record: Record, candidates: list[Record], evidences: l
         s, why = 0.0, []
 
         # 1. Exact amount or sign-inverted match
-        if abs(rec_amt - cand_amt) <= 0.01:
-            s += 0.50
+        if abs(rec_amt - cand_amt) <= 0.05:
+            s += 0.55
             why.append("Exact nominal amount match")
         elif ev.amount_within_tol:
-            s += 0.40
-            why.append(f"Amount within tolerance (diff: ${ev.amount_diff:.2f})")
-        elif ev.fx_candidate:
-            # Check FX conversion
-            pair = (record.currency, cand.currency)
-            expected_rate = FX_COMMON_RATES.get(pair, 1.0)
-            equiv = cand_amt * (1.0 / expected_rate if pair[0] == "USD" else expected_rate)
-            if abs(rec_amt - equiv) <= max(0.05 * rec_amt, 10.0):
-                s += 0.55
-                why.append(f"FX conversion match ({record.currency}/{cand.currency} ~{expected_rate})")
+            s += 0.35
+            why.append(f"Amount within tolerance (diff: ₹{ev.amount_diff:.2f})")
         else:
-            # 2. Dynamic Fee Check: Gross * (1 - rate) - fixed = Net (or reverse)
-            fee_matched = False
+            # 2. Dynamic Fee Check: Gross * (1 - rate) - fixed = Net
+            matched_fee = False
             for rate, fixed in COMMON_FEE_RATES:
-                # Target is Net, Cand is Gross
-                exp_net = cand_amt * (1 - rate) - fixed
-                if abs(rec_amt - exp_net) <= max(0.01 * cand_amt, 1.0):
-                    s += 0.55
-                    why.append(f"Matches gross amount (${cand_amt:.2f}) net of {rate*100:.1f}% fee")
-                    fee_matched = True
+                expected_net = cand_amt * (1 - rate) - fixed
+                if abs(rec_amt - expected_net) <= max(1.0, cand_amt * 0.005):
+                    s += 0.60
+                    why.append(f"Matches gross amount (₹{cand_amt:.2f}) net of Razorpay/TDS {rate*100:.2f}% fee")
+                    matched_fee = True
                     break
-                # Target is Gross, Cand is Net
-                exp_net_rev = rec_amt * (1 - rate) - fixed
-                if abs(cand_amt - exp_net_rev) <= max(0.01 * rec_amt, 1.0):
-                    s += 0.55
-                    why.append(f"Matches gross amount (${rec_amt:.2f}) net of {rate*100:.1f}% fee")
-                    fee_matched = True
-                    break
-            if not fee_matched and abs(rec_amt - cand_amt) / max(rec_amt, cand_amt, 1.0) <= 0.10:
-                s += 0.35
-                why.append(f"Close amount variance (${abs(rec_amt - cand_amt):.2f})")
 
-        # 3. Entity & Merchant Token Overlap
+            # 3. Dynamic FX Check
+            if not matched_fee and record.currency != cand.currency:
+                fx_key = (record.currency, cand.currency)
+                if fx_key in FX_COMMON_RATES:
+                    expected_fx = cand_amt * FX_COMMON_RATES[fx_key]
+                    if abs(rec_amt - expected_fx) / max(rec_amt, 1.0) <= 0.03:
+                        s += 0.55
+                        why.append(f"Matches cross-currency {record.currency}/{cand.currency} at ~{FX_COMMON_RATES[fx_key]:.2f}")
+
+        # 4. Entity & Merchant Token Overlap
         cand_tokens = _normalize_tokens(desc_text(cand))
         overlap = rec_tokens & cand_tokens
         if overlap:
             s += min(0.35, 0.15 * len(overlap))
             why.append(f"Merchant/Counterparty match on: {', '.join(sorted(overlap)[:3])}")
-        elif ev.desc_similarity >= 0.40:
-            s += min(0.25, round(ev.desc_similarity * 0.3, 2))
+        elif ev.desc_similarity >= 0.45:
+            s += 0.20
             why.append(f"Narrative similarity {int(ev.desc_similarity * 100)}%")
 
-        # 4. Settlement Window
+        # 5. Settlement Window
         if ev.date_diff_days <= 3:
             s += 0.15
             why.append("Immediate settlement (<3d)")
         elif ev.date_diff_days <= 10:
-            s += 0.12
+            s += 0.10
             why.append(f"Settled in {ev.date_diff_days}d")
-        elif ev.date_diff_days <= 35:
-            s += 0.08
-            why.append(f"Settled within {ev.date_diff_days}d terms")
+        elif ev.date_diff_days <= 30:
+            s += 0.05
+            why.append("Settled within standard 30d terms")
 
-        # 5. Reference token overlap
-        if ev.ref_equal:
-            s += 0.35
-            why.append(f"Shared reference identifier ({cand.reference})")
-        elif ev.ref_overlap:
+        # 6. Reference token overlap
+        if ev.ref_equal or ev.ref_overlap:
             s += 0.30
             why.append("Reference identifier correlation")
-
-        # Bonus for strong composite signals
-        if (ev.ref_equal or ev.ref_overlap) and (ev.amount_within_tol or s >= 0.50):
-            s = max(s, 0.88)
-        elif ev.desc_similarity >= 0.65 and ev.amount_within_tol and ev.date_diff_days <= 15:
-            s = max(s, 0.90)
-        elif ev.fx_candidate and (ev.ref_equal or ev.ref_overlap):
-            s = max(s, 0.86)
 
         scored.append((round(s, 3), cand, why))
 
     scored.sort(key=lambda t: -t[0])
     top_s, top_c, top_why = scored[0]
 
-    # Intelligent tie-breaking: if top 2 candidates have close scores
-    if len(scored) > 1 and top_s - scored[1][0] < 0.06:
+    # Intelligent tie-breaking: if top 2 candidates have equal amounts, use date proximity & desc similarity
+    if len(scored) > 1 and top_s - scored[1][0] < 0.05:
         sec_s, sec_c, _ = scored[1]
         top_d = abs((record.date - top_c.date).days)
         sec_d = abs((record.date - sec_c.date).days)
         if top_d < sec_d:
-            top_s += 0.08
+            top_s += 0.12
             top_why.append(f"Tie-breaker: closer settlement date ({top_d}d vs {sec_d}d)")
         elif text_similarity(desc_text(record), desc_text(top_c)) > text_similarity(desc_text(record), desc_text(sec_c)):
-            top_s += 0.08
+            top_s += 0.12
             top_why.append("Tie-breaker: higher narrative alignment")
 
     if top_s >= LLM_ACCEPT:
         return LLMResult(
             decision="match",
             selected_candidate_id=top_c.record_id,
-            confidence=round(min(0.98, top_s), 2),
+            confidence=round(min(0.96, top_s), 2),
             reason="; ".join(top_why),
             missing_evidence="",
             reasoner="deterministic"
@@ -219,7 +200,7 @@ def _deterministic_reason(record: Record, candidates: list[Record], evidences: l
 
     return LLMResult(
         decision="no_match",
-        selected_candidate_id=top_c.record_id if top_s >= 0.45 else None,
+        selected_candidate_id=top_c.record_id if top_s >= 0.40 else None,
         confidence=round(top_s * 0.7, 2),
         reason=f"Insufficient confidence ({top_s:.2f} < {LLM_ACCEPT}): " + "; ".join(top_why),
         reasoner="deterministic"
@@ -289,6 +270,7 @@ def batch_reason_over_candidates(
                 "record_id": rec.record_id,
                 "source": rec.source,
                 "amount": rec.amount,
+                "currency": rec.currency,
                 "date": str(rec.date),
                 "reference": rec.reference or None,
                 "description": rec.description,
@@ -298,6 +280,7 @@ def batch_reason_over_candidates(
                 "candidate_id": c.record_id,
                 "source": c.source,
                 "amount": c.amount,
+                "currency": c.currency,
                 "date": str(c.date),
                 "reference": c.reference or None,
                 "description": c.description,
@@ -306,16 +289,19 @@ def batch_reason_over_candidates(
         })
 
     system_instructions = (
-        "You are an expert AI Finance Controller performing multi-source ledger & bank reconciliation.\n"
+        "You are an expert AI Finance Controller performing multi-source ledger & bank reconciliation in the Indian fintech & banking ecosystem (Razorpay, UPI, NEFT, RTGS, IMPS, TDS, GSTIN).\n"
         "Analyze each target transaction against its candidate pool and decide whether a valid economic match exists.\n\n"
         "Core Financial Matching Principles:\n"
-        "1. Directionality & Sign Inversion: Bank debits (outflows, -$X) match Ledger credits (+$X) and Invoice bills ($X).\n"
-        "2. Payment Processor Fee Netting: Bank deposits are often net of card/processor fees (e.g. Stripe 2.9% + $0.30, Square 2.7%, Wire fees $15-$25).\n"
-        "3. Semantic Merchant Resolution: Normalize messy vendor names (e.g., 'SQ *COFFEE' = Coffee Shop, 'AMZN MKTP' = Amazon, 'GSUITE' = Google).\n"
+        "1. Directionality & Sign Inversion: Bank debits (outflows, -₹X) match Ledger credits (+₹X) and Invoice bills (₹X).\n"
+        "2. Indian Payment Gateway & TDS Netting:\n"
+        "   - Razorpay Standard MDR: 2.0% + 18% GST = 2.36% deduction on payouts.\n"
+        "   - TDS Sec 194C (2%) / Sec 194J (10%) / Sec 194-O (1% e-commerce) deductions.\n"
+        "   - Razorpay Payout IMPS/NEFT fees: ₹5.90 / ₹11.80.\n"
+        "3. Semantic Merchant & UPI Resolution: Normalize Indian vendor aliases and handles (e.g. 'UPI/SWIGGY' = Swiggy Bundl, 'TCS' = Tata Consultancy, 'RZP PAYOUT' = Razorpay Settlement).\n"
         "4. Settlement Lag: Bank settlements lag invoice/ledger dates by 1 to 30 days.\n"
         "5. Intelligent Disambiguation: For recurring subscriptions with identical amounts, use closest settlement date and counterparty match.\n\n"
         "Decision Rules:\n"
-        "- 'match': High confidence (>= 0.78) that target and candidate represent the same economic transaction.\n"
+        "- 'match': High confidence (>= 0.75) that target and candidate represent the same economic transaction.\n"
         "- 'escalate': Indistinguishable duplicate collision that genuinely requires human manual check.\n"
         "- 'no_match': No suitable candidate in pool.\n"
     )
@@ -330,7 +316,7 @@ def batch_reason_over_candidates(
                     "decision": "match | no_match | escalate",
                     "selected_candidate_id": "candidate record id or null",
                     "confidence": "float between 0.0 and 1.0",
-                    "reason": "precise financial explanation (fee calculation, date settlement, or merchant resolution)",
+                    "reason": "precise financial explanation (Razorpay MDR calculation, TDS deduction, date settlement, or merchant resolution)",
                     "missing_evidence": "string explanation if missing"
                 }
             ]

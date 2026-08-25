@@ -91,7 +91,7 @@ function MatchMindLogo({ className = "h-8 w-auto", showWordmark = true }) {
             Match<span className="text-primary">Mind</span>
           </span>
           <span className="text-[10px] font-medium tracking-wider uppercase text-muted-foreground">
-            Autonomous Finance
+            Razorpay Buildathon · Autonomous Finance
           </span>
         </div>
       )}
@@ -132,25 +132,25 @@ function EmptyState({ icon: Icon, title, subtitle }) {
 }
 
 const CATEGORIES = [
-  { id: 'bank', label: 'Bank Account', icon: Building2, desc: 'Checking, wire & settlement feeds' },
-  { id: 'ledger', label: 'General Ledger', icon: FileSpreadsheet, desc: 'QuickBooks, NetSuite, ERP journals' },
-  { id: 'invoice', label: 'Invoices / Billing', icon: Receipt, desc: 'AP/AR billing, customer invoices' },
-  { id: 'gateway', label: 'Payment Gateway / Card', icon: CreditCard, desc: 'Stripe, Adyen, corporate cards' },
+  { id: 'bank', label: 'Bank Account (HDFC/ICICI/SBI)', icon: Building2, desc: 'Current A/c, NEFT/RTGS & UPI bank feeds' },
+  { id: 'ledger', label: 'General Ledger (Tally/Zoho)', icon: FileSpreadsheet, desc: 'TallyPrime, Zoho Books, QuickBooks India journals' },
+  { id: 'invoice', label: 'GST Invoices / TDS Bills', icon: Receipt, desc: 'B2B GST e-Invoices, TDS payable/receivable' },
+  { id: 'gateway', label: 'Razorpay Gateway & Payouts', icon: CreditCard, desc: 'Razorpay Route, Smart Collect, UPI settlements' },
 ];
 
 function detectCategoryAndLabel(filename) {
   const clean = filename.replace(/\.[^/.]+$/, "");
   const lower = clean.toLowerCase();
-  if (lower.includes("bank") || lower.includes("chase") || lower.includes("svb") || lower.includes("bofa") || lower.includes("statement") || lower.includes("feed") || lower.includes("checking") || lower.includes("savings")) {
+  if (lower.includes("bank") || lower.includes("hdfc") || lower.includes("icici") || lower.includes("sbi") || lower.includes("axis") || lower.includes("kotak") || lower.includes("neft") || lower.includes("rtgs") || lower.includes("imps") || lower.includes("statement") || lower.includes("feed") || lower.includes("current")) {
     return { category: 'bank', label: clean.replace(/[-_]/g, ' ') };
   }
-  if (lower.includes("ledger") || lower.includes("qbo") || lower.includes("quickbooks") || lower.includes("xero") || lower.includes("journal") || lower.includes("gl") || lower.includes("erp") || lower.includes("netsuite")) {
+  if (lower.includes("ledger") || lower.includes("tally") || lower.includes("zoho") || lower.includes("quickbooks") || lower.includes("journal") || lower.includes("gl") || lower.includes("erp") || lower.includes("books")) {
     return { category: 'ledger', label: clean.replace(/[-_]/g, ' ') };
   }
-  if (lower.includes("inv") || lower.includes("bill") || lower.includes("ar") || lower.includes("ap") || lower.includes("receipt") || lower.includes("payable") || lower.includes("receivable")) {
+  if (lower.includes("inv") || lower.includes("gst") || lower.includes("tds") || lower.includes("bill") || lower.includes("ar") || lower.includes("ap") || lower.includes("receipt") || lower.includes("einvoice")) {
     return { category: 'invoice', label: clean.replace(/[-_]/g, ' ') };
   }
-  if (lower.includes("stripe") || lower.includes("adyen") || lower.includes("paypal") || lower.includes("card") || lower.includes("gateway") || lower.includes("payout") || lower.includes("processor")) {
+  if (lower.includes("razorpay") || lower.includes("rzp") || lower.includes("smart_collect") || lower.includes("payout") || lower.includes("upi") || lower.includes("paytm") || lower.includes("phonepe") || lower.includes("gateway")) {
     return { category: 'gateway', label: clean.replace(/[-_]/g, ' ') };
   }
   return { category: 'bank', label: clean.replace(/[-_]/g, ' ') };
@@ -454,8 +454,8 @@ export default function App() {
   };
 
   const formatMoney = (val) => {
-    if (val === undefined || val === null) return '$0.00';
-    return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(val);
+    if (val === undefined || val === null) return '₹0.00';
+    return new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 2 }).format(val);
   };
   const formatPercent = (val) => {
     if (val === undefined || val === null) return 'N/A';
@@ -979,7 +979,7 @@ export default function App() {
                                 <div className="flex items-center gap-2">
                                   <span className="text-[11px] font-semibold text-muted-foreground">Opening:</span>
                                   <div className="relative w-32">
-                                    <span className="pointer-events-none absolute left-2.5 top-1/2 -translate-y-1/2 text-xs text-muted-foreground">$</span>
+                                    <span className="pointer-events-none absolute left-2.5 top-1/2 -translate-y-1/2 text-xs text-muted-foreground">₹</span>
                                     <input
                                       type="text"
                                       inputMode="decimal"
