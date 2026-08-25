@@ -35,10 +35,10 @@ For a deep dive into system architecture, multi-tier decisioning, Indian fintech
    - Accounts Receivable (AR) vs Accounts Payable (AP) Aging Buckets (`0-30d`, `31-60d`, `61-90d+`).
    - Dynamic runway calculation and monthly net burn rate monitoring.
 
-4. **🌓 Full-Stack Interactive UI**:
-   - Built with React 18, Tailwind CSS, and Lucide Icons.
-   - Full **Light & Dark Theme** toggle with persistent storage.
-   - Real-time 3-way transaction grid and exception triage queue.
+4. **💻 Full-Stack Interactive UI**:
+   - Built with React 19, Tailwind CSS v4, and Lucide Icons.
+   - High-contrast financial dark mode design token system with semantic color mapping.
+   - Real-time 3-way transaction grid, interactive runway trajectory chart, and exception triage queue.
 
 ---
 

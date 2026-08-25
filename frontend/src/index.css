@@ -1,86 +1,75 @@
 @import "tailwindcss";
 
 :root {
-  --card: #ffffff;
-  --ring: #d97736;
-  --input: #e2e8f0;
-  --muted: #f1f5f9;
-  --accent: #f8fafc;
-  --border: #e2e8f0;
-  --radius: 0.75rem;
-  --chart-1: #0d9488;
-  --chart-2: #d97736;
-  --chart-3: #f59e0b;
-  --chart-4: #64748b;
-  --chart-5: #94a3b8;
+  --card: #faf9f5;
+  --ring: #b8623f;
+  --input: #b4b2a7;
+  --muted: #ede9de;
+  --accent: #e9e6dc;
+  --border: #dad9d4;
+  --radius: 0.5rem;
+  --chart-1: #b05730;
+  --chart-2: #6f8f6a;   /* changed from purple to muted green — reads as "financial growth" */
+  --chart-3: #ded8c4;
+  --chart-4: #dbd3f0;
+  --chart-5: #b4552d;
   --popover: #ffffff;
-  --primary: #d97736;
-  --sidebar: #f8fafc;
-  --spacing: 0.25rem;
-  --font-mono: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, Monaco, monospace;
-  --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-  --secondary: #0d9488;
-  --background: #f8fafc;
-  --font-serif: serif;
-  --foreground: #0f172a;
-  --destructive: #ef4444;
-  --shadow-blur: 6px;
-  --shadow-color: rgba(15, 23, 42, 0.06);
-  --sidebar-ring: #d97736;
-  --shadow-spread: 0px;
-  --letter-spacing: 0rem;
-  --shadow-opacity: 0.05;
-  --sidebar-accent: #ffffff;
-  --sidebar-border: #e2e8f0;
-  --card-foreground: #0f172a;
-  --shadow-offset-x: 0px;
-  --shadow-offset-y: 2px;
-  --sidebar-primary: #d97736;
-  --muted-foreground: #64748b;
-  --accent-foreground: #0f172a;
-  --popover-foreground: #0f172a;
+  --primary: #b8623f;   /* shifted rust tone, distinct from stock terracotta */
+  --sidebar: #f5f4ee;
+  --secondary: #e9e6dc;
+  --background: #faf9f5;
+  --foreground: #3d3929;
+  --destructive: #c0392b;
+  --sidebar-ring: #b5b5b5;
+  --sidebar-accent: #e9e6dc;
+  --sidebar-border: #ebebeb;
+  --card-foreground: #141413;
+  --sidebar-primary: #b8623f;
+  --muted-foreground: #83827d;
+  --accent-foreground: #28261b;
+  --popover-foreground: #28261b;
   --primary-foreground: #ffffff;
-  --sidebar-foreground: #0f172a;
-  --secondary-foreground: #ffffff;
+  --sidebar-foreground: #3d3d3a;
+  --secondary-foreground: #535146;
   --destructive-foreground: #ffffff;
-  --sidebar-accent-foreground: #0f172a;
-  --sidebar-primary-foreground: #ffffff;
+  --sidebar-accent-foreground: #343434;
+  --sidebar-primary-foreground: #fbfbfb;
 }
 
 .dark {
-  --card: #15171e;
-  --ring: #e78a53;
-  --input: #232634;
-  --muted: #1e2029;
-  --accent: #272a38;
-  --border: #232634;
-  --chart-1: #5f8787;
-  --chart-2: #e78a53;
-  --chart-3: #fbcb97;
-  --chart-4: #888888;
-  --chart-5: #999999;
-  --popover: #15171e;
-  --primary: #e78a53;
-  --sidebar: #101117;
-  --secondary: #5f8787;
-  --background: #0d0e12;
-  --foreground: #f1f5f9;
-  --destructive: #f43f5e;
-  --shadow-color: #000000;
-  --sidebar-ring: #e78a53;
-  --sidebar-accent: #1e2029;
-  --sidebar-border: #232634;
-  --card-foreground: #f1f5f9;
-  --sidebar-primary: #e78a53;
-  --muted-foreground: #94a3b8;
-  --accent-foreground: #f1f5f9;
-  --popover-foreground: #f1f5f9;
-  --primary-foreground: #0d0e12;
-  --sidebar-foreground: #f1f5f9;
-  --secondary-foreground: #0d0e12;
+  --card: #262624;
+  --ring: #d1815c;
+  --input: #52514a;
+  --muted: #1b1b19;
+  --accent: #1a1915;
+  --border: #3e3e38;
+  --radius: 0.5rem;
+  --chart-1: #b05730;
+  --chart-2: #7fa878;   /* muted green counterpart for dark mode */
+  --chart-3: #232220;
+  --chart-4: #2f2b48;
+  --chart-5: #b4552d;
+  --popover: #30302e;
+  --primary: #d1815c;
+  --sidebar: #1f1e1d;
+  --secondary: #faf9f5;
+  --background: #1c1c1a;   /* distinct from --card so surfaces have depth, unlike original where these matched */
+  --foreground: #c3c0b6;
+  --destructive: #ef4444;
+  --sidebar-ring: #b5b5b5;
+  --sidebar-accent: #0f0f0e;
+  --sidebar-border: #ebebeb;
+  --card-foreground: #faf9f5;
+  --sidebar-primary: #343434;
+  --muted-foreground: #b7b5a9;
+  --accent-foreground: #f5f4ee;
+  --popover-foreground: #e5e5e2;
+  --primary-foreground: #ffffff;
+  --sidebar-foreground: #c3c0b6;
+  --secondary-foreground: #30302e;
   --destructive-foreground: #ffffff;
-  --sidebar-accent-foreground: #f1f5f9;
-  --sidebar-primary-foreground: #0d0e12;
+  --sidebar-accent-foreground: #c3c0b6;
+  --sidebar-primary-foreground: #fbfbfb;
 }
 
 @theme inline {
@@ -99,7 +88,6 @@
   --color-popover: var(--popover);
   --color-primary: var(--primary);
   --color-sidebar: var(--sidebar);
-  --color-spacing: var(--spacing);
   --color-secondary: var(--secondary);
   --color-background: var(--background);
   --color-foreground: var(--foreground);
@@ -121,7 +109,7 @@
 }
 
 html {
-  transition: background-color 0.25s ease, color 0.25s ease;
+  transition: background-color 0.2s ease, color 0.2s ease;
 }
 
 body {
@@ -131,26 +119,6 @@ body {
   margin: 0;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-}
-
-/* Subtle, professional dotted background grid */
-.bg-grid {
-  background-size: 24px 24px;
-  background-image: radial-gradient(circle, rgba(100, 116, 139, 0.12) 1px, transparent 1px);
-}
-
-.dark .bg-grid {
-  background-size: 24px 24px;
-  background-image: radial-gradient(circle, rgba(231, 138, 83, 0.10) 1px, transparent 1px);
-}
-
-/* Light ambient primary & secondary gradient aurora */
-.bg-aurora {
-  background: radial-gradient(circle at 50% -10%, rgba(217, 119, 54, 0.07) 0%, rgba(13, 148, 136, 0.04) 35%, transparent 70%);
-}
-
-.dark .bg-aurora {
-  background: radial-gradient(circle at 50% -15%, rgba(231, 138, 83, 0.12) 0%, rgba(95, 135, 135, 0.07) 40%, transparent 75%);
 }
 
 /* Custom scrollbar */
@@ -165,7 +133,7 @@ body {
 
 ::-webkit-scrollbar-thumb {
   background: var(--border);
-  border-radius: 4px;
+  border-radius: var(--radius);
 }
 
 ::-webkit-scrollbar-thumb:hover {
@@ -178,25 +146,4 @@ body {
 .focus-ring:focus-visible {
   outline: 2px solid var(--ring);
   outline-offset: 2px;
-}
-
-/* Polished surface helper */
-.fin-surface {
-  background-color: var(--card);
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-  box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.04), 0 1px 2px -1px rgba(0, 0, 0, 0.04);
-  transition: border-color 0.2s ease, box-shadow 0.2s ease;
-}
-
-.dark .fin-surface {
-  box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.3), 0 1px 2px -1px rgba(0, 0, 0, 0.3);
-}
-
-.fin-surface:hover {
-  border-color: rgba(217, 119, 54, 0.3);
-}
-
-.dark .fin-surface:hover {
-  border-color: rgba(231, 138, 83, 0.35);
 }

@@ -38,16 +38,16 @@ import {
 const cx = (...c) => c.filter(Boolean).join(' ');
 
 const btn =
-  'inline-flex items-center justify-center gap-2 rounded-xl text-xs font-semibold leading-none transition-all duration-200 focus-ring disabled:cursor-not-allowed disabled:opacity-50';
+  'inline-flex items-center justify-center gap-2 rounded-lg text-xs font-semibold leading-none transition-all duration-200 focus-ring disabled:cursor-not-allowed disabled:opacity-50 select-none';
 const btnPrimary = cx(btn, 'bg-primary text-primary-foreground shadow-sm hover:opacity-90 active:translate-y-px');
-const btnSecondary = cx(btn, 'bg-secondary text-secondary-foreground shadow-sm hover:opacity-90 active:translate-y-px');
-const btnOutline = cx(btn, 'border border-border bg-card text-muted-foreground hover:border-primary/50 hover:text-primary hover:bg-accent/40');
+const btnSecondary = cx(btn, 'bg-chart-2 text-primary-foreground shadow-sm hover:opacity-90 active:translate-y-px');
+const btnOutline = cx(btn, 'border border-border bg-card text-foreground hover:border-primary/50 hover:text-primary hover:bg-accent');
 const btnMuted = cx(btn, 'border border-border bg-muted text-foreground hover:border-primary/50 hover:text-primary');
 const btnGhost = cx(btn, 'text-muted-foreground hover:bg-muted hover:text-foreground');
-const btnDanger = cx(btn, 'border border-border bg-muted text-muted-foreground hover:bg-destructive hover:text-destructive-foreground hover:border-destructive');
-const surface = 'rounded-2xl border border-border bg-card shadow-sm';
+const btnDanger = cx(btn, 'border border-destructive/30 bg-destructive/10 text-destructive hover:bg-destructive hover:text-destructive-foreground');
+const surface = 'rounded-lg border border-border bg-card shadow-sm';
 const field =
-  'w-full rounded-xl border border-input bg-card px-3 py-2.5 text-xs font-mono text-foreground placeholder:text-muted-foreground outline-none transition-colors duration-200 focus:border-primary focus:ring-1 focus:ring-ring';
+  'w-full rounded-lg border border-input bg-card px-3 py-2 text-xs font-mono text-foreground placeholder:text-muted-foreground outline-none transition-colors duration-200 focus:border-primary focus:ring-1 focus:ring-ring';
 
 function MatchMindLogo({ className = "h-8 w-auto", showWordmark = true }) {
   return (
@@ -62,18 +62,18 @@ function MatchMindLogo({ className = "h-8 w-auto", showWordmark = true }) {
       >
         <defs>
           <linearGradient id="mm-brand-grad" x1="0%" y1="0%" x2="100%" y2="100%">
-            <stop offset="0%" stopColor="#e78a53" />
-            <stop offset="100%" stopColor="#5f8787" />
+            <stop offset="0%" stopColor="var(--primary)" />
+            <stop offset="100%" stopColor="var(--chart-2)" />
           </linearGradient>
         </defs>
-        <rect width="48" height="48" rx="12" fill="url(#mm-brand-grad)" />
+        <rect width="48" height="48" rx="10" fill="url(#mm-brand-grad)" />
         <g opacity="0.95">
           <rect x="11" y="14" width="18" height="22" rx="3" fill="white" />
           <rect x="19" y="10" width="18" height="22" rx="3" fill="none" stroke="white" strokeWidth="1.6" />
         </g>
         <path
           d="M17 24.5 L21.5 29 L31 18.5"
-          stroke="#e78a53"
+          stroke="var(--primary)"
           strokeWidth="2.6"
           strokeLinecap="round"
           strokeLinejoin="round"
@@ -101,18 +101,18 @@ function MatchMindLogo({ className = "h-8 w-auto", showWordmark = true }) {
 
 function StatCard({ label, value, sub, icon: Icon, badge }) {
   return (
-    <div className="group relative overflow-hidden rounded-2xl border border-border bg-card p-5 shadow-sm transition-all duration-200 hover:border-primary/40 hover:shadow-md">
+    <div className="group relative overflow-hidden rounded-lg border border-border bg-card p-4 sm:p-5 shadow-sm transition-all duration-200 hover:border-primary/40">
       <div className="flex items-center justify-between gap-3">
-        <span className="text-xs font-bold uppercase tracking-wider text-foreground/80 dark:text-slate-200">{label}</span>
+        <span className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">{label}</span>
         <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-muted text-muted-foreground ring-1 ring-border transition-colors duration-200 group-hover:text-primary group-hover:ring-primary/40">
           <Icon className="h-4 w-4" />
         </div>
       </div>
-      <div className="mt-4 flex flex-wrap items-baseline gap-2">
-        <span className="font-mono text-2xl font-bold tracking-tight tabular-nums leading-none text-foreground">{value}</span>
+      <div className="mt-3 flex flex-wrap items-baseline gap-2">
+        <span className="font-mono text-2xl font-bold tracking-tight tabular-nums leading-none text-card-foreground">{value}</span>
         {badge}
       </div>
-      <p className="mt-2.5 text-xs leading-relaxed text-muted-foreground">{sub}</p>
+      <p className="mt-2 text-xs leading-relaxed text-muted-foreground">{sub}</p>
     </div>
   );
 }
@@ -146,10 +146,10 @@ function RunwayForecasterChart({ timeline, formatHeadlineMoney, formatMoney }) {
   const areaPath = `${linePath} L ${points[points.length - 1].x.toFixed(1)} ${height - padBottom} L ${points[0].x.toFixed(1)} ${height - padBottom} Z`;
 
   return (
-    <div className="w-full overflow-hidden rounded-2xl border border-border/80 bg-muted/20 p-4">
+    <div className="w-full overflow-hidden rounded-lg border border-border bg-card p-4">
       <div className="mb-2.5 flex items-center justify-between px-1 text-xs">
-        <span className="font-bold uppercase tracking-wider text-foreground/80 dark:text-slate-200">Forward Liquidity Trajectory Chart</span>
-        <span className="font-mono text-xs font-bold text-secondary">
+        <span className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">Forward Liquidity Trajectory Chart</span>
+        <span className="font-mono text-xs font-bold text-chart-2">
           +{formatHeadlineMoney(timeline[timeline.length - 1].cash - timeline[0].cash)} Projected Net Growth
         </span>
       </div>
@@ -162,11 +162,11 @@ function RunwayForecasterChart({ timeline, formatHeadlineMoney, formatMoney }) {
         >
           <defs>
             <linearGradient id="runway-area-gradient" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="0%" stopColor="var(--chart-1)" stopOpacity="0.24" />
-              <stop offset="85%" stopColor="var(--chart-1)" stopOpacity="0.01" />
+              <stop offset="0%" stopColor="var(--chart-2)" stopOpacity="0.22" />
+              <stop offset="85%" stopColor="var(--chart-2)" stopOpacity="0.01" />
             </linearGradient>
             <filter id="glow-end-marker" x="-50%" y="-50%" width="200%" height="200%">
-              <feDropShadow dx="0" dy="0" stdDeviation="2.5" floodColor="var(--chart-1)" floodOpacity="0.75" />
+              <feDropShadow dx="0" dy="0" stdDeviation="2.5" floodColor="var(--chart-2)" floodOpacity="0.75" />
             </filter>
           </defs>
 
@@ -204,7 +204,7 @@ function RunwayForecasterChart({ timeline, formatHeadlineMoney, formatMoney }) {
           <path
             d={linePath}
             fill="none"
-            stroke="var(--chart-1)"
+            stroke="var(--chart-2)"
             strokeWidth="2.75"
             strokeLinecap="round"
             strokeLinejoin="round"
@@ -229,7 +229,7 @@ function RunwayForecasterChart({ timeline, formatHeadlineMoney, formatMoney }) {
                   y1={p.y}
                   x2={p.x}
                   y2={height - padBottom}
-                  stroke="var(--chart-1)"
+                  stroke="var(--chart-2)"
                   strokeDasharray="2 3"
                   strokeOpacity={isHovered ? 0.6 : 0.2}
                 />
@@ -243,7 +243,7 @@ function RunwayForecasterChart({ timeline, formatHeadlineMoney, formatMoney }) {
                   cy={p.y}
                   r={isHovered ? 5.5 : i === points.length - 1 ? 5 : 4}
                   fill="var(--card)"
-                  stroke="var(--chart-1)"
+                  stroke="var(--chart-2)"
                   strokeWidth="2.5"
                   filter={i === points.length - 1 ? "url(#glow-end-marker)" : undefined}
                 />
@@ -258,7 +258,7 @@ function RunwayForecasterChart({ timeline, formatHeadlineMoney, formatMoney }) {
                         y={Math.max(4, p.y - 23)}
                         width="76"
                         height="18"
-                        rx="5"
+                        rx="4"
                         fill="var(--card)"
                         stroke="var(--border)"
                         strokeWidth="1"
@@ -268,7 +268,7 @@ function RunwayForecasterChart({ timeline, formatHeadlineMoney, formatMoney }) {
                       x={p.x}
                       y={Math.max(15, p.y - 10)}
                       textAnchor="middle"
-                      className="fill-foreground text-[11px] font-bold font-mono"
+                      className="fill-card-foreground text-[11px] font-bold font-mono"
                     >
                       {formatHeadlineMoney(p.cash)}
                     </text>
@@ -282,7 +282,7 @@ function RunwayForecasterChart({ timeline, formatHeadlineMoney, formatMoney }) {
                   textAnchor="middle"
                   className={cx(
                     "text-[10px] font-bold uppercase tracking-wider transition-colors duration-150",
-                    isHovered ? "fill-foreground" : "fill-muted-foreground"
+                    isHovered ? "fill-card-foreground" : "fill-muted-foreground"
                   )}
                 >
                   {p.label}
@@ -395,30 +395,12 @@ export default function App() {
     setResults(null); localStorage.removeItem(LS_KEY); setSessions([]); setActiveTab('ingest');
   };
 
-  const LS_THEME = "matchmind_theme";
-  const [theme, setTheme] = useState(() => {
-    try {
-      const saved = localStorage.getItem(LS_THEME);
-      if (saved) return saved;
-      return window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
-    } catch {
-      return "dark";
-    }
-  });
-
   useEffect(() => {
     try {
-      const root = document.documentElement;
-      if (theme === "dark") {
-        root.classList.add("dark");
-        root.classList.remove("light");
-      } else {
-        root.classList.remove("dark");
-        root.classList.add("light");
-      }
-      localStorage.setItem(LS_THEME, theme);
+      document.documentElement.classList.add('dark');
+      document.documentElement.classList.remove('light');
     } catch {}
-  }, [theme]);
+  }, []);
 
   const [activeTab, setActiveTab] = useState(() => localStorage.getItem(LS_TAB) || 'ingest');
   const [loading, setLoading] = useState(false);
@@ -881,26 +863,17 @@ export default function App() {
                 <div className="hidden items-center gap-2 rounded-full border border-border bg-card py-1 pl-1 pr-1.5 sm:flex">
                   <div className="flex h-6 w-6 items-center justify-center rounded-full bg-primary text-[11px] font-bold text-primary-foreground">{user?.[0]?.toUpperCase()}</div>
                   <span className="pr-1 text-xs font-semibold text-foreground">{user}</span>
-                  <button type="button" onClick={handleLogout} className="rounded-full bg-muted px-2.5 py-1 text-[11px] font-semibold text-muted-foreground transition-all duration-200 hover:bg-destructive hover:text-foreground">Log out</button>
+                  <button type="button" onClick={handleLogout} className="rounded-full bg-muted px-2.5 py-1 text-[11px] font-semibold text-muted-foreground transition-all duration-200 hover:bg-destructive hover:text-destructive-foreground">Log out</button>
                 </div>
               )}
               <button
                 type="button"
-                onClick={() => setTheme(t => t === "dark" ? "light" : "dark")}
-                aria-label="Toggle theme"
-                title={`Switch to ${theme === "dark" ? "light" : "dark"} mode`}
-                className="flex h-9 w-9 items-center justify-center rounded-xl border border-border bg-card text-muted-foreground transition-all duration-200 hover:border-primary hover:text-primary hover:shadow-sm cursor-pointer"
-              >
-                {theme === "dark" ? <Sun className="h-4 w-4 text-chart-2" /> : <Moon className="h-4 w-4 text-primary" />}
-              </button>
-              <button
-                type="button"
                 onClick={() => setActiveTab('ingest')}
                 className={cx(
-                  'inline-flex h-9 items-center gap-1.5 rounded-xl px-3 text-xs font-semibold transition-all duration-200 focus-ring sm:px-4',
+                  'inline-flex h-9 items-center gap-1.5 rounded-lg px-3 text-xs font-semibold transition-all duration-200 focus-ring sm:px-4',
                   activeTab === 'ingest'
                     ? 'bg-primary text-primary-foreground shadow-sm'
-                    : 'border border-border bg-card text-muted-foreground hover:border-primary hover:bg-primary hover:text-primary-foreground hover:shadow-md'
+                    : 'border border-border bg-card text-muted-foreground hover:border-primary hover:bg-primary hover:text-primary-foreground hover:shadow-sm'
                 )}
               >
                 <Upload className="h-3.5 w-3.5" />
@@ -912,10 +885,10 @@ export default function App() {
                   type="button"
                   onClick={() => setActiveTab('dashboard')}
                   className={cx(
-                    'inline-flex h-9 items-center gap-1.5 rounded-xl px-3 text-xs font-semibold transition-all duration-200 focus-ring sm:px-3.5',
+                    'inline-flex h-9 items-center gap-1.5 rounded-lg px-3 text-xs font-semibold transition-all duration-200 focus-ring sm:px-3.5',
                     activeTab === 'dashboard'
-                      ? 'bg-secondary text-secondary-foreground shadow-sm'
-                      : 'border border-border bg-card text-muted-foreground hover:border-secondary hover:bg-secondary hover:text-secondary-foreground hover:shadow-md'
+                      ? 'bg-chart-2 text-primary-foreground shadow-sm'
+                      : 'border border-border bg-card text-muted-foreground hover:border-chart-2 hover:bg-chart-2 hover:text-primary-foreground hover:shadow-sm'
                   )}
                 >
                   <Activity className="h-3.5 w-3.5" />
@@ -1281,19 +1254,19 @@ export default function App() {
 
             {/* Pending Approvals (if any) */}
             {results.pending_approvals && results.pending_approvals.length > 0 && (
-              <div className="rounded-2xl border border-chart-2/30 bg-chart-2/5 p-5">
-                <h4 className="flex items-center gap-2 text-sm font-bold text-foreground">
+              <div className="rounded-lg border border-chart-2/30 bg-card p-4 sm:p-5">
+                <h4 className="flex items-center gap-2 text-sm font-bold text-card-foreground">
                   <ShieldAlert className="h-4 w-4 text-chart-2" /> Approvals Required — Review Pending Actions
                 </h4>
                 <p className="mt-1 text-xs text-muted-foreground">Adjustments and high-value transactions require human sign-off before finalizing.</p>
                 <div className="mt-4 space-y-2.5">
                   {results.pending_approvals.map(apr => (
-                    <div key={apr.id} className="rounded-xl border border-border bg-card p-4">
+                    <div key={apr.id} className="rounded-lg border border-border bg-muted/30 p-4">
                       <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
                         <div className="min-w-0">
-                          <p className="font-mono text-xs font-bold text-foreground">{apr.action} · <span className="text-chart-2">{apr.status}</span></p>
+                          <p className="font-mono text-xs font-bold text-card-foreground">{apr.action} · <span className="text-chart-2">{apr.status}</span></p>
                           <p className="mt-1 text-xs text-muted-foreground">{apr.reason}</p>
-                          {apr.amount ? <p className="mt-1 font-mono text-xs font-bold text-foreground">Amount: {formatMoney(apr.amount)}</p> : null}
+                          {apr.amount ? <p className="mt-1 font-mono text-xs font-bold text-card-foreground">Amount: {formatMoney(apr.amount)}</p> : null}
                           {apr.evidence?.length ? <p className="mt-1 font-mono text-[11px] text-muted-foreground">Evidence: {apr.evidence.join(', ')}</p> : null}
                         </div>
                         <div className="flex shrink-0 items-center gap-2">
@@ -1325,7 +1298,7 @@ export default function App() {
                 }
                 badge={
                   results.metrics.has_ground_truth ? (
-                    <span className="rounded-full border border-secondary/30 bg-secondary/15 px-2 py-0.5 text-[10px] font-bold text-secondary">
+                    <span className="rounded-full border border-chart-2/30 bg-chart-2/15 px-2 py-0.5 text-[10px] font-bold text-chart-2">
                       Validated
                     </span>
                   ) : null
@@ -1372,85 +1345,85 @@ export default function App() {
 
             {/* Cash Position Snapshot & Resolution Distribution */}
             <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
-              <div className={cx(surface, 'p-5 sm:p-6 lg:col-span-2')}>
-                <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border pb-4">
-                  <div className="flex items-center gap-3">
-                    <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-primary/15 text-primary ring-1 ring-primary/30">
-                      <DollarSign className="h-4.5 w-4.5" />
+              <div className={cx(surface, 'p-4 sm:p-5 lg:col-span-2')}>
+                <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border pb-3.5">
+                  <div className="flex items-center gap-2.5">
+                    <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary/15 text-primary ring-1 ring-primary/30">
+                      <DollarSign className="h-4 w-4" />
                     </div>
                     <div>
-                      <h3 className="text-sm font-bold text-foreground">Cash-Position Snapshot</h3>
-                      <p className="text-xs text-muted-foreground">Live bank vs. general ledger liquidity</p>
+                      <h3 className="text-xs font-bold uppercase tracking-wider text-card-foreground">Cash-Position Snapshot</h3>
+                      <p className="text-[11px] text-muted-foreground">Live bank vs. general ledger liquidity</p>
                     </div>
                   </div>
-                  <span className="rounded-full border border-secondary/30 bg-secondary/15 px-3 py-0.5 text-xs font-bold text-secondary">
+                  <span className="rounded-full border border-chart-2/30 bg-chart-2/15 px-2.5 py-0.5 text-xs font-bold text-chart-2">
                     Reconciled
                   </span>
                 </div>
 
-                <div className="mt-5 grid grid-cols-1 gap-4 sm:grid-cols-2">
-                  <div className="rounded-xl border border-border bg-muted/40 p-4">
-                    <span className="text-xs font-bold uppercase tracking-wider text-foreground/80 dark:text-slate-200">Confirmed Bank Cash</span>
-                    <p className="mt-2 text-2xl font-bold font-mono tracking-tight tabular-nums text-foreground">{formatHeadlineMoney(results.cash_position.confirmed_bank_cash)}</p>
-                    <div className="mt-3.5 space-y-1.5 border-t border-border/80 pt-2.5 text-xs">
+                <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2">
+                  <div className="rounded-lg border border-border bg-muted/30 p-4">
+                    <span className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">Confirmed Bank Cash</span>
+                    <p className="mt-1.5 text-2xl font-bold font-mono tracking-tight tabular-nums text-card-foreground">{formatHeadlineMoney(results.cash_position.confirmed_bank_cash)}</p>
+                    <div className="mt-3 space-y-1.5 border-t border-border pt-2 text-xs">
                       <div className="flex justify-between text-muted-foreground">
                         <span>Opening Balance</span>
-                        <span className="font-mono font-semibold tabular-nums text-foreground">{formatMoney(results.cash_position.bank_opening)}</span>
+                        <span className="font-mono font-semibold tabular-nums text-card-foreground">{formatMoney(results.cash_position.bank_opening)}</span>
                       </div>
                       <div className="flex justify-between text-muted-foreground">
                         <span>Matched Movements</span>
-                        <span className="font-mono font-semibold tabular-nums text-secondary">+{formatMoney(results.cash_position.matched_bank_movements)}</span>
+                        <span className="font-mono font-semibold tabular-nums text-chart-2">+{formatMoney(results.cash_position.matched_bank_movements)}</span>
                       </div>
                     </div>
                   </div>
 
-                  <div className="rounded-xl border border-border bg-muted/40 p-4">
-                    <span className="text-xs font-bold uppercase tracking-wider text-foreground/80 dark:text-slate-200">Confirmed Ledger Cash</span>
-                    <p className="mt-2 text-2xl font-bold font-mono tracking-tight tabular-nums text-foreground">{formatHeadlineMoney(results.cash_position.confirmed_ledger_cash)}</p>
-                    <div className="mt-3.5 space-y-1.5 border-t border-border/80 pt-2.5 text-xs">
+                  <div className="rounded-lg border border-border bg-muted/30 p-4">
+                    <span className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">Confirmed Ledger Cash</span>
+                    <p className="mt-1.5 text-2xl font-bold font-mono tracking-tight tabular-nums text-card-foreground">{formatHeadlineMoney(results.cash_position.confirmed_ledger_cash)}</p>
+                    <div className="mt-3 space-y-1.5 border-t border-border pt-2 text-xs">
                       <div className="flex justify-between text-muted-foreground">
                         <span>Opening Balance</span>
-                        <span className="font-mono font-semibold tabular-nums text-foreground">{formatMoney(results.cash_position.ledger_opening)}</span>
+                        <span className="font-mono font-semibold tabular-nums text-card-foreground">{formatMoney(results.cash_position.ledger_opening)}</span>
                       </div>
                       <div className="flex justify-between text-muted-foreground">
                         <span>Matched Movements</span>
-                        <span className="font-mono font-semibold tabular-nums text-secondary">+{formatMoney(results.cash_position.matched_ledger_movements)}</span>
+                        <span className="font-mono font-semibold tabular-nums text-chart-2">+{formatMoney(results.cash_position.matched_ledger_movements)}</span>
                       </div>
                     </div>
                   </div>
                 </div>
 
-                <div className="mt-4 flex flex-col gap-2 rounded-xl border border-border bg-muted/50 px-4 py-2.5 text-xs sm:flex-row sm:items-center sm:justify-between">
-                  <span className="font-semibold text-foreground">Exposure by Source:</span>
+                <div className="mt-3.5 flex flex-col gap-2 rounded-lg border border-border bg-muted/20 px-3.5 py-2 text-xs sm:flex-row sm:items-center sm:justify-between">
+                  <span className="font-semibold text-muted-foreground">Exposure by Source:</span>
                   <div className="flex flex-wrap items-center gap-x-5 gap-y-1">
-                    <span className="text-muted-foreground">Bank <strong className="font-mono font-semibold tabular-nums text-foreground">{formatMoney(results.cash_position.exception_exposure_by_source?.bank || 0)}</strong></span>
-                    <span className="text-muted-foreground">Ledger <strong className="font-mono font-semibold tabular-nums text-foreground">{formatMoney(results.cash_position.exception_exposure_by_source?.ledger || 0)}</strong></span>
-                    <span className="text-muted-foreground">Invoices <strong className="font-mono font-semibold tabular-nums text-foreground">{formatMoney(results.cash_position.exception_exposure_by_source?.invoice || 0)}</strong></span>
+                    <span className="text-muted-foreground">Bank <strong className="font-mono font-semibold tabular-nums text-card-foreground">{formatMoney(results.cash_position.exception_exposure_by_source?.bank || 0)}</strong></span>
+                    <span className="text-muted-foreground">Ledger <strong className="font-mono font-semibold tabular-nums text-card-foreground">{formatMoney(results.cash_position.exception_exposure_by_source?.ledger || 0)}</strong></span>
+                    <span className="text-muted-foreground">Invoices <strong className="font-mono font-semibold tabular-nums text-card-foreground">{formatMoney(results.cash_position.exception_exposure_by_source?.invoice || 0)}</strong></span>
                   </div>
                 </div>
               </div>
 
               {/* Resolution Breakdown */}
-              <div className={cx(surface, 'flex flex-col justify-between p-5 sm:p-6')}>
+              <div className={cx(surface, 'flex flex-col justify-between p-4 sm:p-5')}>
                 <div>
-                  <h3 className="text-sm font-bold text-foreground">Resolution Breakdown</h3>
-                  <p className="text-xs text-muted-foreground">Distribution across matching tiers</p>
+                  <h3 className="text-xs font-bold uppercase tracking-wider text-card-foreground">Resolution Breakdown</h3>
+                  <p className="text-[11px] text-muted-foreground">Distribution across matching tiers</p>
 
-                  <div className="mt-5 space-y-4">
+                  <div className="mt-4 space-y-3">
                     {[
-                      { label: 'Tier 1 · Exact & Roundoff', value: results.metrics.method_counts.exact, color: 'bg-secondary', text: 'text-secondary' },
-                      { label: 'Tier 2 · Fuzzy Match', value: results.metrics.method_counts.fuzzy, color: 'bg-chart-2', text: 'text-chart-2' },
-                      { label: 'Tier 3 · AI Reasoner', value: results.metrics.method_counts.llm, color: 'bg-primary', text: 'text-primary' },
+                      { label: 'Tier 1 · Exact & Roundoff', value: results.metrics.method_counts.exact, color: 'bg-chart-2', text: 'text-chart-2' },
+                      { label: 'Tier 2 · Fuzzy Match', value: results.metrics.method_counts.fuzzy, color: 'bg-primary', text: 'text-primary' },
+                      { label: 'Tier 3 · AI Reasoner', value: results.metrics.method_counts.llm, color: 'bg-muted-foreground', text: 'text-card-foreground' },
                       { label: 'Exceptions Queue', value: results.exceptions.length, color: 'bg-destructive', text: 'text-destructive' },
                     ].map((r) => {
                       const pct = results.total_records ? (r.value / results.total_records) * 100 : 0;
                       return (
                         <div key={r.label}>
-                          <div className="mb-1.5 flex justify-between text-xs font-semibold">
+                          <div className="mb-1 flex justify-between text-xs font-semibold">
                             <span className={r.text}>{r.label}</span>
-                            <span className="font-mono tabular-nums text-foreground">{r.value}</span>
+                            <span className="font-mono tabular-nums text-card-foreground">{r.value}</span>
                           </div>
-                          <div className="h-2 overflow-hidden rounded-full bg-muted">
+                          <div className="h-1.5 overflow-hidden rounded-full bg-muted">
                             <div className={cx('h-full rounded-full transition-all duration-700', r.color)} style={{ width: `${Math.max(pct, r.value ? 3 : 0)}%` }} />
                           </div>
                         </div>
@@ -1459,8 +1432,8 @@ export default function App() {
                   </div>
                 </div>
 
-                <div className="mt-5 flex items-center justify-between border-t border-border pt-3 text-xs">
-                  <span className="font-medium text-muted-foreground">{results.total_records} Total Records Audited</span>
+                <div className="mt-4 flex items-center justify-between border-t border-border pt-3 text-xs">
+                  <span className="font-medium text-muted-foreground">{results.total_records} Total Records</span>
                   <button type="button" onClick={() => setActiveTab('exceptions')} className="inline-flex items-center gap-1 font-semibold text-primary hover:underline">
                     View exceptions ({results.exceptions?.length || 0}) <ChevronRight className="h-3.5 w-3.5" />
                   </button>
@@ -1470,26 +1443,26 @@ export default function App() {
 
             {/* 30 / 60 / 90-Day Forward Cash Runway Forecaster */}
             {results.cash_position?.forward_cash_forecast && (
-              <div className={cx(surface, "p-5 sm:p-6 space-y-5")}>
-                <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border pb-4">
-                  <div className="flex items-center gap-3">
-                    <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-chart-1/15 text-chart-1 ring-1 ring-chart-1/30">
-                      <TrendingUp className="h-4.5 w-4.5" />
+              <div className={cx(surface, "p-4 sm:p-5 space-y-4")}>
+                <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border pb-3.5">
+                  <div className="flex items-center gap-2.5">
+                    <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-chart-2/15 text-chart-2 ring-1 ring-chart-2/30">
+                      <TrendingUp className="h-4 w-4" />
                     </div>
                     <div>
-                      <h3 className="text-sm font-bold text-foreground">30 / 60 / 90-Day Forward Cash Runway Forecaster</h3>
-                      <p className="text-xs text-muted-foreground">Reconciled liquidity + open receivables (AR) & payables (AP) aging model</p>
+                      <h3 className="text-xs font-bold uppercase tracking-wider text-card-foreground">30 / 60 / 90-Day Forward Cash Runway Forecaster</h3>
+                      <p className="text-[11px] text-muted-foreground">Reconciled liquidity + open receivables (AR) & payables (AP) aging model</p>
                     </div>
                   </div>
                   <div className="flex flex-wrap items-center gap-2">
-                    <span className="rounded-full border border-secondary/30 bg-secondary/15 px-3 py-1 text-xs font-bold text-secondary">
+                    <span className="rounded-full border border-chart-2/30 bg-chart-2/15 px-3 py-1 text-xs font-bold text-chart-2">
                       Runway: {results.cash_position.forward_cash_forecast.runway_status}
                     </span>
                     <span className={cx(
                       "rounded-full border px-3 py-1 text-xs font-bold",
                       results.cash_position.forward_cash_forecast.net_monthly_delta >= 0
-                        ? "border-chart-1/30 bg-chart-1/15 text-chart-1"
-                        : "border-border bg-muted text-foreground/80"
+                        ? "border-chart-2/30 bg-chart-2/15 text-chart-2"
+                        : "border-border bg-muted text-muted-foreground"
                     )}>
                       {results.cash_position.forward_cash_forecast.net_monthly_delta >= 0 ? "+" : ""}
                       {formatHeadlineMoney(results.cash_position.forward_cash_forecast.net_monthly_delta)} / mo
@@ -1501,31 +1474,32 @@ export default function App() {
                 <RunwayForecasterChart
                   timeline={results.cash_position.forward_cash_forecast.timeline}
                   formatHeadlineMoney={formatHeadlineMoney}
+                  formatMoney={formatMoney}
                 />
 
                 {/* 4 Trajectory Milestone Cards */}
-                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+                <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
                   {results.cash_position.forward_cash_forecast.timeline.map((pt, i) => (
-                    <div key={i} className="relative overflow-hidden rounded-xl border border-border bg-muted/30 p-4 transition-all duration-150 hover:bg-muted/45">
+                    <div key={i} className="relative overflow-hidden rounded-lg border border-border bg-muted/30 p-4 transition-all duration-150 hover:bg-muted/50">
                       <div className="flex items-center justify-between text-xs text-muted-foreground">
-                        <span className="font-bold uppercase tracking-wider text-foreground/80 dark:text-slate-200">{pt.label}</span>
-                        <span className="rounded bg-muted px-1.5 py-0.5 font-mono text-[10px] font-bold">T+{pt.days}d</span>
+                        <span className="font-bold uppercase tracking-wider text-[11px] text-muted-foreground">{pt.label}</span>
+                        <span className="rounded bg-muted px-1.5 py-0.5 font-mono text-[10px] font-bold text-muted-foreground">T+{pt.days}d</span>
                       </div>
-                      <p className="mt-2.5 font-mono text-xl font-bold tracking-tight tabular-nums text-foreground">{formatHeadlineMoney(pt.cash)}</p>
+                      <p className="mt-2 font-mono text-2xl font-bold tracking-tight tabular-nums text-card-foreground">{formatHeadlineMoney(pt.cash)}</p>
                       
                       {pt.days === 0 ? (
-                        <div className="mt-3 space-y-1.5 border-t border-border/80 pt-2 text-xs">
+                        <div className="mt-3 space-y-1.5 border-t border-border pt-2 text-xs">
                           <div className="flex justify-between text-muted-foreground">
                             <span>Expected Inflows</span>
-                            <span className="font-mono text-muted-foreground/80">— (Baseline)</span>
+                            <span className="font-mono text-muted-foreground">— (Baseline)</span>
                           </div>
                           <div className="flex justify-between text-muted-foreground">
                             <span>Expected Outflows</span>
-                            <span className="font-mono text-muted-foreground/80">— (Baseline)</span>
+                            <span className="font-mono text-muted-foreground">— (Baseline)</span>
                           </div>
-                          <div className="border-t border-border/40 pt-1.5">
-                            <p className="text-[11px] font-medium text-secondary">
-                              Reconciled starting cash baseline
+                          <div className="border-t border-border/60 pt-1.5">
+                            <p className="text-[11px] font-medium text-chart-2">
+                              Starting cash baseline
                             </p>
                             <p className="text-[10px] text-muted-foreground">
                               No forward movements due today
@@ -1533,18 +1507,18 @@ export default function App() {
                           </div>
                         </div>
                       ) : (
-                        <div className="mt-3 space-y-1 border-t border-border/80 pt-2 text-xs">
+                        <div className="mt-3 space-y-1 border-t border-border pt-2 text-xs">
                           <div className="flex justify-between text-muted-foreground">
                             <span>Expected Inflows</span>
-                            <span className="font-mono font-semibold tabular-nums text-secondary">+{formatMoney(pt.inflows)}</span>
+                            <span className="font-mono font-semibold tabular-nums text-chart-2">+{formatMoney(pt.inflows)}</span>
                           </div>
                           <div className="flex justify-between text-muted-foreground">
                             <span>Expected Outflows</span>
-                            <span className="font-mono font-semibold tabular-nums text-foreground/80">-{formatMoney(pt.outflows)}</span>
+                            <span className="font-mono font-semibold tabular-nums text-muted-foreground">-{formatMoney(pt.outflows)}</span>
                           </div>
-                          <div className="flex justify-between font-bold border-t border-border/40 pt-1">
+                          <div className="flex justify-between font-bold border-t border-border/60 pt-1">
                             <span className="text-muted-foreground">Net Delta</span>
-                            <span className={cx("font-mono tabular-nums", pt.net >= 0 ? "text-secondary" : "text-foreground")}>
+                            <span className={cx("font-mono tabular-nums", pt.net >= 0 ? "text-chart-2" : "text-card-foreground")}>
                               {pt.net >= 0 ? `+${formatMoney(pt.net)}` : formatMoney(pt.net)}
                             </span>
                           </div>
@@ -1555,49 +1529,49 @@ export default function App() {
                 </div>
 
                 {/* Aging Pipeline Breakdown */}
-                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                  <div className="rounded-xl border border-border bg-card p-4">
+                <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                  <div className="rounded-lg border border-border bg-card p-4">
                     <div className="flex items-center justify-between border-b border-border pb-2.5">
-                      <span className="text-xs font-bold text-foreground/90">Receivables Pipeline (AR)</span>
-                      <span className="font-mono text-xs font-bold text-secondary">
+                      <span className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Receivables Pipeline (AR)</span>
+                      <span className="font-mono text-xs font-bold text-chart-2">
                         {formatHeadlineMoney(results.cash_position.forward_cash_forecast.total_receivables_pipeline)}
                       </span>
                     </div>
                     <div className="mt-3 grid grid-cols-3 gap-2 text-center text-xs">
-                      <div className="rounded-lg bg-muted/50 p-2.5 border border-border/60">
+                      <div className="rounded-lg bg-muted/40 p-2.5 border border-border">
                         <p className="text-[10px] font-bold uppercase text-muted-foreground">0-30 Days</p>
-                        <p className="mt-1 font-mono font-bold tabular-nums text-foreground">{formatHeadlineMoney(results.cash_position.forward_cash_forecast.receivables_aging.d0_30)}</p>
+                        <p className="mt-1 font-mono font-bold tabular-nums text-card-foreground">{formatHeadlineMoney(results.cash_position.forward_cash_forecast.receivables_aging.d0_30)}</p>
                       </div>
-                      <div className="rounded-lg bg-muted/50 p-2.5 border border-border/60">
+                      <div className="rounded-lg bg-muted/40 p-2.5 border border-border">
                         <p className="text-[10px] font-bold uppercase text-muted-foreground">31-60 Days</p>
-                        <p className="mt-1 font-mono font-bold tabular-nums text-foreground">{formatHeadlineMoney(results.cash_position.forward_cash_forecast.receivables_aging.d31_60)}</p>
+                        <p className="mt-1 font-mono font-bold tabular-nums text-card-foreground">{formatHeadlineMoney(results.cash_position.forward_cash_forecast.receivables_aging.d31_60)}</p>
                       </div>
-                      <div className="rounded-lg bg-muted/50 p-2.5 border border-border/60">
+                      <div className="rounded-lg bg-muted/40 p-2.5 border border-border">
                         <p className="text-[10px] font-bold uppercase text-muted-foreground">61-90+ Days</p>
-                        <p className="mt-1 font-mono font-bold tabular-nums text-foreground">{formatHeadlineMoney(results.cash_position.forward_cash_forecast.receivables_aging.d61_90 + results.cash_position.forward_cash_forecast.receivables_aging.d90_plus)}</p>
+                        <p className="mt-1 font-mono font-bold tabular-nums text-card-foreground">{formatHeadlineMoney(results.cash_position.forward_cash_forecast.receivables_aging.d61_90 + results.cash_position.forward_cash_forecast.receivables_aging.d90_plus)}</p>
                       </div>
                     </div>
                   </div>
 
-                  <div className="rounded-xl border border-border bg-card p-4">
+                  <div className="rounded-lg border border-border bg-card p-4">
                     <div className="flex items-center justify-between border-b border-border pb-2.5">
-                      <span className="text-xs font-bold text-foreground/90">Payables Pipeline (AP)</span>
-                      <span className="font-mono text-xs font-bold text-foreground">
+                      <span className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Payables Pipeline (AP)</span>
+                      <span className="font-mono text-xs font-bold text-card-foreground">
                         {formatHeadlineMoney(results.cash_position.forward_cash_forecast.total_payables_pipeline)}
                       </span>
                     </div>
                     <div className="mt-3 grid grid-cols-3 gap-2 text-center text-xs">
-                      <div className="rounded-lg bg-muted/50 p-2.5 border border-border/60">
+                      <div className="rounded-lg bg-muted/40 p-2.5 border border-border">
                         <p className="text-[10px] font-bold uppercase text-muted-foreground">0-30 Days</p>
-                        <p className="mt-1 font-mono font-bold tabular-nums text-foreground">{formatHeadlineMoney(results.cash_position.forward_cash_forecast.payables_aging.d0_30)}</p>
+                        <p className="mt-1 font-mono font-bold tabular-nums text-card-foreground">{formatHeadlineMoney(results.cash_position.forward_cash_forecast.payables_aging.d0_30)}</p>
                       </div>
-                      <div className="rounded-lg bg-muted/50 p-2.5 border border-border/60">
+                      <div className="rounded-lg bg-muted/40 p-2.5 border border-border">
                         <p className="text-[10px] font-bold uppercase text-muted-foreground">31-60 Days</p>
-                        <p className="mt-1 font-mono font-bold tabular-nums text-foreground">{formatHeadlineMoney(results.cash_position.forward_cash_forecast.payables_aging.d31_60)}</p>
+                        <p className="mt-1 font-mono font-bold tabular-nums text-card-foreground">{formatHeadlineMoney(results.cash_position.forward_cash_forecast.payables_aging.d31_60)}</p>
                       </div>
-                      <div className="rounded-lg bg-muted/50 p-2.5 border border-border/60">
+                      <div className="rounded-lg bg-muted/40 p-2.5 border border-border">
                         <p className="text-[10px] font-bold uppercase text-muted-foreground">61-90+ Days</p>
-                        <p className="mt-1 font-mono font-bold tabular-nums text-foreground">{formatHeadlineMoney(results.cash_position.forward_cash_forecast.payables_aging.d61_90 + results.cash_position.forward_cash_forecast.payables_aging.d90_plus)}</p>
+                        <p className="mt-1 font-mono font-bold tabular-nums text-card-foreground">{formatHeadlineMoney(results.cash_position.forward_cash_forecast.payables_aging.d61_90 + results.cash_position.forward_cash_forecast.payables_aging.d90_plus)}</p>
                       </div>
                     </div>
                   </div>

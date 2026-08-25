@@ -58,8 +58,8 @@ MatchMind follows a **Tiered Agentic Architecture** governed by policy controls,
                                               ▼
                   ┌────────────────────────────────────────────────────────┐
                   │      FULL-STACK DASHBOARD & ERP EXPORT INTERFACE       │
-                  │  • FastAPI Backend + React 18 / Tailwind CSS UI        │
-                  │  • Light / Dark Theme Support                          │
+                  │  • FastAPI Backend + React 19 / Tailwind CSS UI        │
+                  │  • High-Contrast Dark Mode Design Token System         │
                   │  • Human Review Triage & Audit Trail Persistence       │
                   └────────────────────────────────────────────────────────┘
 ```
@@ -147,7 +147,7 @@ Reconciliation is the foundational data layer for cash management. Once records 
                       ▼
 5. Full-Stack Presentation:
    - FastAPI `/api/reconcile` and `/api/status` endpoints
-   - Interactive React UI: 3-Way Grid, Trajectory Cards, Light/Dark Theme
+   - Interactive React UI: 3-Way Grid, Trajectory Cards, Semantic Token System
 ```
 
 ---
