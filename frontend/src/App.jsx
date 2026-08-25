@@ -199,7 +199,7 @@ function RunwayForecasterChart({ timeline, formatHeadlineMoney }) {
 
           {/* Milestone markers and values */}
           {points.map((p, i) => (
-            <g key={i} className="group">
+            <g key={i} className="group pointer-events-none select-none">
               {/* Vertical guideline */}
               <line
                 x1={p.x}
@@ -226,7 +226,7 @@ function RunwayForecasterChart({ timeline, formatHeadlineMoney }) {
                 x={p.x}
                 y={Math.max(14, p.y - 8)}
                 textAnchor="middle"
-                className="fill-foreground text-[11px] font-bold font-mono"
+                className="fill-foreground text-[11px] font-bold font-mono select-none pointer-events-none"
               >
                 {formatHeadlineMoney(p.cash)}
               </text>
@@ -236,7 +236,7 @@ function RunwayForecasterChart({ timeline, formatHeadlineMoney }) {
                 x={p.x}
                 y={height - 10}
                 textAnchor="middle"
-                className="fill-muted-foreground text-[10px] font-bold uppercase tracking-wider"
+                className="fill-muted-foreground text-[10px] font-bold uppercase tracking-wider select-none pointer-events-none"
               >
                 {p.label}
               </text>
@@ -1458,7 +1458,7 @@ export default function App() {
                 {/* 4 Trajectory Milestone Cards */}
                 <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
                   {results.cash_position.forward_cash_forecast.timeline.map((pt, i) => (
-                    <div key={i} className="group relative overflow-hidden rounded-xl border border-border bg-muted/30 p-4 transition-all duration-200 hover:border-primary/40 hover:bg-card">
+                    <div key={i} className="relative overflow-hidden rounded-xl border border-border bg-muted/30 p-4 transition-all duration-150 hover:bg-muted/45">
                       <div className="flex items-center justify-between text-xs text-muted-foreground">
                         <span className="font-bold uppercase tracking-wider text-foreground/80 dark:text-slate-200">{pt.label}</span>
                         <span className="rounded bg-muted px-1.5 py-0.5 font-mono text-[10px] font-bold">T+{pt.days}d</span>
