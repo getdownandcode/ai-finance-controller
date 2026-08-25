@@ -6,15 +6,9 @@
     "ledger": 2500000.0
   },
   "counts": {
-    "bank": 30,
-    "ledger": 30,
-    "invoice": 20,
-    "total": 80
-  },
-  "case_distribution": {
-    "clean_groups": 18,
-    "fuzzy_groups": 8,
-    "ambiguous_groups": 3,
-    "orphan_singletons": 3
+    "bank": 27,
+    "ledger": 25,
+    "invoice": 19,
+    "total": 71
   }
 }

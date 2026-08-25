@@ -1,11 +1,14 @@
 #!/usr/bin/env python3
 """Synthetic data generator with built-in ground truth (Indian Fintech / Razorpay Edition).
 
-Distribution (29 matched groups + 3 orphan singletons = 80 records):
-  clean exact-match groups .... 18  (~60% of records)
-  fuzzy-match groups ..........  8  (~25%)
-  ambiguous groups ............  3  (~10%)  -> fee-netting, nickname, hard duplicate
-  true orphans ................  3  (~5%)   -> unidentified wire, double-post, open invoice
+Distribution:
+  - Clean exact-match groups
+  - Credit Note / Return adjustments (Sales returns net of invoices)
+  - Precision Paisa Round-off pairs (±₹0.01 to ₹0.99 GST rounding)
+  - Phantom Net-Zero UPI Reversals (Self-balancing failed payments)
+  - Fuzzy-match groups (Razorpay MDR 2.36%, Route, TDS 194C/J)
+  - Ambiguous groups (Smart Collect VAN, UPI handles, twin duplicates)
+  - Duplicate UTR collisions & True orphans
 
 Currency: INR (₹)
 Ecosystem: Razorpay Settlements, Smart Collect, Route, UPI, IMPS, NEFT, RTGS, TDS, GST.
@@ -46,6 +49,7 @@ class Builder:
         self.gt: list[dict] = []
         self.inv_counter = 1000
         self.exp_counter = 2000
+        self.cn_counter = 5000
         self.group_counter = 0
         self.first_clean_triple: dict | None = None
 
@@ -57,6 +61,10 @@ class Builder:
     def next_exp(self) -> str:
         self.exp_counter += 1
         return f"EXP-{self.exp_counter}"
+
+    def next_cn(self) -> str:
+        self.cn_counter += 1
+        return f"CN-{self.cn_counter}"
 
     def new_group(self) -> str:
         self.group_counter += 1
@@ -106,6 +114,55 @@ class Builder:
         if self.first_clean_triple is None:
             self.first_clean_triple = dict(date=self.d(off), amount=amt, ref=inv,
                                            num=inv.split("-")[1], ledger_id=l)
+
+    # 1. Credit Notes / Debit Notes (Sales Returns & Adjustments)
+    def credit_note_triple(self):
+        gid, rng = self.new_group(), self.rng
+        inv, cn = self.next_inv(), self.next_cn()
+        gross_amt = money(rng.uniform(75000, 150000))
+        return_amt = money(rng.uniform(5000, 15000))
+        net_amt = money(gross_amt - return_amt)
+        vendor = rng.choice(VENDORS)
+        off = rng.randint(0, 5)
+
+        # Invoice + Credit Note in Invoice table
+        i1 = self.add_invoice(self.d(off - 2), gross_amt, vendor, "paid", inv)
+        i2 = self.add_invoice(self.d(off - 1), -return_amt, vendor, "paid", f"{inv},{cn}")
+        l = self.add_ledger(self.d(off), net_amt, inv, f"Net settlement of {inv} after credit note {cn}")
+        b = self.add_bank(self.d(off), net_amt, inv, f"RAZORPAY SETTLEMENT {inv} NET OF RETURN")
+        note = f"Credit note adjustment: {inv} (₹{gross_amt}) adjusted by {cn} (-₹{return_amt}) settled at ₹{net_amt}"
+        for rid, src in ((b, "bank"), (l, "ledger"), (i1, "invoice"), (i2, "invoice")):
+            self.gt_row(gid, rid, src, "matched", note)
+
+    # 2. Precision Paisa Round-Off Rule (±₹0.01 to ₹0.99 GST rounding)
+    def roundoff_paisa_pair(self):
+        gid, rng = self.new_group(), self.rng
+        inv = self.next_inv()
+        base_amt = money(rng.uniform(35000, 85000))
+        roundoff_diff = round(rng.uniform(0.15, 0.75), 2)
+        inv_amt = money(base_amt + roundoff_diff)
+        bank_amt = money(base_amt)  # Rounded to integer
+        vendor = rng.choice(VENDORS)
+        off = rng.randint(0, 5)
+
+        i = self.add_invoice(self.d(off - 1), inv_amt, vendor, "paid", inv)
+        l = self.add_ledger(self.d(off), inv_amt, inv, f"Invoice {inv} GST booked")
+        b = self.add_bank(self.d(off), bank_amt, inv, f"UPI/HDFC/{inv} ROUNDED SETTLEMENT")
+        note = f"Precision paisa round-off: invoice ₹{inv_amt} vs bank ₹{bank_amt} (diff: ₹{roundoff_diff})"
+        for rid, src in ((b, "bank"), (l, "ledger"), (i, "invoice")):
+            self.gt_row(gid, rid, src, "matched", note)
+
+    # 3. Phantom Net-Zero / Failed UPI Auto-Reversals
+    def phantom_failed_upi_pair(self):
+        gid, rng = self.new_group(), self.rng
+        amt = money(rng.uniform(2500, 7500))
+        off = rng.randint(1, 5)
+        ref = f"UPI-FAIL-{rng.randint(10000,99999)}"
+        b1 = self.add_bank(self.d(off), -amt, ref, f"UPI DR TO SWIGGY FAILED TXN REF {ref}")
+        b2 = self.add_bank(self.d(off), amt, ref, f"UPI CR AUTO-REVERSAL OF FAILED TXN REF {ref}")
+        note = f"Phantom net-zero reversal: auto-reversed failed UPI payment of ₹{amt}"
+        self.gt_row(gid, b1, "bank", "matched", note)
+        self.gt_row(gid, b2, "bank", "matched", note)
 
     def clean_pair_receipt(self):
         gid, rng = self.new_group(), self.rng
@@ -162,7 +219,6 @@ class Builder:
         off = rng.randint(0, 5)
         i = self.add_invoice(self.d(off - 1), amt, vendor, "paid", inv)
         l = self.add_ledger(self.d(off), amt, inv, f"Invoice {inv.split('-')[1]} settlement")
-        # 2% MDR + 18% GST on MDR = 2.36%
         b = self.add_bank(self.d(off + 3), amt * (1 - 0.0236), "",
                           f"{vendor.upper()} RAZORPAY SMART COLLECT NET")
         note = f"Ambiguous: bank amount nets 2.36% Razorpay MDR+GST vs {inv}; needs reasoning"
@@ -215,15 +271,18 @@ class Builder:
 
     # -- top level ---------------------------------------------------------
     def build(self):
-        for _ in range(11):
+        for _ in range(8):
             self.clean_triple()
-        for _ in range(4):
+        self.credit_note_triple()
+        self.roundoff_paisa_pair()
+        self.phantom_failed_upi_pair()
+        for _ in range(3):
             self.clean_pair_receipt()
-        for _ in range(3):
+        for _ in range(2):
             self.payment_pair()
-        for _ in range(5):
+        for _ in range(4):
             self.fuzzy_triple()
-        for _ in range(3):
+        for _ in range(2):
             self.fuzzy_pair()
         self.ambiguous_fee3()
         self.ambiguous_nickname()
@@ -255,15 +314,12 @@ def generate(seed: int = 42, data_dir: str = "data") -> dict:
         "counts": {"bank": len(b.bank), "ledger": len(b.ledger),
                    "invoice": len(b.invoices),
                    "total": len(b.bank) + len(b.ledger) + len(b.invoices)},
-        "case_distribution": {"clean_groups": 18, "fuzzy_groups": 8,
-                              "ambiguous_groups": 3, "orphan_singletons": 3},
     }
     (out / "batch_meta.json").write_text(json.dumps(meta, indent=2), encoding="utf-8")
 
     print(f"[generate] seed={seed}")
     print(f"[generate] bank={len(b.bank)} ledger={len(b.ledger)} "
           f"invoice={len(b.invoices)} total={meta['counts']['total']}")
-    print(f"[generate] matched groups={b.group_counter - 3} orphan singletons=3")
     print(f"[generate] wrote {out}/bank_feed.csv, ledger.csv, invoices.csv, "
           f"ground_truth.csv, batch_meta.json")
     return meta
