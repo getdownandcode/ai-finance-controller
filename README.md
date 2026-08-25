@@ -1,55 +1,74 @@
-# AI Finance Controller — Production Multi-Source Reconciliation Agent
+# 🧠 MatchMind: Autonomous AI Finance Controller & Multi-Source Reconciliation Agent
 
-An autonomous financial reconciliation system that ingests multi-source feeds (**Bank Statements**, **General Ledger**, and **Invoices**) and closes the finance-ops loop with multi-tier deterministic matching, fuzzy scoring, and Gemini AI evidence reasoning.
+> **Built for Razorpay Buildathon Hackathon**  
+> An autonomous financial reconciliation engine that ingests **Bank Feeds**, **General Ledgers**, and **Invoices/Credit Notes**, performs 3-way multi-tier reconciliation, resolves Indian payment gateway fees (Razorpay MDR & TDS), guards against duplicate collisions, and models 30/60/90-day forward cash runway.
 
----
-
-## 🚀 Deployment (Render)
-
-1. Push this repo to GitHub.
-2. Render Dashboard → **New → Web Service** → connect the repo.
-3. Runtime: **Docker** (uses the repo `Dockerfile` automatically).
-4. Environment variables:
-   - `GEMINI_API_KEY`: your Gemini API key
-   - `RECON_LLM_MODEL`: `gemini-2.5-flash`
-5. Plan: Free → **Create Web Service**.
-
-Every push to the connected branch auto-deploys. Health check path: `/api/health`.
+[![Build](https://img.shields.io/badge/build-passing-brightgreen)](https://github.com/getdownandcode/ai-finance-controller)
+[![F1-Score](https://img.shields.io/badge/F1--Score-97.64%25-blue)](https://github.com/getdownandcode/ai-finance-controller)
+[![Recall](https://img.shields.io/badge/Recall-100%25-success)](https://github.com/getdownandcode/ai-finance-controller)
+[![Currency](https://img.shields.io/badge/Ecosystem-INR%20(%E2%82%B9)%20%2F%20Razorpay-orange)](https://github.com/getdownandcode/ai-finance-controller)
 
 ---
 
-## 💻 Local Development
+## 📖 Comprehensive Documentation
+For a deep dive into system architecture, multi-tier decisioning, Indian fintech logic, cash runway modeling, and full data flow, read **[`PROJECT_DOCUMENTATION.md`](PROJECT_DOCUMENTATION.md)**.
 
-### 1. Install & Activate Environment
+---
+
+## ⚡ Core Superpowers
+
+1. **🇮🇳 Indian Fintech & Razorpay Native**:
+   - Denominated in Indian Rupees (`INR` / `₹`) with Lakhs/Crores formatting.
+   - **Razorpay Standard MDR Solver**: Accurately matches gross invoices with net bank settlements after deducting 2.0% MDR + 18% GST (2.36% total fee).
+   - **TDS Compliance**: Resolves Section 194-O (1%), Section 194C (2%), and Section 194J (10%) deductions.
+   - **Razorpay Payouts**: Detects IMPS (₹5.90) and NEFT/RTGS (₹11.80) payout fees.
+
+2. **🛡️ 5-Tier Decisioning Engine**:
+   - **Pass 0**: Phantom Net-Zero UPI & Auto-Reversal Filter (prevents fake matches on failed transactions).
+   - **Tier 1**: Deterministic Exact & Precision Paisa Round-off Rule ($\le ₹0.99$ GST rounding).
+   - **Tier 1.5**: Credit Notes & Debit Notes (aggregates sales returns into net bank payouts).
+   - **Tier 2**: Multi-Signal Fuzzy Matcher with 30-day adaptive terms window.
+   - **Tier 3**: Autonomous AI Reasoner (Gemini 2.5 Flash) with Indistinguishable Twin Collision Guard.
+
+3. **📈 30/60/90-Day Forward Cash Runway Forecaster**:
+   - 4-Step Forward Liquidity Trajectory (`Today`, `+30d`, `+60d`, `+90d`).
+   - Accounts Receivable (AR) vs Accounts Payable (AP) Aging Buckets (`0-30d`, `31-60d`, `61-90d+`).
+   - Dynamic runway calculation and monthly net burn rate monitoring.
+
+4. **🌓 Full-Stack Interactive UI**:
+   - Built with React 18, Tailwind CSS, and Lucide Icons.
+   - Full **Light & Dark Theme** toggle with persistent storage.
+   - Real-time 3-way transaction grid and exception triage queue.
+
+---
+
+## 💻 Getting Started (Local Development)
+
+### 1. Install Dependencies
 ```bash
 python3 -m venv .venv
 source .venv/bin/activate
 pip install -r requirements.txt
 ```
 
-### 2. Launch Local Web UI Server
+### 2. Launch Local Server
 ```bash
 python server.py
 ```
 Open **[http://127.0.0.1:8000](http://127.0.0.1:8000)** in your browser.
 
-Or run CLI directly:
+### 3. Run Benchmark CLI
 ```bash
-python run_agent.py --llm off
-python run_agent.py --bank-csv data/bank_feed.csv --ledger-csv data/ledger.csv --llm auto
+python run_agent.py --seed 42 --llm auto
 ```
 
 ---
 
-## 📂 Project Architecture
+## 🚀 Cloud Run / Docker Deployment
 
-```text
-├── Dockerfile                # Multi-stage build (Node.js frontend + Python backend)
-├── server.py                 # FastAPI backend + static asset host
-├── app/pipeline.py           # Shared reconciliation pipeline (used by API & CLI)
-├── config.py                 # Centralized env config
-├── agents/                   # Controller, Matching, Exception, Reporting agents
-├── tools/                    # Normalizer, Exact, Fuzzy, LLM reasoning, Cash position
-├── frontend/                 # React + Tailwind Web UI
-└── evaluation/               # Scoring & report generator
+The repo includes a production multi-stage `Dockerfile` (Vite build + FastAPI backend):
+
+```bash
+docker build -t matchmind .
+docker run -p 8000:8000 -e GEMINI_API_KEY="your_api_key" matchmind
 ```
