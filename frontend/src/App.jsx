@@ -1065,45 +1065,63 @@ export default function App() {
 
         {activeTab === 'dashboard' && results && (
           <div className="animate-fade-up space-y-6">
+            {/* Status Strip */}
             {results.agent_trace && (
-              <div className="flex flex-col gap-3 rounded-2xl border border-border bg-card px-4 py-3.5 shadow-sm sm:flex-row sm:items-center sm:justify-between sm:px-5">
-                <div className="flex min-w-0 items-center gap-3">
-                  <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-primary/20 text-primary"><Bot className="h-4 w-4" /></div>
+              <div className="flex flex-col gap-3 rounded-2xl border border-border bg-card p-4 shadow-sm sm:flex-row sm:items-center sm:justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="relative flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-secondary/15 text-secondary">
+                    <CheckCircle2 className="h-4.5 w-4.5" />
+                    <span className="absolute -top-0.5 -right-0.5 flex h-2 w-2">
+                      <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-secondary opacity-75"></span>
+                      <span className="relative inline-flex rounded-full h-2 w-2 bg-secondary"></span>
+                    </span>
+                  </div>
                   <div className="min-w-0">
-                    <p className="text-xs font-bold text-foreground">Autonomous Reconciliation · <span className={results.agent_status === 'complete' ? 'text-secondary' : results.agent_status === 'awaiting_approval' ? 'text-chart-2' : results.agent_status === 'blocked' ? 'text-destructive' : 'text-muted-foreground'}>{results.agent_status === 'complete' ? 'Completed' : results.agent_status}</span></p>
-                    <p className="mt-0.5 text-[11px] text-muted-foreground">{results.metrics?.matched_records || 0} of {results.total_records} records matched · {results.exceptions?.length || 0} exceptions cataloged</p>
+                    <p className="text-xs font-bold text-foreground">
+                      Autonomous Pipeline Complete · <span className="font-semibold text-secondary">{results.agent_status === 'complete' ? 'Reconciliation Verified' : results.agent_status}</span>
+                    </p>
+                    <p className="text-[11px] text-muted-foreground">
+                      {results.metrics?.matched_records || 0} of {results.total_records} records reconciled across 3 sources · {results.exceptions?.length || 0} exceptions cataloged
+                    </p>
                   </div>
                 </div>
-                <div className="flex flex-wrap items-center gap-2">
-                  <button type="button" onClick={() => setActiveTab('exceptions')} className={cx(btnMuted, 'h-8 px-3')}>View exceptions ({results.exceptions?.length || 0}) →</button>
-                  <button type="button" onClick={() => setActiveTab('audit')} className={cx(btnMuted, 'h-8 px-3')}>View audit log →</button>
+                <div className="flex items-center gap-2">
+                  <button type="button" onClick={() => setActiveTab('exceptions')} className={cx(btnMuted, 'h-8 px-3 text-xs')}>
+                    View Exceptions ({results.exceptions?.length || 0}) →
+                  </button>
+                  <button type="button" onClick={() => setActiveTab('clusters')} className={cx(btnPrimary, 'h-8 px-3 text-xs')}>
+                    View Reconciled Clusters →
+                  </button>
                 </div>
               </div>
             )}
 
+            {/* Pending Approvals (if any) */}
             {results.pending_approvals && results.pending_approvals.length > 0 && (
-              <div className="rounded-2xl border border-chart-2/30 bg-chart-2/5 p-5 sm:p-6">
-                <h4 className="flex items-center gap-2 text-sm font-bold text-foreground"><ShieldAlert className="h-4 w-4 text-chart-2" /> Approvals Required — Review Pending Actions</h4>
-                <p className="mt-1.5 text-xs leading-relaxed text-muted-foreground">Adjustments and high-value transactions require human sign-off before finalizing.</p>
-                <div className="mt-4 space-y-3">
+              <div className="rounded-2xl border border-chart-2/30 bg-chart-2/5 p-5">
+                <h4 className="flex items-center gap-2 text-sm font-bold text-foreground">
+                  <ShieldAlert className="h-4 w-4 text-chart-2" /> Approvals Required — Review Pending Actions
+                </h4>
+                <p className="mt-1 text-xs text-muted-foreground">Adjustments and high-value transactions require human sign-off before finalizing.</p>
+                <div className="mt-4 space-y-2.5">
                   {results.pending_approvals.map(apr => (
                     <div key={apr.id} className="rounded-xl border border-border bg-card p-4">
                       <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
                         <div className="min-w-0">
                           <p className="font-mono text-xs font-bold text-foreground">{apr.action} · <span className="text-chart-2">{apr.status}</span></p>
-                          <p className="mt-1.5 text-xs leading-relaxed text-muted-foreground">{apr.reason}</p>
-                          {apr.amount ? <p className="mt-1.5 font-mono text-xs text-foreground">amount {new Intl.NumberFormat('en-US',{style:'currency',currency:'USD'}).format(apr.amount)}</p> : null}
-                          {apr.evidence?.length ? <p className="mt-1 font-mono text-[11px] text-muted-foreground">evidence: {apr.evidence.join(', ')}</p> : null}
+                          <p className="mt-1 text-xs text-muted-foreground">{apr.reason}</p>
+                          {apr.amount ? <p className="mt-1 font-mono text-xs font-bold text-foreground">Amount: {formatMoney(apr.amount)}</p> : null}
+                          {apr.evidence?.length ? <p className="mt-1 font-mono text-[11px] text-muted-foreground">Evidence: {apr.evidence.join(', ')}</p> : null}
                         </div>
                         <div className="flex shrink-0 items-center gap-2">
                           <button type="button" onClick={async()=>{
                             const r = await authFetch(`/api/approve/${encodeURIComponent(results.batch_id)}/${encodeURIComponent(apr.id)}`,{method:'POST'});
-                            if(r.ok){ const j=await r.json(); setError(null); fetchSessions(); } else { const e=await r.json(); setError(e.detail); }
-                          }} className={cx(btnSecondary, 'h-8 px-3 font-bold')}>Approve</button>
+                            if(r.ok){ setError(null); fetchSessions(); } else { const e=await r.json(); setError(e.detail); }
+                          }} className={cx(btnSecondary, 'h-8 px-3 text-xs font-bold')}>Approve</button>
                           <button type="button" onClick={async()=>{
                             const r = await authFetch(`/api/reject/${encodeURIComponent(results.batch_id)}/${encodeURIComponent(apr.id)}`,{method:'POST'});
                             if(r.ok){ fetchSessions(); } else { const e=await r.json(); setError(e.detail); }
-                          }} className={cx(btnDanger, 'h-8 px-3 font-bold')}>Reject</button>
+                          }} className={cx(btnDanger, 'h-8 px-3 text-xs font-bold')}>Reject</button>
                         </div>
                       </div>
                     </div>
@@ -1111,158 +1129,166 @@ export default function App() {
                 </div>
               </div>
             )}
+
+            {/* 4 Hero KPI Cards */}
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
               <StatCard
-                label="Match rate"
+                label="Match Rate"
                 icon={CheckCircle2}
                 value={formatPercent(results.metrics.raw_match_rate)}
                 badge={
                   results.metrics.has_ground_truth ? (
-                    <span className="rounded-full border border-secondary/30 bg-secondary/15 px-2 py-0.5 text-[11px] font-semibold text-secondary">{formatPercent(results.metrics.validated_match_rate)} validated</span>
+                    <span className="rounded-full border border-secondary/30 bg-secondary/15 px-2 py-0.5 text-[10px] font-bold text-secondary">
+                      {formatPercent(results.metrics.validated_match_rate)} Validated
+                    </span>
                   ) : null
                 }
                 sub={`${results.metrics.matched_records} of ${results.total_records} records reconciled`}
               />
               <StatCard
-                label="Accuracy · F1"
+                label="Accuracy · F1 Score"
                 icon={TrendingUp}
                 value={results.metrics.f1 !== null ? formatPercent(results.metrics.f1) : 'N/A'}
-                badge={<span className="text-[11px] font-medium text-muted-foreground">P {results.metrics.precision !== null ? formatPercent(results.metrics.precision) : 'N/A'}</span>}
-                sub={`Recall ${results.metrics.recall !== null ? formatPercent(results.metrics.recall) : 'N/A'} · needs ground truth`}
+                badge={
+                  results.metrics.precision !== null ? (
+                    <span className="rounded-full border border-primary/30 bg-primary/10 px-2 py-0.5 text-[10px] font-bold text-primary">
+                      {formatPercent(results.metrics.recall)} Recall
+                    </span>
+                  ) : null
+                }
+                sub={`Precision ${results.metrics.precision !== null ? formatPercent(results.metrics.precision) : 'N/A'}`}
               />
               <StatCard
-                label="Exception exposure"
+                label="Exception Exposure"
                 icon={AlertCircle}
                 value={formatMoney(results.cash_position.exception_exposure_total)}
                 sub={`${results.exceptions.length} unresolved · flagged for review`}
               />
               <StatCard
-                label="Reconciled variance"
+                label="Reconciled Variance"
                 icon={DollarSign}
                 value={formatMoney(results.cash_position.reconciled_difference)}
                 sub="Bank cash vs. ledger delta"
               />
             </div>
 
+            {/* Cash Position Snapshot & Resolution Distribution */}
             <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
               <div className={cx(surface, 'p-5 sm:p-6 lg:col-span-2')}>
-                <div className="flex flex-wrap items-start justify-between gap-3 border-b border-border pb-4">
-                  <div className="flex items-start gap-3">
-                    <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary/15 text-primary ring-1 ring-primary/30">
-                      <DollarSign className="h-4 w-4" />
+                <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border pb-4">
+                  <div className="flex items-center gap-3">
+                    <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-primary/15 text-primary ring-1 ring-primary/30">
+                      <DollarSign className="h-4.5 w-4.5" />
                     </div>
                     <div>
-                      <h3 className="text-sm font-bold text-foreground">Cash-position snapshot</h3>
-                      <p className="mt-0.5 text-xs text-muted-foreground">Live bank vs. ledger liquidity</p>
+                      <h3 className="text-sm font-bold text-foreground">Cash-Position Snapshot</h3>
+                      <p className="text-xs text-muted-foreground">Live bank vs. general ledger liquidity</p>
                     </div>
                   </div>
-                  <span className="rounded-full border border-secondary/30 bg-secondary/15 px-2.5 py-1 text-[11px] font-semibold text-secondary">Reconciled</span>
+                  <span className="rounded-full border border-secondary/30 bg-secondary/15 px-3 py-0.5 text-xs font-bold text-secondary">
+                    Reconciled
+                  </span>
                 </div>
 
                 <div className="mt-5 grid grid-cols-1 gap-4 sm:grid-cols-2">
                   <div className="rounded-xl border border-border bg-muted/40 p-4">
-                    <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">Confirmed bank cash</p>
-                    <p className="mt-2.5 text-2xl font-bold tracking-tight tabular-nums text-foreground">{formatMoney(results.cash_position.confirmed_bank_cash)}</p>
-                    <div className="mt-4 space-y-2 text-xs">
-                      <div className="flex justify-between gap-3 text-muted-foreground"><span>Opening balance</span><span className="font-semibold tabular-nums text-foreground">{formatMoney(results.cash_position.bank_opening)}</span></div>
-                      <div className="flex justify-between gap-3 text-muted-foreground"><span>Matched movements</span><span className="font-semibold tabular-nums text-secondary">+{formatMoney(results.cash_position.matched_bank_movements)}</span></div>
+                    <span className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">Confirmed Bank Cash</span>
+                    <p className="mt-2 text-2xl font-bold font-mono tracking-tight tabular-nums text-foreground">{formatMoney(results.cash_position.confirmed_bank_cash)}</p>
+                    <div className="mt-3.5 space-y-1.5 border-t border-border/80 pt-2.5 text-xs">
+                      <div className="flex justify-between text-muted-foreground">
+                        <span>Opening Balance</span>
+                        <span className="font-mono font-semibold tabular-nums text-foreground">{formatMoney(results.cash_position.bank_opening)}</span>
+                      </div>
+                      <div className="flex justify-between text-muted-foreground">
+                        <span>Matched Movements</span>
+                        <span className="font-mono font-semibold tabular-nums text-secondary">+{formatMoney(results.cash_position.matched_bank_movements)}</span>
+                      </div>
                     </div>
                   </div>
+
                   <div className="rounded-xl border border-border bg-muted/40 p-4">
-                    <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">Confirmed ledger cash</p>
-                    <p className="mt-2.5 text-2xl font-bold tracking-tight tabular-nums text-foreground">{formatMoney(results.cash_position.confirmed_ledger_cash)}</p>
-                    <div className="mt-4 space-y-2 text-xs">
-                      <div className="flex justify-between gap-3 text-muted-foreground"><span>Opening balance</span><span className="font-semibold tabular-nums text-foreground">{formatMoney(results.cash_position.ledger_opening)}</span></div>
-                      <div className="flex justify-between gap-3 text-muted-foreground"><span>Matched movements</span><span className="font-semibold tabular-nums text-secondary">+{formatMoney(results.cash_position.matched_ledger_movements)}</span></div>
+                    <span className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">Confirmed Ledger Cash</span>
+                    <p className="mt-2 text-2xl font-bold font-mono tracking-tight tabular-nums text-foreground">{formatMoney(results.cash_position.confirmed_ledger_cash)}</p>
+                    <div className="mt-3.5 space-y-1.5 border-t border-border/80 pt-2.5 text-xs">
+                      <div className="flex justify-between text-muted-foreground">
+                        <span>Opening Balance</span>
+                        <span className="font-mono font-semibold tabular-nums text-foreground">{formatMoney(results.cash_position.ledger_opening)}</span>
+                      </div>
+                      <div className="flex justify-between text-muted-foreground">
+                        <span>Matched Movements</span>
+                        <span className="font-mono font-semibold tabular-nums text-secondary">+{formatMoney(results.cash_position.matched_ledger_movements)}</span>
+                      </div>
                     </div>
                   </div>
                 </div>
 
-                <div className="mt-5 flex flex-col gap-2 rounded-xl border border-border bg-muted/60 px-4 py-3 text-xs sm:flex-row sm:items-center sm:justify-between sm:gap-3">
-                  <span className="font-semibold text-foreground">Exposure by source</span>
-                  <div className="flex flex-wrap gap-x-4 gap-y-1.5">
-                    <span className="text-muted-foreground">Bank <strong className="font-bold tabular-nums text-destructive">{formatMoney(results.cash_position.exception_exposure_by_source?.bank || 0)}</strong></span>
-                    <span className="text-muted-foreground">Ledger <strong className="font-bold tabular-nums text-destructive">{formatMoney(results.cash_position.exception_exposure_by_source?.ledger || 0)}</strong></span>
-                    <span className="text-muted-foreground">Invoices <strong className="font-bold tabular-nums text-destructive">{formatMoney(results.cash_position.exception_exposure_by_source?.invoice || 0)}</strong></span>
+                <div className="mt-4 flex flex-col gap-2 rounded-xl border border-border bg-muted/50 px-4 py-2.5 text-xs sm:flex-row sm:items-center sm:justify-between">
+                  <span className="font-semibold text-foreground">Exposure by Source:</span>
+                  <div className="flex flex-wrap items-center gap-x-5 gap-y-1">
+                    <span className="text-muted-foreground">Bank <strong className="font-mono font-bold tabular-nums text-destructive">{formatMoney(results.cash_position.exception_exposure_by_source?.bank || 0)}</strong></span>
+                    <span className="text-muted-foreground">Ledger <strong className="font-mono font-bold tabular-nums text-destructive">{formatMoney(results.cash_position.exception_exposure_by_source?.ledger || 0)}</strong></span>
+                    <span className="text-muted-foreground">Invoices <strong className="font-mono font-bold tabular-nums text-destructive">{formatMoney(results.cash_position.exception_exposure_by_source?.invoice || 0)}</strong></span>
                   </div>
                 </div>
-
-                {results.cash_position?.accounts_breakdown?.length > 0 && (
-                  <div className="mt-5 rounded-xl border border-border bg-muted/20 p-4">
-                    <p className="mb-3 flex flex-wrap items-center justify-between gap-2 text-xs font-bold text-foreground">
-                      <span>Multi-Account Cash Breakdown</span>
-                      <span className="text-[11px] font-normal text-muted-foreground">{results.cash_position.accounts_breakdown.length} accounts configured</span>
-                    </p>
-                    <div className="space-y-2">
-                      {results.cash_position.accounts_breakdown.map((acc, i) => (
-                        <div key={i} className="flex flex-col gap-2 rounded-lg border border-border bg-card px-3.5 py-2.5 text-xs sm:flex-row sm:items-center sm:justify-between">
-                          <div className="flex min-w-0 items-center gap-2">
-                            <span className="rounded border border-primary/20 bg-primary/10 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-primary">{acc.category}</span>
-                            <span className="truncate font-bold text-foreground">{acc.account_name}</span>
-                          </div>
-                          <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs">
-                            <span className="text-muted-foreground">Opening: <strong className="font-semibold tabular-nums text-foreground">{formatMoney(acc.opening_balance)}</strong></span>
-                            <span className="text-muted-foreground">Movements: <strong className={acc.movements >= 0 ? 'font-semibold tabular-nums text-secondary' : 'font-semibold tabular-nums text-destructive'}>{acc.movements >= 0 ? `+${formatMoney(acc.movements)}` : formatMoney(acc.movements)}</strong></span>
-                            <span className="text-muted-foreground">Confirmed: <strong className="font-bold tabular-nums text-foreground">{formatMoney(acc.confirmed_balance)}</strong></span>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                )}
               </div>
 
+              {/* Resolution Breakdown */}
               <div className={cx(surface, 'flex flex-col justify-between p-5 sm:p-6')}>
                 <div>
-                  <h3 className="text-sm font-bold text-foreground">Resolution breakdown</h3>
-                  <p className="mt-0.5 text-xs text-muted-foreground">Distribution across tiers</p>
-                  <div className="mt-6 space-y-5">
+                  <h3 className="text-sm font-bold text-foreground">Resolution Breakdown</h3>
+                  <p className="text-xs text-muted-foreground">Distribution across matching tiers</p>
+
+                  <div className="mt-5 space-y-4">
                     {[
-                      { label: 'Tier 1 · Exact', value: results.metrics.method_counts.exact, color: 'bg-secondary', text: 'text-secondary' },
-                      { label: 'Tier 2 · Fuzzy', value: results.metrics.method_counts.fuzzy, color: 'bg-chart-2', text: 'text-chart-2' },
-                      { label: 'Tier 3 · AI', value: results.metrics.method_counts.llm, color: 'bg-primary', text: 'text-primary' },
-                      { label: 'Exceptions', value: results.exceptions.length, color: 'bg-destructive', text: 'text-destructive' },
+                      { label: 'Tier 1 · Exact & Roundoff', value: results.metrics.method_counts.exact, color: 'bg-secondary', text: 'text-secondary' },
+                      { label: 'Tier 2 · Fuzzy Match', value: results.metrics.method_counts.fuzzy, color: 'bg-chart-2', text: 'text-chart-2' },
+                      { label: 'Tier 3 · AI Reasoner', value: results.metrics.method_counts.llm, color: 'bg-primary', text: 'text-primary' },
+                      { label: 'Exceptions Queue', value: results.exceptions.length, color: 'bg-destructive', text: 'text-destructive' },
                     ].map((r) => {
                       const pct = results.total_records ? (r.value / results.total_records) * 100 : 0;
                       return (
                         <div key={r.label}>
-                          <div className="mb-2 flex justify-between text-xs font-semibold"><span className={r.text}>{r.label}</span><span className="tabular-nums text-foreground">{r.value}</span></div>
-                          <div className="h-2.5 overflow-hidden rounded-full bg-muted">
-                            <div className={cx('h-full rounded-full transition-all duration-700', r.color)} style={{ width: `${Math.max(pct, r.value ? 2 : 0)}%` }} />
+                          <div className="mb-1.5 flex justify-between text-xs font-semibold">
+                            <span className={r.text}>{r.label}</span>
+                            <span className="font-mono tabular-nums text-foreground">{r.value}</span>
+                          </div>
+                          <div className="h-2 overflow-hidden rounded-full bg-muted">
+                            <div className={cx('h-full rounded-full transition-all duration-700', r.color)} style={{ width: `${Math.max(pct, r.value ? 3 : 0)}%` }} />
                           </div>
                         </div>
                       );
                     })}
                   </div>
                 </div>
-                <div className="mt-6 flex items-center justify-between gap-3 border-t border-border pt-4 text-xs">
-                  <span className="truncate font-mono text-muted-foreground">Batch <strong className="font-semibold text-foreground">{results.batch_id}</strong></span>
-                  <button type="button" onClick={() => setActiveTab('exceptions')} className="inline-flex shrink-0 items-center gap-1 font-semibold text-primary transition-colors duration-200 hover:underline">
+
+                <div className="mt-5 flex items-center justify-between border-t border-border pt-3 text-xs">
+                  <span className="font-mono text-muted-foreground">Batch: <strong className="font-semibold text-foreground">{results.batch_id}</strong></span>
+                  <button type="button" onClick={() => setActiveTab('exceptions')} className="inline-flex items-center gap-1 font-semibold text-primary hover:underline">
                     View exceptions <ChevronRight className="h-3.5 w-3.5" />
                   </button>
                 </div>
               </div>
             </div>
 
-            {/* Forward Cash Runway Forecaster (30 / 60 / 90 Days) */}
+            {/* 30 / 60 / 90-Day Forward Cash Runway Forecaster */}
             {results.cash_position?.forward_cash_forecast && (
               <div className={cx(surface, "p-5 sm:p-6")}>
-                <div className="flex flex-wrap items-start justify-between gap-3 border-b border-border pb-4">
-                  <div className="flex items-start gap-3">
-                    <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-chart-1/15 text-chart-1 ring-1 ring-chart-1/30">
-                      <TrendingUp className="h-4 w-4" />
+                <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border pb-4">
+                  <div className="flex items-center gap-3">
+                    <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-chart-1/15 text-chart-1 ring-1 ring-chart-1/30">
+                      <TrendingUp className="h-4.5 w-4.5" />
                     </div>
                     <div>
                       <h3 className="text-sm font-bold text-foreground">30 / 60 / 90-Day Forward Cash Runway Forecaster</h3>
-                      <p className="mt-0.5 text-xs text-muted-foreground">Reconciled liquidity + open receivables (AR) & payables (AP) aging model</p>
+                      <p className="text-xs text-muted-foreground">Reconciled liquidity + open receivables (AR) & payables (AP) aging model</p>
                     </div>
                   </div>
                   <div className="flex flex-wrap items-center gap-2">
-                    <span className="rounded-full border border-secondary/30 bg-secondary/15 px-3 py-1 text-xs font-semibold text-secondary">
+                    <span className="rounded-full border border-secondary/30 bg-secondary/15 px-3 py-1 text-xs font-bold text-secondary">
                       Runway: {results.cash_position.forward_cash_forecast.runway_status}
                     </span>
                     <span className={cx(
-                      "rounded-full border px-3 py-1 text-xs font-semibold",
+                      "rounded-full border px-3 py-1 text-xs font-bold",
                       results.cash_position.forward_cash_forecast.net_monthly_delta >= 0
                         ? "border-chart-1/30 bg-chart-1/15 text-chart-1"
                         : "border-destructive/30 bg-destructive/15 text-destructive"
@@ -1273,27 +1299,27 @@ export default function App() {
                   </div>
                 </div>
 
-                {/* Trajectory Timeline Cards Grid */}
+                {/* 4 Trajectory Milestone Cards */}
                 <div className="mt-5 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
                   {results.cash_position.forward_cash_forecast.timeline.map((pt, i) => (
-                    <div key={i} className="group relative overflow-hidden rounded-xl border border-border bg-muted/40 p-4 transition-all duration-200 hover:border-primary/40 hover:bg-card">
+                    <div key={i} className="group relative overflow-hidden rounded-xl border border-border bg-muted/30 p-4 transition-all duration-200 hover:border-primary/40 hover:bg-card">
                       <div className="flex items-center justify-between text-xs text-muted-foreground">
-                        <span className="font-semibold uppercase tracking-wider">{pt.label}</span>
-                        <span className="rounded bg-muted px-1.5 py-0.5 font-mono text-[10px]">T+{pt.days}d</span>
+                        <span className="font-bold uppercase tracking-wider">{pt.label}</span>
+                        <span className="rounded bg-muted px-1.5 py-0.5 font-mono text-[10px] font-bold">T+{pt.days}d</span>
                       </div>
-                      <p className="mt-3 text-xl font-bold tracking-tight tabular-nums text-foreground">{formatMoney(pt.cash)}</p>
-                      <div className="mt-3 space-y-1.5 border-t border-border/60 pt-2.5 text-xs">
+                      <p className="mt-2.5 font-mono text-xl font-bold tracking-tight tabular-nums text-foreground">{formatMoney(pt.cash)}</p>
+                      <div className="mt-3 space-y-1 border-t border-border/80 pt-2 text-xs">
                         <div className="flex justify-between text-muted-foreground">
                           <span>Expected Inflows</span>
-                          <span className="font-semibold tabular-nums text-secondary">+{formatMoney(pt.inflows)}</span>
+                          <span className="font-mono font-semibold tabular-nums text-secondary">+{formatMoney(pt.inflows)}</span>
                         </div>
                         <div className="flex justify-between text-muted-foreground">
                           <span>Expected Outflows</span>
-                          <span className="font-semibold tabular-nums text-destructive">-{formatMoney(pt.outflows)}</span>
+                          <span className="font-mono font-semibold tabular-nums text-destructive">-{formatMoney(pt.outflows)}</span>
                         </div>
-                        <div className="flex justify-between font-bold">
+                        <div className="flex justify-between font-bold border-t border-border/40 pt-1">
                           <span className="text-muted-foreground">Net Delta</span>
-                          <span className={cx("tabular-nums", pt.net >= 0 ? "text-secondary" : "text-destructive")}>
+                          <span className={cx("font-mono tabular-nums", pt.net >= 0 ? "text-secondary" : "text-destructive")}>
                             {pt.net >= 0 ? `+${formatMoney(pt.net)}` : formatMoney(pt.net)}
                           </span>
                         </div>
@@ -1312,17 +1338,17 @@ export default function App() {
                       </span>
                     </div>
                     <div className="mt-3 grid grid-cols-3 gap-2 text-center text-xs">
-                      <div className="rounded-lg bg-muted/60 p-2">
-                        <p className="text-[10px] text-muted-foreground uppercase">0-30 Days</p>
-                        <p className="mt-1 font-bold tabular-nums text-foreground">{formatMoney(results.cash_position.forward_cash_forecast.receivables_aging.d0_30)}</p>
+                      <div className="rounded-lg bg-muted/50 p-2.5 border border-border/60">
+                        <p className="text-[10px] font-bold uppercase text-muted-foreground">0-30 Days</p>
+                        <p className="mt-1 font-mono font-bold tabular-nums text-foreground">{formatMoney(results.cash_position.forward_cash_forecast.receivables_aging.d0_30)}</p>
                       </div>
-                      <div className="rounded-lg bg-muted/60 p-2">
-                        <p className="text-[10px] text-muted-foreground uppercase">31-60 Days</p>
-                        <p className="mt-1 font-bold tabular-nums text-foreground">{formatMoney(results.cash_position.forward_cash_forecast.receivables_aging.d31_60)}</p>
+                      <div className="rounded-lg bg-muted/50 p-2.5 border border-border/60">
+                        <p className="text-[10px] font-bold uppercase text-muted-foreground">31-60 Days</p>
+                        <p className="mt-1 font-mono font-bold tabular-nums text-foreground">{formatMoney(results.cash_position.forward_cash_forecast.receivables_aging.d31_60)}</p>
                       </div>
-                      <div className="rounded-lg bg-muted/60 p-2">
-                        <p className="text-[10px] text-muted-foreground uppercase">61-90+ Days</p>
-                        <p className="mt-1 font-bold tabular-nums text-foreground">{formatMoney(results.cash_position.forward_cash_forecast.receivables_aging.d61_90 + results.cash_position.forward_cash_forecast.receivables_aging.d90_plus)}</p>
+                      <div className="rounded-lg bg-muted/50 p-2.5 border border-border/60">
+                        <p className="text-[10px] font-bold uppercase text-muted-foreground">61-90+ Days</p>
+                        <p className="mt-1 font-mono font-bold tabular-nums text-foreground">{formatMoney(results.cash_position.forward_cash_forecast.receivables_aging.d61_90 + results.cash_position.forward_cash_forecast.receivables_aging.d90_plus)}</p>
                       </div>
                     </div>
                   </div>
@@ -1335,17 +1361,17 @@ export default function App() {
                       </span>
                     </div>
                     <div className="mt-3 grid grid-cols-3 gap-2 text-center text-xs">
-                      <div className="rounded-lg bg-muted/60 p-2">
-                        <p className="text-[10px] text-muted-foreground uppercase">0-30 Days</p>
-                        <p className="mt-1 font-bold tabular-nums text-foreground">{formatMoney(results.cash_position.forward_cash_forecast.payables_aging.d0_30)}</p>
+                      <div className="rounded-lg bg-muted/50 p-2.5 border border-border/60">
+                        <p className="text-[10px] font-bold uppercase text-muted-foreground">0-30 Days</p>
+                        <p className="mt-1 font-mono font-bold tabular-nums text-foreground">{formatMoney(results.cash_position.forward_cash_forecast.payables_aging.d0_30)}</p>
                       </div>
-                      <div className="rounded-lg bg-muted/60 p-2">
-                        <p className="text-[10px] text-muted-foreground uppercase">31-60 Days</p>
-                        <p className="mt-1 font-bold tabular-nums text-foreground">{formatMoney(results.cash_position.forward_cash_forecast.payables_aging.d31_60)}</p>
+                      <div className="rounded-lg bg-muted/50 p-2.5 border border-border/60">
+                        <p className="text-[10px] font-bold uppercase text-muted-foreground">31-60 Days</p>
+                        <p className="mt-1 font-mono font-bold tabular-nums text-foreground">{formatMoney(results.cash_position.forward_cash_forecast.payables_aging.d31_60)}</p>
                       </div>
-                      <div className="rounded-lg bg-muted/60 p-2">
-                        <p className="text-[10px] text-muted-foreground uppercase">61-90+ Days</p>
-                        <p className="mt-1 font-bold tabular-nums text-foreground">{formatMoney(results.cash_position.forward_cash_forecast.payables_aging.d61_90 + results.cash_position.forward_cash_forecast.payables_aging.d90_plus)}</p>
+                      <div className="rounded-lg bg-muted/50 p-2.5 border border-border/60">
+                        <p className="text-[10px] font-bold uppercase text-muted-foreground">61-90+ Days</p>
+                        <p className="mt-1 font-mono font-bold tabular-nums text-foreground">{formatMoney(results.cash_position.forward_cash_forecast.payables_aging.d61_90 + results.cash_position.forward_cash_forecast.payables_aging.d90_plus)}</p>
                       </div>
                     </div>
                   </div>
