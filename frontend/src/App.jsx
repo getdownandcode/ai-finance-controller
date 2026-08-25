@@ -91,7 +91,7 @@ function MatchMindLogo({ className = "h-8 w-auto", showWordmark = true }) {
             Match<span className="text-primary">Mind</span>
           </span>
           <span className="text-[10px] font-medium tracking-wider uppercase text-muted-foreground">
-            Razorpay Buildathon · Autonomous Finance
+            Autonomous Financial Controller
           </span>
         </div>
       )}

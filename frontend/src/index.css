@@ -17,7 +17,7 @@
   --primary: #d97736;
   --sidebar: #f8fafc;
   --spacing: 0.25rem;
-  --font-mono: 'JetBrains Mono', ui-monospace, monospace;
+  --font-mono: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, Monaco, monospace;
   --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
   --secondary: #0d9488;
   --background: #f8fafc;
@@ -121,7 +121,7 @@
 }
 
 html {
-  transition: background-color 0.2s ease, color 0.2s ease;
+  transition: background-color 0.25s ease, color 0.25s ease;
 }
 
 body {
@@ -130,6 +130,27 @@ body {
   min-height: 100vh;
   margin: 0;
   -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Subtle, professional dotted background grid */
+.bg-grid {
+  background-size: 24px 24px;
+  background-image: radial-gradient(circle, rgba(100, 116, 139, 0.12) 1px, transparent 1px);
+}
+
+.dark .bg-grid {
+  background-size: 24px 24px;
+  background-image: radial-gradient(circle, rgba(231, 138, 83, 0.10) 1px, transparent 1px);
+}
+
+/* Light ambient primary & secondary gradient aurora */
+.bg-aurora {
+  background: radial-gradient(circle at 50% -10%, rgba(217, 119, 54, 0.07) 0%, rgba(13, 148, 136, 0.04) 35%, transparent 70%);
+}
+
+.dark .bg-aurora {
+  background: radial-gradient(circle at 50% -15%, rgba(231, 138, 83, 0.12) 0%, rgba(95, 135, 135, 0.07) 40%, transparent 75%);
 }
 
 /* Custom scrollbar */
@@ -139,7 +160,7 @@ body {
 }
 
 ::-webkit-scrollbar-track {
-  background: var(--muted);
+  background: transparent;
 }
 
 ::-webkit-scrollbar-thumb {
@@ -157,4 +178,25 @@ body {
 .focus-ring:focus-visible {
   outline: 2px solid var(--ring);
   outline-offset: 2px;
+}
+
+/* Polished surface helper */
+.fin-surface {
+  background-color: var(--card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.04), 0 1px 2px -1px rgba(0, 0, 0, 0.04);
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.dark .fin-surface {
+  box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.3), 0 1px 2px -1px rgba(0, 0, 0, 0.3);
+}
+
+.fin-surface:hover {
+  border-color: rgba(217, 119, 54, 0.3);
+}
+
+.dark .fin-surface:hover {
+  border-color: rgba(231, 138, 83, 0.35);
 }
