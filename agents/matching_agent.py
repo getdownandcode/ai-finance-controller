@@ -315,7 +315,7 @@ class MatchingAgent:
                     stats["tool_errors"] += 1
                     code = "TOOL_ERROR"
                 elif res.decision == "escalate":
-                    code = "DUPLICATE_CANDIDATE"
+                    code = "AMBIGUOUS_TWIN_COLLISION" if "TWIN" in res.reason.upper() else "DUPLICATE_CANDIDATE"
                 else:
                     code = "LOW_CONFIDENCE"
                 stats["escalated"] += 1

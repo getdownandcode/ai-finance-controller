@@ -11,7 +11,15 @@ from __future__ import annotations
 from tools.candidate_retrieval import Evidence
 from tools.normalize import MatchDecision, Record, amount_tolerance
 
+import difflib
+
 FUZZY_ACCEPT = 0.88
+
+
+def text_similarity(s1: str, s2: str) -> float:
+    if not s1 or not s2:
+        return 0.0
+    return difflib.SequenceMatcher(None, s1.lower().strip(), s2.lower().strip()).ratio()
 
 
 def fuzzy_confidence(a: Record, b: Record, ev: Evidence, cfg) -> float:
