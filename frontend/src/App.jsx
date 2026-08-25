@@ -117,22 +117,23 @@ function StatCard({ label, value, sub, icon: Icon, badge }) {
   );
 }
 
-function RunwayForecasterChart({ timeline, formatHeadlineMoney }) {
+function RunwayForecasterChart({ timeline, formatHeadlineMoney, formatMoney }) {
   if (!timeline || timeline.length === 0) return null;
+  const [hoveredIdx, setHoveredIdx] = useState(null);
 
   const width = 640;
   const height = 150;
-  const padLeft = 50;
-  const padRight = 50;
+  const padLeft = 45;
+  const padRight = 45;
   const padTop = 26;
-  const padBottom = 28;
+  const padBottom = 26;
 
   const cashValues = timeline.map((t) => t.cash);
   const minCash = Math.min(...cashValues);
   const maxCash = Math.max(...cashValues);
   const range = maxCash === minCash ? 1 : maxCash - minCash;
-  const paddedMin = Math.max(0, minCash - range * 0.12);
-  const paddedMax = maxCash + range * 0.18;
+  const paddedMin = Math.max(0, minCash - range * 0.10);
+  const paddedMax = maxCash + range * 0.16;
   const paddedRange = paddedMax - paddedMin || 1;
 
   const points = timeline.map((pt, i) => {
@@ -149,99 +150,146 @@ function RunwayForecasterChart({ timeline, formatHeadlineMoney }) {
       <div className="mb-2.5 flex items-center justify-between px-1 text-xs">
         <span className="font-bold uppercase tracking-wider text-foreground/80 dark:text-slate-200">Forward Liquidity Trajectory Chart</span>
         <span className="font-mono text-xs font-bold text-secondary">
-          +{formatHeadlineMoney(timeline[timeline.length - 1].cash - timeline[0].cash)} Projected Cash Net Growth
+          +{formatHeadlineMoney(timeline[timeline.length - 1].cash - timeline[0].cash)} Projected Net Growth
         </span>
       </div>
+
       <div className="relative w-full aspect-[4/1] min-h-[140px] max-h-[175px]">
         <svg
           viewBox={`0 0 ${width} ${height}`}
-          className="h-full w-full overflow-visible font-mono"
+          className="h-full w-full overflow-visible font-mono select-none"
           preserveAspectRatio="none"
         >
           <defs>
             <linearGradient id="runway-area-gradient" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="0%" stopColor="var(--chart-1)" stopOpacity="0.30" />
-              <stop offset="100%" stopColor="var(--chart-1)" stopOpacity="0.02" />
+              <stop offset="0%" stopColor="var(--chart-1)" stopOpacity="0.24" />
+              <stop offset="85%" stopColor="var(--chart-1)" stopOpacity="0.01" />
             </linearGradient>
+            <filter id="glow-end-marker" x="-50%" y="-50%" width="200%" height="200%">
+              <feDropShadow dx="0" dy="0" stdDeviation="2.5" floodColor="var(--chart-1)" floodOpacity="0.75" />
+            </filter>
           </defs>
 
-          {/* Grid lines */}
-          <line
-            x1={padLeft}
-            y1={padTop}
-            x2={width - padRight}
-            y2={padTop}
-            stroke="var(--border)"
-            strokeDasharray="4 4"
-            strokeOpacity="0.6"
-          />
+          {/* Subtle horizontal gridlines */}
+          {[0.25, 0.55, 0.85].map((pct, idx) => {
+            const gy = padTop + pct * (height - padTop - padBottom);
+            return (
+              <line
+                key={idx}
+                x1={padLeft}
+                y1={gy}
+                x2={width - padRight}
+                y2={gy}
+                stroke="var(--border)"
+                strokeDasharray="4 4"
+                strokeOpacity="0.35"
+              />
+            );
+          })}
+
+          {/* Baseline axis */}
           <line
             x1={padLeft}
             y1={height - padBottom}
             x2={width - padRight}
             y2={height - padBottom}
             stroke="var(--border)"
-            strokeOpacity="0.8"
+            strokeOpacity="0.65"
           />
 
-          {/* Gradient Area */}
+          {/* Gradient Area Fill */}
           <path d={areaPath} fill="url(#runway-area-gradient)" />
 
-          {/* Trend Line */}
+          {/* Smooth Trend Line */}
           <path
             d={linePath}
             fill="none"
             stroke="var(--chart-1)"
-            strokeWidth="3"
+            strokeWidth="2.75"
             strokeLinecap="round"
             strokeLinejoin="round"
           />
 
           {/* Milestone markers and values */}
-          {points.map((p, i) => (
-            <g key={i} className="group pointer-events-none select-none">
-              {/* Vertical guideline */}
-              <line
-                x1={p.x}
-                y1={p.y}
-                x2={p.x}
-                y2={height - padBottom}
-                stroke="var(--chart-1)"
-                strokeDasharray="2 3"
-                strokeOpacity="0.35"
-              />
+          {points.map((p, i) => {
+            const isStartOrEnd = i === 0 || i === points.length - 1;
+            const isHovered = hoveredIdx === i;
+            const showLabel = isStartOrEnd || isHovered;
 
-              {/* Data point dot */}
-              <circle
-                cx={p.x}
-                cy={p.y}
-                r="4.5"
-                fill="var(--card)"
-                stroke="var(--chart-1)"
-                strokeWidth="2.5"
-              />
-
-              {/* Amount label above dot */}
-              <text
-                x={p.x}
-                y={Math.max(14, p.y - 8)}
-                textAnchor="middle"
-                className="fill-foreground text-[11px] font-bold font-mono select-none pointer-events-none"
+            return (
+              <g
+                key={i}
+                className="cursor-pointer"
+                onMouseEnter={() => setHoveredIdx(i)}
+                onMouseLeave={() => setHoveredIdx(null)}
               >
-                {formatHeadlineMoney(p.cash)}
-              </text>
+                {/* Vertical guideline */}
+                <line
+                  x1={p.x}
+                  y1={p.y}
+                  x2={p.x}
+                  y2={height - padBottom}
+                  stroke="var(--chart-1)"
+                  strokeDasharray="2 3"
+                  strokeOpacity={isHovered ? 0.6 : 0.2}
+                />
 
-              {/* Time milestone label below baseline */}
-              <text
-                x={p.x}
-                y={height - 10}
-                textAnchor="middle"
-                className="fill-muted-foreground text-[10px] font-bold uppercase tracking-wider select-none pointer-events-none"
-              >
-                {p.label}
-              </text>
-            </g>
-          ))}
+                {/* Hit area for easier hovering */}
+                <circle cx={p.x} cy={p.y} r="16" fill="transparent" />
+
+                {/* Data point dot */}
+                <circle
+                  cx={p.x}
+                  cy={p.y}
+                  r={isHovered ? 5.5 : i === points.length - 1 ? 5 : 4}
+                  fill="var(--card)"
+                  stroke="var(--chart-1)"
+                  strokeWidth="2.5"
+                  filter={i === points.length - 1 ? "url(#glow-end-marker)" : undefined}
+                />
+
+                {/* Floating Headline Number (Permanent on Start & End; On-Demand on Middle points) */}
+                {showLabel && (
+                  <g className="pointer-events-none transition-opacity duration-150">
+                    {/* Background pill on hover for middle points */}
+                    {!isStartOrEnd && (
+                      <rect
+                        x={p.x - 38}
+                        y={Math.max(4, p.y - 23)}
+                        width="76"
+                        height="18"
+                        rx="5"
+                        fill="var(--card)"
+                        stroke="var(--border)"
+                        strokeWidth="1"
+                      />
+                    )}
+                    <text
+                      x={p.x}
+                      y={Math.max(15, p.y - 10)}
+                      textAnchor="middle"
+                      className="fill-foreground text-[11px] font-bold font-mono"
+                    >
+                      {formatHeadlineMoney(p.cash)}
+                    </text>
+                  </g>
+                )}
+
+                {/* Axis label at bottom */}
+                <text
+                  x={p.x}
+                  y={height - 9}
+                  textAnchor="middle"
+                  className={cx(
+                    "text-[10px] font-bold uppercase tracking-wider transition-colors duration-150",
+                    isHovered ? "fill-foreground" : "fill-muted-foreground"
+                  )}
+                >
+                  {p.label}
+                </text>
+              </g>
+            );
+          })}
         </svg>
       </div>
     </div>
