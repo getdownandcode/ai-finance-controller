@@ -147,3 +147,14 @@ body {
   outline: 2px solid var(--ring);
   outline-offset: 2px;
 }
+
+/* Subtle modern dotted pattern with very low opacity */
+.bg-grid {
+  background-size: 28px 28px;
+  background-image: radial-gradient(circle, rgba(209, 129, 92, 0.08) 1px, transparent 1px);
+}
+
+/* Soft, subtle ambient radial gradient top glow */
+.bg-aurora {
+  background: radial-gradient(ellipse 70% 35% at 50% -5%, rgba(209, 129, 92, 0.08) 0%, rgba(127, 168, 120, 0.04) 40%, transparent 75%);
+}
