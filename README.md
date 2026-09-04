@@ -17,6 +17,11 @@ For a deep dive into system architecture, multi-tier decisioning, Indian fintech
 
 ![MatchMind System Architecture](architecture_diagram.svg)
 
+**How it works (5-second version):** financial records flow in from the left → the Web Dashboard + REST API accept and scope them → the **Reconciliation Orchestrator** runs a 7-step workflow (ingest → normalize → compare → candidates → evaluate → exceptions → synthesize) → the **Matching Engine** tries deterministic tiers first (**Exact → Batch → Fuzzy**) and sends only ambiguous cases to **Google Gemini** → **Policy & Validation** gates every decision → results fan out to **Reconciled Results**, **Exception Queue**, and **Reports & Audit**, all retained in **Session & History Storage**.
+
+- **Deterministic first, AI last** — AI never owns the pipeline; it only sees cases rules can't decide, bounded by confidence thresholds, approval rules and safety checks.
+- **Clear boundaries** — users, data sources and Gemini sit outside the MatchMind application boundary; everything inside is the system we built and demo.
+
 ---
 
 ## ⚡ Core Superpowers
