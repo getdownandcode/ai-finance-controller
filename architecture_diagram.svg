@@ -1,303 +1,226 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1600 1080" width="1600" height="1080" role="img" aria-label="MatchMind system architecture">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1920 1080" width="1920" height="1080" role="img" aria-label="MatchMind system architecture">
   <defs>
-    <marker id="fl" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
-      <path d="M 0 1 L 9 5 L 0 9 z" fill="#4F46E5"/>
+    <marker id="aB" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7.5" markerHeight="7.5" orient="auto-start-reverse">
+      <path d="M 0 1 L 9 5 L 0 9 z" fill="#1D4ED8"/>
     </marker>
-    <marker id="flS" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
-      <path d="M 0 1 L 9 5 L 0 9 z" fill="#64748B"/>
-    </marker>
-    <marker id="flG" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+    <marker id="aG" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7.5" markerHeight="7.5" orient="auto-start-reverse">
       <path d="M 0 1 L 9 5 L 0 9 z" fill="#047857"/>
     </marker>
-    <marker id="flR" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
-      <path d="M 0 1 L 9 5 L 0 9 z" fill="#B91C1C"/>
+    <marker id="aP" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7.5" markerHeight="7.5" orient="auto-start-reverse">
+      <path d="M 0 1 L 9 5 L 0 9 z" fill="#7C3AED"/>
+    </marker>
+    <marker id="aS" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M 0 1 L 9 5 L 0 9 z" fill="#64748B"/>
     </marker>
   </defs>
 
   <style>
     .sans { font-family: Inter, -apple-system, 'Segoe UI', sans-serif; }
     .mono { font-family: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, monospace; }
-    .h1 { font-size: 24px; font-weight: 800; fill: #0F172A; }
-    .sub { font-size: 12px; fill: #64748B; letter-spacing: .08em; }
-    .lane { font-size: 12px; font-weight: 700; fill: #4F46E5; letter-spacing: .08em; }
-    .laneNo { font-size: 12px; font-weight: 800; fill: #FFFFFF; }
-    .bt { font-size: 13.5px; font-weight: 700; fill: #0F172A; }
-    .bd { font-size: 11.5px; fill: #475569; }
-    .cd { font-size: 10.5px; fill: #64748B; }
-    .tag { font-size: 9.5px; font-weight: 700; letter-spacing: .06em; }
-    .fn { font-size: 10.5px; fill: #4F46E5; }
-    .step { font-size: 11px; font-weight: 800; fill: #FFFFFF; }
-    .lg { font-size: 11px; fill: #475569; }
+    .h1 { font-size: 27px; font-weight: 800; fill: #0F172A; }
+    .sub { font-size: 12.5px; fill: #64748B; letter-spacing: .06em; }
+    .zone { font-size: 12px; font-weight: 800; letter-spacing: .12em; fill: #64748B; }
+    .bt { font-size: 16px; font-weight: 700; fill: #0F172A; }
+    .bd { font-size: 12.5px; fill: #475569; }
+    .it { font-size: 13px; font-weight: 600; }
+    .num { font-size: 12px; font-weight: 800; fill: #FFFFFF; }
+    .lg { font-size: 12px; fill: #475569; }
+    .cap { font-size: 12px; font-style: italic; fill: #64748B; }
   </style>
 
   <!-- page -->
-  <rect x="0" y="0" width="1600" height="1080" fill="#F1F5F9"/>
-  <rect x="16" y="16" width="1568" height="1048" rx="14" fill="#FFFFFF" stroke="#CBD5E1" stroke-width="1.5"/>
+  <rect x="0" y="0" width="1920" height="1080" fill="#E8EDF3"/>
+  <rect x="20" y="20" width="1880" height="1040" rx="16" fill="#FFFFFF" stroke="#CBD5E1" stroke-width="1.5"/>
 
   <!-- header -->
-  <g transform="translate(48,40)">
-    <rect x="0" y="0" width="46" height="46" rx="10" fill="#4F46E5"/>
-    <path d="M 13 24 L 20 31 L 33 16" stroke="#FFFFFF" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
-    <text x="58" y="27" class="sans h1">MatchMind — System Architecture</text>
-    <text x="58" y="44" class="mono sub">AUTONOMOUS FINANCE CONTROLLER · MULTI-SOURCE RECONCILIATION · FASTAPI + REACT</text>
-    <!-- legend -->
-    <g transform="translate(1058,2)">
-      <line x1="0" y1="10" x2="34" y2="10" stroke="#4F46E5" stroke-width="2" marker-end="url(#fl)"/>
-      <text x="40" y="14" class="sans lg">sync request / response</text>
-      <line x1="230" y1="10" x2="264" y2="10" stroke="#64748B" stroke-width="1.6" stroke-dasharray="5 4" marker-end="url(#flS)"/>
-      <text x="270" y="14" class="sans lg">persist / async</text>
-      <rect x="0" y="24" width="12" height="12" rx="3" fill="#EEF2FF" stroke="#4F46E5"/>
-      <text x="18" y="34" class="sans lg">service</text>
-      <rect x="110" y="24" width="12" height="12" rx="3" fill="#ECFDF5" stroke="#047857"/>
-      <text x="128" y="34" class="sans lg">matched output</text>
-      <rect x="248" y="24" width="12" height="12" rx="3" fill="#FEF2F2" stroke="#B91C1C"/>
-      <text x="266" y="34" class="sans lg">exception path</text>
+  <text x="52" y="66" class="sans h1">MatchMind — System Architecture</text>
+  <text x="52" y="92" class="mono sub">USER → DASHBOARD → ORCHESTRATOR → MATCHING + AI → RESULTS · DETERMINISTIC FIRST, AI FOR AMBIGUOUS CASES ONLY</text>
+  <g>
+    <line x1="1330" y1="52" x2="1368" y2="52" stroke="#1D4ED8" stroke-width="2.5" marker-end="url(#aB)"/>
+    <text x="1376" y="56" class="sans lg">data flow</text>
+    <line x1="1478" y1="52" x2="1516" y2="52" stroke="#64748B" stroke-width="2" stroke-dasharray="6 5" marker-end="url(#aS)"/>
+    <text x="1524" y="56" class="sans lg">async / persist</text>
+    <line x1="1658" y1="52" x2="1696" y2="52" stroke="#7C3AED" stroke-width="2" stroke-dasharray="6 5" marker-end="url(#aP)"/>
+    <text x="1704" y="56" class="sans lg">external AI call</text>
+    <text x="1330" y="82" class="sans lg">16:9 · one-slide overview · code-free — see docs for implementation detail</text>
+  </g>
+
+  <!-- zone captions -->
+  <text x="48" y="176" class="sans zone">EXTERNAL INPUTS</text>
+  <text x="945" y="176" class="sans zone" text-anchor="middle">MATCHMIND — AUTONOMOUS FINANCIAL RECONCILIATION SYSTEM</text>
+  <text x="1580" y="506" class="sans zone">EXTERNAL AI SERVICE</text>
+
+  <!-- ============ LEFT: inputs ============ -->
+  <g>
+    <g transform="translate(48,200)">
+      <rect x="0" y="0" width="252" height="64" rx="9" fill="#FFFFFF" stroke="#94A3B8" stroke-width="1.4"/>
+      <rect x="0" y="0" width="7" height="64" rx="3.5" fill="#64748B"/>
+      <text x="22" y="27" class="sans bt" font-size="15">Finance Analyst</text>
+      <text x="22" y="47" class="sans bd">uploads · reviews · approves</text>
+    </g>
+    <g transform="translate(48,276)">
+      <rect x="0" y="0" width="252" height="64" rx="9" fill="#FFFFFF" stroke="#94A3B8" stroke-width="1.4"/>
+      <rect x="0" y="0" width="7" height="64" rx="3.5" fill="#64748B"/>
+      <text x="22" y="27" class="sans bt" font-size="15">Bank Transactions</text>
+      <text x="22" y="47" class="sans bd">CSV statements + feeds</text>
+    </g>
+    <g transform="translate(48,352)">
+      <rect x="0" y="0" width="252" height="64" rx="9" fill="#FFFFFF" stroke="#94A3B8" stroke-width="1.4"/>
+      <rect x="0" y="0" width="7" height="64" rx="3.5" fill="#64748B"/>
+      <text x="22" y="27" class="sans bt" font-size="15">Ledger / Invoices</text>
+      <text x="22" y="47" class="sans bd">books · bills · credit notes</text>
+    </g>
+    <g transform="translate(48,428)">
+      <rect x="0" y="0" width="252" height="64" rx="9" fill="#FFFFFF" stroke="#94A3B8" stroke-width="1.4"/>
+      <rect x="0" y="0" width="7" height="64" rx="3.5" fill="#64748B"/>
+      <text x="22" y="27" class="sans bt" font-size="15">Gateway / Payouts</text>
+      <text x="22" y="47" class="sans bd">settlements · fee deductions</text>
+    </g>
+    <g transform="translate(48,504)">
+      <rect x="0" y="0" width="252" height="64" rx="9" fill="#FFFFFF" stroke="#94A3B8" stroke-width="1.4"/>
+      <rect x="0" y="0" width="7" height="64" rx="3.5" fill="#64748B"/>
+      <text x="22" y="27" class="sans bt" font-size="15">Opening Balances</text>
+      <text x="22" y="47" class="sans bd">starting cash + metadata</text>
+    </g>
+    <!-- bus -->
+    <line x1="318" y1="232" x2="318" y2="536" stroke="#64748B" stroke-width="2"/>
+    <line x1="300" y1="232" x2="318" y2="232" stroke="#64748B" stroke-width="2" marker-end="url(#aS)"/>
+    <line x1="300" y1="308" x2="318" y2="308" stroke="#64748B" stroke-width="2" marker-end="url(#aS)"/>
+    <line x1="300" y1="384" x2="318" y2="384" stroke="#64748B" stroke-width="2" marker-end="url(#aS)"/>
+    <line x1="300" y1="460" x2="318" y2="460" stroke="#64748B" stroke-width="2" marker-end="url(#aS)"/>
+    <line x1="300" y1="536" x2="318" y2="536" stroke="#64748B" stroke-width="2" marker-end="url(#aS)"/>
+    <line x1="318" y1="245" x2="556" y2="245" stroke="#1D4ED8" stroke-width="2.5" marker-end="url(#aB)"/>
+  </g>
+
+  <!-- ============ BOUNDARY ============ -->
+  <rect x="330" y="150" width="1230" height="860" rx="12" fill="#F8FAFC" stroke="#6366F1" stroke-width="2"/>
+
+  <!-- API layer -->
+  <g transform="translate(560,195)">
+    <rect x="0" y="0" width="760" height="100" rx="10" fill="#EFF6FF" stroke="#3B82F6" stroke-width="1.8"/>
+    <text x="24" y="32" class="sans bt">Presentation &amp; API Layer</text>
+    <text x="24" y="53" class="sans bd">Upload data · review matches · handle exceptions · export reports</text>
+    <g class="sans" text-anchor="middle">
+      <rect x="420" y="14" width="150" height="30" rx="15" fill="#FFFFFF" stroke="#3B82F6"/><text x="495" y="34" class="it" font-size="12.5" fill="#1D4ED8">Dashboard</text>
+      <rect x="578" y="14" width="86" height="30" rx="15" fill="#FFFFFF" stroke="#3B82F6"/><text x="621" y="34" class="it" font-size="12.5" fill="#1D4ED8">Auth</text>
+      <rect x="420" y="50" width="150" height="30" rx="15" fill="#FFFFFF" stroke="#3B82F6"/><text x="495" y="70" class="it" font-size="12.5" fill="#1D4ED8">REST API</text>
+      <rect x="578" y="50" width="158" height="30" rx="15" fill="#FFFFFF" stroke="#3B82F6"/><text x="657" y="70" class="it" font-size="12.5" fill="#1D4ED8">Sessions</text>
+    </g>
+  </g>
+  <line x1="940" y1="295" x2="940" y2="305" stroke="#1D4ED8" stroke-width="2.5" marker-end="url(#aB)"/>
+
+  <!-- Orchestrator -->
+  <g transform="translate(560,305)">
+    <rect x="0" y="0" width="760" height="175" rx="10" fill="#FFFFFF" stroke="#1D4ED8" stroke-width="2"/>
+    <text x="24" y="32" class="sans bt">Reconciliation Orchestrator</text>
+    <text x="24" y="53" class="sans bd">Runs the end-to-end workflow, step by step</text>
+    <g class="sans" text-anchor="middle">
+      <rect x="24" y="66" width="168" height="44" rx="8" fill="#EFF6FF" stroke="#3B82F6"/><circle cx="46" cy="88" r="11" fill="#1D4ED8"/><text x="46" y="92" class="num">1</text><text x="103" y="92" font-size="12.5" font-weight="600" fill="#0F172A">Ingestion</text>
+      <rect x="200" y="66" width="168" height="44" rx="8" fill="#EFF6FF" stroke="#3B82F6"/><circle cx="222" cy="88" r="11" fill="#1D4ED8"/><text x="222" y="92" class="num">2</text><text x="279" y="92" font-size="12.5" font-weight="600" fill="#0F172A">Normalize</text>
+      <rect x="376" y="66" width="168" height="44" rx="8" fill="#EFF6FF" stroke="#3B82F6"/><circle cx="398" cy="88" r="11" fill="#1D4ED8"/><text x="398" y="92" class="num">3</text><text x="455" y="92" font-size="12.5" font-weight="600" fill="#0F172A">Compare</text>
+      <rect x="552" y="66" width="168" height="44" rx="8" fill="#EFF6FF" stroke="#3B82F6"/><circle cx="574" cy="88" r="11" fill="#1D4ED8"/><text x="574" y="92" class="num">4</text><text x="631" y="92" font-size="12.5" font-weight="600" fill="#0F172A">Candidates</text>
+      <rect x="120" y="118" width="168" height="44" rx="8" fill="#EFF6FF" stroke="#3B82F6"/><circle cx="142" cy="140" r="11" fill="#1D4ED8"/><text x="142" y="144" class="num">5</text><text x="199" y="144" font-size="12.5" font-weight="600" fill="#0F172A">Evaluate</text>
+      <rect x="296" y="118" width="168" height="44" rx="8" fill="#EFF6FF" stroke="#3B82F6"/><circle cx="318" cy="140" r="11" fill="#1D4ED8"/><text x="318" y="144" class="num">6</text><text x="375" y="144" font-size="12.5" font-weight="600" fill="#0F172A">Exceptions</text>
+      <rect x="472" y="118" width="168" height="44" rx="8" fill="#EFF6FF" stroke="#3B82F6"/><circle cx="494" cy="140" r="11" fill="#1D4ED8"/><text x="494" y="144" class="num">7</text><text x="551" y="144" font-size="12.5" font-weight="600" fill="#0F172A">Synthesize</text>
+    </g>
+  </g>
+  <line x1="940" y1="480" x2="940" y2="490" stroke="#1D4ED8" stroke-width="2.5" marker-end="url(#aB)"/>
+
+  <!-- Matching engine : full width tiers -->
+  <g transform="translate(360,490)">
+    <rect x="0" y="0" width="1180" height="215" rx="10" fill="#ECFDF5" stroke="#059669" stroke-width="1.8"/>
+    <text x="590" y="32" class="sans bt" text-anchor="middle">Matching Engine</text>
+    <text x="590" y="53" class="sans cap" text-anchor="middle">Deterministic stages run first — only ambiguous cases reach AI reasoning</text>
+    <g>
+      <rect x="24" y="66" width="262" height="124" rx="9" fill="#FFFFFF" stroke="#059669" stroke-width="1.5"/>
+      <text x="155" y="94" class="sans bt" font-size="15" text-anchor="middle">Tier 1 · Exact</text>
+      <text x="155" y="116" class="sans bd" text-anchor="middle">Identical records</text>
+      <text x="155" y="134" class="sans bd" text-anchor="middle">Highest confidence</text>
+      <rect x="40" y="148" width="230" height="24" rx="12" fill="#ECFDF5"/><text x="155" y="165" class="sans lg" text-anchor="middle" fill="#047857">auto-match</text>
+      <rect x="24" y="66" width="262" height="124" rx="9" fill="none" stroke="#047857" stroke-width="3"/>
+      <rect x="310" y="66" width="262" height="124" rx="9" fill="#FFFFFF" stroke="#059669" stroke-width="1.5"/>
+      <text x="441" y="94" class="sans bt" font-size="15" text-anchor="middle">Tier 2 · Batch</text>
+      <text x="441" y="116" class="sans bd" text-anchor="middle">Many-to-one groups</text>
+      <text x="441" y="134" class="sans bd" text-anchor="middle">Splits + bulk payouts</text>
+      <rect x="326" y="148" width="230" height="24" rx="12" fill="#ECFDF5"/><text x="441" y="165" class="sans lg" text-anchor="middle" fill="#047857">auto-match</text>
+      <rect x="596" y="66" width="262" height="124" rx="9" fill="#FFFFFF" stroke="#059669" stroke-width="1.5"/>
+      <text x="727" y="94" class="sans bt" font-size="15" text-anchor="middle">Tier 3 · Fuzzy</text>
+      <text x="727" y="116" class="sans bd" text-anchor="middle">Similar, scored records</text>
+      <text x="727" y="134" class="sans bd" text-anchor="middle">Near-ties → exception</text>
+      <rect x="612" y="148" width="230" height="24" rx="12" fill="#ECFDF5"/><text x="727" y="165" class="sans lg" text-anchor="middle" fill="#047857">auto-match if clear</text>
+      <rect x="882" y="66" width="274" height="124" rx="9" fill="#F5F3FF" stroke="#7C3AED" stroke-width="2"/>
+      <text x="1019" y="94" class="sans bt" font-size="15" text-anchor="middle" fill="#5B21B6">Tier 4 · AI Reasoning</text>
+      <text x="1019" y="116" class="sans bd" text-anchor="middle">Ambiguous cases only</text>
+      <text x="1019" y="134" class="sans bd" text-anchor="middle">Fees · tax · twins</text>
+      <rect x="900" y="148" width="238" height="24" rx="12" fill="#7C3AED"/><text x="1019" y="165" class="sans lg" text-anchor="middle" fill="#FFFFFF">via Google Gemini</text>
+      <polygon points="286,122 298,128 286,134" fill="#059669"/>
+      <polygon points="572,122 584,128 572,134" fill="#059669"/>
+      <polygon points="858,122 870,128 858,134" fill="#7C3AED"/>
+    </g>
+  </g>
+  <!-- Gemini link -->
+  <line x1="1540" y1="612" x2="1576" y2="612" stroke="#7C3AED" stroke-width="2.2" stroke-dasharray="7 5" marker-end="url(#aP)"/>
+  <text x="1558" y="600" class="sans lg" text-anchor="middle" fill="#7C3AED">ambiguous only</text>
+
+  <line x1="940" y1="705" x2="940" y2="715" stroke="#1D4ED8" stroke-width="2.5" marker-end="url(#aB)"/>
+
+  <!-- Policy -->
+  <g transform="translate(560,715)">
+    <rect x="0" y="0" width="760" height="60" rx="10" fill="#FFFBEB" stroke="#D97706" stroke-width="1.8"/>
+    <text x="24" y="37" class="sans bt" font-size="15">Policy &amp; Validation</text>
+    <g class="sans" text-anchor="middle">
+      <rect x="252" y="15" width="152" height="30" rx="15" fill="#FFFFFF" stroke="#D97706"/><text x="328" y="35" font-size="12.5" font-weight="600" fill="#92400E">Confidence gates</text>
+      <rect x="412" y="15" width="130" height="30" rx="15" fill="#FFFFFF" stroke="#D97706"/><text x="477" y="35" font-size="12.5" font-weight="600" fill="#92400E">Approvals</text>
+      <rect x="550" y="15" width="182" height="30" rx="15" fill="#FFFFFF" stroke="#D97706"/><text x="641" y="35" font-size="12.5" font-weight="600" fill="#92400E">Limits + safety checks</text>
     </g>
   </g>
 
-  <!-- flow spine -->
-  <line x1="34" y1="120" x2="34" y2="1010" stroke="#CBD5E1" stroke-width="2"/>
-  <g class="sans" text-anchor="middle">
-    <circle cx="34" cy="252" r="10" fill="#4F46E5"/><text x="34" y="256" class="step">1</text>
-    <circle cx="34" cy="442" r="10" fill="#4F46E5"/><text x="34" y="446" class="step">2</text>
-    <circle cx="34" cy="620" r="10" fill="#4F46E5"/><text x="34" y="624" class="step">3</text>
-    <circle cx="34" cy="832" r="10" fill="#4F46E5"/><text x="34" y="836" class="step">4</text>
-    <circle cx="34" cy="968" r="10" fill="#4F46E5"/><text x="34" y="972" class="step">5</text>
+  <!-- fan-out -->
+  <line x1="940" y1="775" x2="940" y2="795" stroke="#1D4ED8" stroke-width="2.5"/>
+  <line x1="543" y1="795" x2="1326" y2="795" stroke="#1D4ED8" stroke-width="2.5"/>
+  <line x1="543" y1="795" x2="543" y2="810" stroke="#047857" stroke-width="2.5" marker-end="url(#aG)"/>
+  <line x1="940" y1="795" x2="940" y2="810" stroke="#1D4ED8" stroke-width="2.5" marker-end="url(#aB)"/>
+  <line x1="1326" y1="795" x2="1326" y2="810" stroke="#1D4ED8" stroke-width="2.5" marker-end="url(#aB)"/>
+
+  <!-- outputs -->
+  <g transform="translate(360,810)">
+    <rect x="0" y="0" width="366" height="130" rx="10" fill="#ECFDF5" stroke="#059669" stroke-width="1.8"/>
+    <text x="24" y="32" class="sans bt" font-size="15" fill="#065F46">Reconciled Results</text>
+    <text x="24" y="58" class="sans bd">• Matched transactions</text>
+    <text x="24" y="80" class="sans bd">• Match confidence score</text>
+    <text x="24" y="102" class="sans bd">• Reconciliation summary</text>
+  </g>
+  <g transform="translate(746,810)">
+    <rect x="0" y="0" width="366" height="130" rx="10" fill="#FEF2F2" stroke="#DC2626" stroke-width="1.8"/>
+    <text x="24" y="32" class="sans bt" font-size="15" fill="#991B1B">Exception Queue</text>
+    <text x="24" y="58" class="sans bd">• Unmatched records</text>
+    <text x="24" y="80" class="sans bd">• Ambiguous matches</text>
+    <text x="24" y="102" class="sans bd">• Analyst review required</text>
+  </g>
+  <g transform="translate(1132,810)">
+    <rect x="0" y="0" width="388" height="130" rx="10" fill="#EFF6FF" stroke="#3B82F6" stroke-width="1.8"/>
+    <text x="24" y="32" class="sans bt" font-size="15" fill="#1E40AF">Reports &amp; Audit</text>
+    <text x="24" y="58" class="sans bd">• Reconciliation report</text>
+    <text x="24" y="80" class="sans bd">• Audit log + evaluation metrics</text>
+    <text x="24" y="102" class="sans bd">• Export — back to dashboard</text>
   </g>
 
-  <!-- ============ LANE 1 : CLIENT ============ -->
-  <g transform="translate(56,112)">
-    <rect x="0" y="0" width="1528" height="128" rx="10" fill="#F8FAFC" stroke="#E2E8F0"/>
-    <rect x="0" y="0" width="44" height="128" rx="10" fill="#4F46E5"/>
-    <rect x="30" y="0" width="14" height="128" fill="#4F46E5"/>
-    <text x="22" y="66" class="sans laneNo" text-anchor="middle" transform="rotate(-90,22,66)">L1</text>
-    <text x="60" y="24" class="sans lane">L1 · CLIENT LAYER — BROWSER SPA + CLI</text>
-    <text x="60" y="42" class="mono cd">1 · user uploads CSVs / reviews results · JWT per request · static SPA served by API</text>
-    <!-- browser -->
-    <g transform="translate(60,52)">
-      <rect x="0" y="0" width="640" height="64" rx="8" fill="#EEF2FF" stroke="#4F46E5" stroke-width="1.4"/>
-      <text x="14" y="22" class="sans bt">Browser SPA — React 19 + Vite + Tailwind v4 + Recharts</text>
-      <text x="14" y="39" class="mono bd">views: Ingest · Dashboard · Exceptions · Clusters · Audit · Export</text>
-      <text x="14" y="54" class="mono cd">sessions sidebar · runway AreaChart + flows BarChart · localStorage afc_session</text>
-    </g>
-    <!-- inputs -->
-    <g transform="translate(716,52)">
-      <rect x="0" y="0" width="400" height="64" rx="8" fill="#FFFFFF" stroke="#CBD5E1" stroke-width="1.2"/>
-      <text x="14" y="22" class="sans bt">CSV inputs + metadata</text>
-      <text x="14" y="39" class="mono bd">bank · ledger · invoice/gateway + opening_balance</text>
-      <text x="14" y="54" class="mono fn">multipart/form-data → POST /api/reconcile</text>
-    </g>
-    <!-- cli -->
-    <g transform="translate(1132,52)">
-      <rect x="0" y="0" width="336" height="64" rx="8" fill="#FFFFFF" stroke="#CBD5E1" stroke-width="1.2"/>
-      <text x="14" y="22" class="sans bt">CLI / batch harness</text>
-      <text x="14" y="39" class="mono bd">run_agent.py --seed 42 --llm auto</text>
-      <text x="14" y="54" class="mono cd">generate_data.py · data_test_* fixtures</text>
-    </g>
+  <!-- storage -->
+  <g transform="translate(360,950)">
+    <rect x="0" y="0" width="1160" height="40" rx="9" fill="#F1F5F9" stroke="#94A3B8" stroke-width="1.4"/>
+    <text x="24" y="26" class="sans bt" font-size="14">Session &amp; History Storage</text>
+    <text x="330" y="26" class="sans bd">past runs, decisions and reports retained per user</text>
   </g>
+  <line x1="543" y1="940" x2="543" y2="950" stroke="#64748B" stroke-width="2" stroke-dasharray="6 5" marker-end="url(#aS)"/>
+  <line x1="1326" y1="940" x2="1326" y2="950" stroke="#64748B" stroke-width="2" stroke-dasharray="6 5" marker-end="url(#aS)"/>
 
-  <!-- L1 -> L2 -->
-  <line x1="500" y1="240" x2="500" y2="258" stroke="#4F46E5" stroke-width="2" marker-end="url(#fl)"/>
-  <line x1="1050" y1="240" x2="1050" y2="258" stroke="#4F46E5" stroke-width="2" marker-end="url(#fl)"/>
-
-  <!-- ============ LANE 2 : API ============ -->
-  <g transform="translate(56,266)">
-    <rect x="0" y="0" width="1528" height="164" rx="10" fill="#F8FAFC" stroke="#E2E8F0"/>
-    <rect x="0" y="0" width="44" height="164" rx="10" fill="#4F46E5"/>
-    <rect x="30" y="0" width="14" height="164" fill="#4F46E5"/>
-    <text x="22" y="86" class="sans laneNo" text-anchor="middle" transform="rotate(-90,22,86)">L2</text>
-    <text x="60" y="24" class="sans lane">L2 · EDGE + API — FASTAPI (server.py) · JWT AUTH · GUARDS</text>
-    <text x="60" y="42" class="mono cd">2 · authenticate → validate → route to pipeline → persist session → respond</text>
-    <g transform="translate(60,52)">
-      <rect x="0" y="0" width="330" height="100" rx="8" fill="#FFFFFF" stroke="#CBD5E1" stroke-width="1.2"/>
-      <text x="14" y="22" class="sans bt">Auth + session scope</text>
-      <text x="14" y="39" class="mono fn">POST /api/auth/register|login</text>
-      <text x="14" y="54" class="mono bd">GET /api/auth/me · JWT Bearer</text>
-      <text x="14" y="69" class="mono cd">app/auth.py · per-user session dirs</text>
-      <text x="14" y="86" class="mono cd">POST /api/auth/logout (revoke)</text>
-    </g>
-    <g transform="translate(406,52)">
-      <rect x="0" y="0" width="380" height="100" rx="8" fill="#EEF2FF" stroke="#4F46E5" stroke-width="1.4"/>
-      <text x="14" y="22" class="sans bt">Reconcile endpoints</text>
-      <text x="14" y="39" class="mono fn">POST /api/reconcile (CSV+meta)</text>
-      <text x="14" y="54" class="mono fn">POST /api/reconcile-demo (seed)</text>
-      <text x="14" y="69" class="mono bd">GET /api/status · llm_mode auto/off</text>
-      <text x="14" y="86" class="mono cd">goal: reconcile | triage | report …</text>
-    </g>
-    <g transform="translate(802,52)">
-      <rect x="0" y="0" width="360" height="100" rx="8" fill="#FFFFFF" stroke="#CBD5E1" stroke-width="1.2"/>
-      <text x="14" y="22" class="sans bt">History + export</text>
-      <text x="14" y="39" class="mono fn">GET /api/sessions · /session/{id}</text>
-      <text x="14" y="54" class="mono fn">DELETE /session/{id} · /download/…</text>
-      <text x="14" y="69" class="mono bd">markdown · csv · json · audit_log</text>
-      <text x="14" y="86" class="mono cd">last-50 sessions retained / user</text>
-    </g>
-    <g transform="translate(1178,52)">
-      <rect x="0" y="0" width="290" height="100" rx="8" fill="#FFFFFF" stroke="#CBD5E1" stroke-width="1.2"/>
-      <text x="14" y="22" class="sans bt">Edge guards</text>
-      <text x="14" y="39" class="mono bd">validated CORS · no wildcard</text>
-      <text x="14" y="54" class="mono bd">upload-size + 10k record cap</text>
-      <text x="14" y="69" class="mono bd">request log middleware (ms)</text>
-      <text x="14" y="86" class="mono cd">static: frontend/dist · /api/health</text>
-    </g>
-  </g>
-
-  <!-- L2 -> L3 -->
-  <line x1="800" y1="430" x2="800" y2="448" stroke="#4F46E5" stroke-width="2.2" marker-end="url(#fl)"/>
-
-  <!-- ============ LANE 3 : ORCHESTRATION ============ -->
-  <g transform="translate(56,456)">
-    <rect x="0" y="0" width="1528" height="152" rx="10" fill="#F8FAFC" stroke="#E2E8F0"/>
-    <rect x="0" y="0" width="44" height="152" rx="10" fill="#0F172A"/>
-    <rect x="30" y="0" width="14" height="152" fill="#0F172A"/>
-    <text x="22" y="80" class="sans laneNo" text-anchor="middle" transform="rotate(-90,22,80)">L3</text>
-    <text x="60" y="24" class="sans lane" fill="#0F172A">L3 · ORCHESTRATION — app/pipeline.py + AUTONOMOUS CONTROLLER (policy-bounded)</text>
-    <text x="60" y="42" class="mono cd">3 · run_reconciliation: parse → control loop (observe → plan → act → reflect) → synthesize → report</text>
-    <g transform="translate(60,52)">
-      <rect x="0" y="0" width="500" height="88" rx="8" fill="#FFFFFF" stroke="#0F172A" stroke-width="1.4"/>
-      <text x="14" y="22" class="sans bt">run_reconciliation() — shared by API + CLI</text>
-      <text x="14" y="39" class="mono bd">parse_records_from_dataframe → Record{record_id,…}</text>
-      <text x="14" y="54" class="mono bd">cross-source ID namespacing · opening balances</text>
-      <text x="14" y="71" class="mono cd">agents/autonomous_controller.py · max 60 steps</text>
-    </g>
-    <g transform="translate(576,52)">
-      <rect x="0" y="0" width="480" height="88" rx="8" fill="#FFFFFF" stroke="#CBD5E1" stroke-width="1.2"/>
-      <text x="14" y="22" class="sans bt">Agent pool (agents/)</text>
-      <text x="14" y="39" class="mono bd">controller · matching · exception · critic</text>
-      <text x="14" y="54" class="mono bd">observer · planner · reporting · state.py</text>
-      <text x="14" y="71" class="mono cd">pending_approvals · agent_trace · audit trail</text>
-    </g>
-    <g transform="translate(1072,52)">
-      <rect x="0" y="0" width="396" height="88" rx="8" fill="#FFFBEB" stroke="#B45309" stroke-width="1.2"/>
-      <text x="14" y="22" class="sans bt">Policy bounds (config/)</text>
-      <text x="14" y="39" class="mono bd">policy.yaml: fuzzy ≥ 0.88 · tie ≥ 0.05</text>
-      <text x="14" y="54" class="mono bd">LLM ≤ 8 calls · 50k tokens · 35d window</text>
-      <text x="14" y="71" class="mono cd">no external writes · approvals &gt; ₹5,000</text>
-    </g>
-  </g>
-
-  <!-- L3 -> L4 -->
-  <line x1="800" y1="608" x2="800" y2="626" stroke="#4F46E5" stroke-width="2.2" marker-end="url(#fl)"/>
-
-  <!-- ============ LANE 4 : MATCHING ============ -->
-  <g transform="translate(56,634)">
-    <rect x="0" y="0" width="1528" height="186" rx="10" fill="#F8FAFC" stroke="#E2E8F0"/>
-    <rect x="0" y="0" width="44" height="186" rx="10" fill="#047857"/>
-    <rect x="30" y="0" width="14" height="186" fill="#047857"/>
-    <text x="22" y="97" class="sans laneNo" text-anchor="middle" transform="rotate(-90,22,97)">L4</text>
-    <text x="60" y="24" class="sans lane" fill="#047857">L4 · MATCHING ENGINE — tools/ · CHEAP DETERMINISTIC FIRST, LLM LAST</text>
-    <text x="60" y="42" class="mono cd">4 · normalize → Pass 0 → T1 → T1.5 → T2 → T3(Gemini) → clusters | exceptions</text>
-    <!-- normalize -->
-    <g transform="translate(60,52)">
-      <rect x="0" y="0" width="228" height="122" rx="8" fill="#FFFFFF" stroke="#CBD5E1" stroke-width="1.2"/>
-      <rect x="12" y="10" width="86" height="18" rx="4" fill="#F1F5F9" stroke="#CBD5E1"/><text x="55" y="23" text-anchor="middle" class="mono tag" fill="#475569">NORMALIZE</text>
-      <text x="12" y="46" class="sans bt">Parse + tokens</text>
-      <text x="12" y="62" class="mono bd">INR float · sign matrix</text>
-      <text x="12" y="77" class="mono bd">UTR RRN INV CN GSTIN</text>
-      <text x="12" y="92" class="mono cd">normalize_records.py</text>
-      <text x="12" y="107" class="mono cd">schemas.yaml aliases</text>
-    </g>
-    <!-- P0 -->
-    <g transform="translate(300,52)">
-      <rect x="0" y="0" width="212" height="122" rx="8" fill="#FFFFFF" stroke="#CBD5E1" stroke-width="1.2"/>
-      <rect x="12" y="10" width="62" height="18" rx="4" fill="#F1F5F9" stroke="#CBD5E1"/><text x="43" y="23" text-anchor="middle" class="mono tag" fill="#475569">PASS 0</text>
-      <text x="12" y="46" class="sans bt">Phantom UPI filter</text>
-      <text x="12" y="62" class="mono bd">equal + opposite pairs</text>
-      <text x="12" y="77" class="mono bd">same date · net-zero</text>
-      <text x="12" y="92" class="mono cd">detect_duplicates.py</text>
-      <text x="12" y="107" class="mono cd">closed, never invoiced</text>
-    </g>
-    <!-- T1 -->
-    <g transform="translate(524,52)">
-      <rect x="0" y="0" width="212" height="122" rx="8" fill="#FFFFFF" stroke="#CBD5E1" stroke-width="1.2"/>
-      <rect x="12" y="10" width="62" height="18" rx="4" fill="#ECFDF5" stroke="#047857"/><text x="43" y="23" text-anchor="middle" class="mono tag" fill="#047857">TIER 1</text>
-      <text x="12" y="46" class="sans bt">Exact + paisa</text>
-      <text x="12" y="62" class="mono bd">conf 1.00 · 6-day win</text>
-      <text x="12" y="77" class="mono bd">round-off ≤ ₹0.99 → .99</text>
-      <text x="12" y="92" class="mono cd">exact_match.py</text>
-      <text x="12" y="107" class="mono cd">stale-UTR check</text>
-    </g>
-    <!-- T1.5 -->
-    <g transform="translate(748,52)">
-      <rect x="0" y="0" width="228" height="122" rx="8" fill="#FFFFFF" stroke="#CBD5E1" stroke-width="1.2"/>
-      <rect x="12" y="10" width="70" height="18" rx="4" fill="#ECFDF5" stroke="#047857"/><text x="47" y="23" text-anchor="middle" class="mono tag" fill="#047857">TIER 1.5</text>
-      <text x="12" y="46" class="sans bt">CN / DN + batches</text>
-      <text x="12" y="62" class="mono bd">gross − returns = net</text>
-      <text x="12" y="77" class="mono bd">split + bulk payouts</text>
-      <text x="12" y="92" class="mono cd">candidate_retrieval.py</text>
-      <text x="12" y="107" class="mono cd">many-to-one groups</text>
-    </g>
-    <!-- T2 -->
-    <g transform="translate(988,52)">
-      <rect x="0" y="0" width="236" height="122" rx="8" fill="#FFFFFF" stroke="#CBD5E1" stroke-width="1.2"/>
-      <rect x="12" y="10" width="62" height="18" rx="4" fill="#FFFBEB" stroke="#B45309"/><text x="43" y="23" text-anchor="middle" class="mono tag" fill="#B45309">TIER 2</text>
-      <text x="12" y="46" class="sans bt">Multi-signal fuzzy</text>
-      <text x="12" y="62" class="mono bd">score ≥ 0.88 · gap ≥ 5%</text>
-      <text x="12" y="77" class="mono bd">Levenshtein · Jaccard</text>
-      <text x="12" y="92" class="mono cd">fuzzy_match.py · 30d decay</text>
-      <text x="12" y="107" class="mono cd">near-tie → exception</text>
-    </g>
-    <!-- T3 -->
-    <g transform="translate(1236,52)">
-      <rect x="0" y="0" width="232" height="122" rx="8" fill="#FFFFFF" stroke="#4F46E5" stroke-width="1.4" stroke-dasharray="6 4"/>
-      <rect x="12" y="10" width="118" height="18" rx="4" fill="#4F46E5"/><text x="71" y="23" text-anchor="middle" class="mono tag" fill="#FFFFFF">TIER 3 · GEMINI</text>
-      <text x="12" y="46" class="sans bt">AI reasoner (last)</text>
-      <text x="12" y="62" class="mono bd">MDR 2.36% · TDS 194-O/C/J</text>
-      <text x="12" y="77" class="mono bd">Smart Collect resolve</text>
-      <text x="12" y="92" class="mono cd">llm_reasoning.py · ≤8 calls</text>
-      <text x="12" y="107" class="mono cd">twin-collision guard</text>
-    </g>
-  </g>
-
-  <!-- L4 outputs split -->
-  <line x1="620" y1="820" x2="620" y2="838" stroke="#047857" stroke-width="2" marker-end="url(#flG)"/>
-  <line x1="1050" y1="820" x2="1050" y2="838" stroke="#B91C1C" stroke-width="2" marker-end="url(#flR)"/>
-
-  <!-- ============ LANE 5 : SYNTHESIS / PERSIST / DEPLOY ============ -->
-  <g transform="translate(56,846)">
-    <rect x="0" y="0" width="1528" height="164" rx="10" fill="#F8FAFC" stroke="#E2E8F0"/>
-    <rect x="0" y="0" width="44" height="164" rx="10" fill="#334155"/>
-    <rect x="30" y="0" width="14" height="164" fill="#334155"/>
-    <text x="22" y="86" class="sans laneNo" text-anchor="middle" transform="rotate(-90,22,86)">L5</text>
-    <text x="60" y="24" class="sans lane" fill="#334155">L5 · SYNTHESIS → PERSISTENCE → DELIVERY (Docker · Render)</text>
-    <text x="60" y="42" class="mono cd">5 · cash + forecast → evaluate → write audit packs → per-user sessions → serve / export</text>
-    <g transform="translate(60,52)">
-      <rect x="0" y="0" width="360" height="100" rx="8" fill="#ECFDF5" stroke="#047857" stroke-width="1.3"/>
-      <text x="14" y="22" class="sans bt">Reconciled clusters</text>
-      <text x="14" y="39" class="mono bd">GRP-001… · method + conf</text>
-      <text x="14" y="54" class="mono bd">cash_position: bank vs GL Δ</text>
-      <text x="14" y="69" class="mono bd">runway Today/+30/+60/+90</text>
-      <text x="14" y="86" class="mono cd">AR/AP aging · burn · Cash +ve</text>
-    </g>
-    <g transform="translate(436,52)">
-      <rect x="0" y="0" width="360" height="100" rx="8" fill="#FEF2F2" stroke="#B91C1C" stroke-width="1.3"/>
-      <text x="14" y="22" class="sans bt">Exception queue</text>
-      <text x="14" y="39" class="mono bd">10 reason codes · candidate</text>
-      <text x="14" y="54" class="mono bd">DUPLICATE · TWIN · NO_CPART</text>
-      <text x="14" y="69" class="mono bd">HITL: approve / journal / review</text>
-      <text x="14" y="86" class="mono cd">actions/ + validate step</text>
-    </g>
-    <g transform="translate(812,52)">
-      <rect x="0" y="0" width="330" height="100" rx="8" fill="#FFFFFF" stroke="#CBD5E1" stroke-width="1.2"/>
-      <text x="14" y="22" class="sans bt">Evaluate + audit packs</text>
-      <text x="14" y="39" class="mono bd">evaluation/score · P/R/F1</text>
-      <text x="14" y="54" class="mono bd">agent_metrics · coverage</text>
-      <text x="14" y="69" class="mono bd">recon_report.md/json · csv</text>
-      <text x="14" y="86" class="mono cd">audit_log.json · reports/</text>
-    </g>
-    <g transform="translate(1158,52)">
-      <rect x="0" y="0" width="310" height="100" rx="8" fill="#FFFFFF" stroke="#CBD5E1" stroke-width="1.2"/>
-      <text x="14" y="22" class="sans bt">Persist + deploy</text>
-      <text x="14" y="39" class="mono bd">sessions/ per-user · /data</text>
-      <text x="14" y="54" class="mono bd">Docker: node20 → py3.11</text>
-      <text x="14" y="69" class="mono bd">Render starter · disk 1GB</text>
-      <text x="14" y="86" class="mono cd">GET /api/health · uvicorn</text>
-    </g>
-  </g>
-
-  <!-- external note -->
-  <g transform="translate(56,1022)">
-    <rect x="0" y="0" width="1528" height="30" rx="7" fill="#FFFFFF" stroke="#E2E8F0"/>
-    <text x="14" y="20" class="mono cd">External: Google Gemini 2.5 Flash (Tier 3 only, policy-capped) · Razorpay/GST semantics resolved in-house · allow_external_writes=false · secrets via env (GEMINI_API_KEY, JWT_SECRET)</text>
+  <!-- ============ RIGHT: Gemini ============ -->
+  <g transform="translate(1580,530)">
+    <rect x="0" y="0" width="292" height="140" rx="10" fill="#F5F3FF" stroke="#7C3AED" stroke-width="2"/>
+    <text x="24" y="34" class="sans bt" font-size="16" fill="#5B21B6">Google Gemini</text>
+    <text x="24" y="56" class="sans bd">External AI service</text>
+    <text x="24" y="82" class="sans bd">• Ambiguous matches only</text>
+    <text x="24" y="104" class="sans bd">• Bounded by policy gates</text>
+    <text x="24" y="126" class="sans bd">• Never owns the pipeline</text>
   </g>
 </svg>
