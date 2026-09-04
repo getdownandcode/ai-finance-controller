@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import RunwayForecasterChart from './components/RunwayChart.jsx';
 import {
   Activity,
   AlertCircle,
@@ -113,185 +114,6 @@ function StatCard({ label, value, sub, icon: Icon, badge }) {
         {badge}
       </div>
       <p className="mt-2 text-xs leading-relaxed text-muted-foreground">{sub}</p>
-    </div>
-  );
-}
-
-function RunwayForecasterChart({ timeline, formatHeadlineMoney, formatMoney }) {
-  if (!timeline || timeline.length === 0) return null;
-  const [hoveredIdx, setHoveredIdx] = useState(null);
-
-  const width = 640;
-  const height = 150;
-  const padLeft = 45;
-  const padRight = 45;
-  const padTop = 26;
-  const padBottom = 26;
-
-  const cashValues = timeline.map((t) => t.cash);
-  const minCash = Math.min(...cashValues);
-  const maxCash = Math.max(...cashValues);
-  const range = maxCash === minCash ? 1 : maxCash - minCash;
-  const paddedMin = Math.max(0, minCash - range * 0.10);
-  const paddedMax = maxCash + range * 0.16;
-  const paddedRange = paddedMax - paddedMin || 1;
-
-  const points = timeline.map((pt, i) => {
-    const x = padLeft + (i / (timeline.length - 1)) * (width - padLeft - padRight);
-    const y = padTop + (1 - (pt.cash - paddedMin) / paddedRange) * (height - padTop - padBottom);
-    return { ...pt, x, y };
-  });
-
-  const linePath = points.reduce((acc, p, i) => `${acc} ${i === 0 ? 'M' : 'L'} ${p.x.toFixed(1)} ${p.y.toFixed(1)}`, '');
-  const areaPath = `${linePath} L ${points[points.length - 1].x.toFixed(1)} ${height - padBottom} L ${points[0].x.toFixed(1)} ${height - padBottom} Z`;
-
-  return (
-    <div className="w-full overflow-hidden rounded-lg border border-border bg-card p-4">
-      <div className="mb-2.5 flex items-center justify-between px-1 text-xs">
-        <span className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">Forward Liquidity Trajectory Chart</span>
-        <span className="font-mono text-xs font-bold text-chart-2">
-          +{formatHeadlineMoney(timeline[timeline.length - 1].cash - timeline[0].cash)} Projected Net Growth
-        </span>
-      </div>
-
-      <div className="relative w-full aspect-[4/1] min-h-[140px] max-h-[175px]">
-        <svg
-          viewBox={`0 0 ${width} ${height}`}
-          className="h-full w-full overflow-visible font-mono select-none"
-          preserveAspectRatio="none"
-        >
-          <defs>
-            <linearGradient id="runway-area-gradient" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="0%" stopColor="var(--chart-2)" stopOpacity="0.22" />
-              <stop offset="85%" stopColor="var(--chart-2)" stopOpacity="0.01" />
-            </linearGradient>
-            <filter id="glow-end-marker" x="-50%" y="-50%" width="200%" height="200%">
-              <feDropShadow dx="0" dy="0" stdDeviation="2.5" floodColor="var(--chart-2)" floodOpacity="0.75" />
-            </filter>
-          </defs>
-
-          {/* Subtle horizontal gridlines */}
-          {[0.25, 0.55, 0.85].map((pct, idx) => {
-            const gy = padTop + pct * (height - padTop - padBottom);
-            return (
-              <line
-                key={idx}
-                x1={padLeft}
-                y1={gy}
-                x2={width - padRight}
-                y2={gy}
-                stroke="var(--border)"
-                strokeDasharray="4 4"
-                strokeOpacity="0.35"
-              />
-            );
-          })}
-
-          {/* Baseline axis */}
-          <line
-            x1={padLeft}
-            y1={height - padBottom}
-            x2={width - padRight}
-            y2={height - padBottom}
-            stroke="var(--border)"
-            strokeOpacity="0.65"
-          />
-
-          {/* Gradient Area Fill */}
-          <path d={areaPath} fill="url(#runway-area-gradient)" />
-
-          {/* Smooth Trend Line */}
-          <path
-            d={linePath}
-            fill="none"
-            stroke="var(--chart-2)"
-            strokeWidth="2.75"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-          />
-
-          {/* Milestone markers and values */}
-          {points.map((p, i) => {
-            const isStartOrEnd = i === 0 || i === points.length - 1;
-            const isHovered = hoveredIdx === i;
-            const showLabel = isStartOrEnd || isHovered;
-
-            return (
-              <g
-                key={i}
-                className="cursor-pointer"
-                onMouseEnter={() => setHoveredIdx(i)}
-                onMouseLeave={() => setHoveredIdx(null)}
-              >
-                {/* Vertical guideline */}
-                <line
-                  x1={p.x}
-                  y1={p.y}
-                  x2={p.x}
-                  y2={height - padBottom}
-                  stroke="var(--chart-2)"
-                  strokeDasharray="2 3"
-                  strokeOpacity={isHovered ? 0.6 : 0.2}
-                />
-
-                {/* Hit area for easier hovering */}
-                <circle cx={p.x} cy={p.y} r="16" fill="transparent" />
-
-                {/* Data point dot */}
-                <circle
-                  cx={p.x}
-                  cy={p.y}
-                  r={isHovered ? 5.5 : i === points.length - 1 ? 5 : 4}
-                  fill="var(--card)"
-                  stroke="var(--chart-2)"
-                  strokeWidth="2.5"
-                  filter={i === points.length - 1 ? "url(#glow-end-marker)" : undefined}
-                />
-
-                {/* Floating Headline Number (Permanent on Start & End; On-Demand on Middle points) */}
-                {showLabel && (
-                  <g className="pointer-events-none transition-opacity duration-150">
-                    {/* Background pill on hover for middle points */}
-                    {!isStartOrEnd && (
-                      <rect
-                        x={p.x - 38}
-                        y={Math.max(4, p.y - 23)}
-                        width="76"
-                        height="18"
-                        rx="4"
-                        fill="var(--card)"
-                        stroke="var(--border)"
-                        strokeWidth="1"
-                      />
-                    )}
-                    <text
-                      x={p.x}
-                      y={Math.max(15, p.y - 10)}
-                      textAnchor="middle"
-                      className="fill-card-foreground text-[11px] font-bold font-mono"
-                    >
-                      {formatHeadlineMoney(p.cash)}
-                    </text>
-                  </g>
-                )}
-
-                {/* Axis label at bottom */}
-                <text
-                  x={p.x}
-                  y={height - 9}
-                  textAnchor="middle"
-                  className={cx(
-                    "text-[10px] font-bold uppercase tracking-wider transition-colors duration-150",
-                    isHovered ? "fill-card-foreground" : "fill-muted-foreground"
-                  )}
-                >
-                  {p.label}
-                </text>
-              </g>
-            );
-          })}
-        </svg>
-      </div>
     </div>
   );
 }
@@ -413,6 +235,7 @@ export default function App() {
   const [exceptionFilter, setExceptionFilter] = useState('ALL');
   const [exceptionSearch, setExceptionSearch] = useState('');
   const [clusterSearch, setClusterSearch] = useState('');
+  const [runwayActive, setRunwayActive] = useState(null);
   const [sessions, setSessions] = useState([]);
   const [sidebarOpen, setSidebarOpen] = useState(() => {
     try {
@@ -1470,17 +1293,28 @@ export default function App() {
                   </div>
                 </div>
 
-                {/* SVG Visual Runway Trend Chart */}
+                {/* Recharts Runway Trend Chart — trajectory + flows */}
                 <RunwayForecasterChart
                   timeline={results.cash_position.forward_cash_forecast.timeline}
                   formatHeadlineMoney={formatHeadlineMoney}
                   formatMoney={formatMoney}
+                  activeIdx={runwayActive}
+                  onActiveChange={setRunwayActive}
                 />
 
                 {/* 4 Trajectory Milestone Cards */}
                 <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
                   {results.cash_position.forward_cash_forecast.timeline.map((pt, i) => (
-                    <div key={i} className="relative overflow-hidden rounded-lg border border-border bg-muted/30 p-4 transition-all duration-150 hover:bg-muted/50">
+                    <div
+                      key={i}
+                      onMouseEnter={() => setRunwayActive(i)}
+                      onMouseLeave={() => setRunwayActive(null)}
+                      className={cx(
+                        "relative overflow-hidden rounded-lg border p-4 transition-all duration-150 cursor-default",
+                        runwayActive === i
+                          ? "border-chart-2/60 bg-chart-2/[0.07] shadow-sm"
+                          : "border-border bg-muted/30 hover:bg-muted/50"
+                      )}>
                       <div className="flex items-center justify-between text-xs text-muted-foreground">
                         <span className="font-bold uppercase tracking-wider text-[11px] text-muted-foreground">{pt.label}</span>
                         <span className="rounded bg-muted px-1.5 py-0.5 font-mono text-[10px] font-bold text-muted-foreground">T+{pt.days}d</span>

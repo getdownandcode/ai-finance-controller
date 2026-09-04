@@ -158,3 +158,20 @@ body {
 .bg-aurora {
   background: radial-gradient(ellipse 70% 35% at 50% -5%, rgba(209, 129, 92, 0.08) 0%, rgba(127, 168, 120, 0.04) 40%, transparent 75%);
 }
+
+/* Recharts runway polish — keeps chart type + ticks on-theme */
+.recharts-wrapper,
+.recharts-surface {
+  outline: none !important;
+}
+.recharts-cartesian-axis-tick text {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  letter-spacing: 0.04em;
+}
+.recharts-tooltip-wrapper {
+  outline: none !important;
+}
+.recharts-area-curve,
+.recharts-bar-rectangle {
+  shape-rendering: geometricPrecision;
+}
