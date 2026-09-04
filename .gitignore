@@ -57,3 +57,7 @@ data_test_complex/
 data_test_stress/
 generate_complex_data.py
 tools_dummy
+
+# Demo deck (local only — do not push)
+/MatchMind_Demo_Deck.pptx
+/MatchMind_Demo_Deck.key

@@ -13,12 +13,14 @@ from __future__ import annotations
 import io
 import json
 import logging
+import threading
 import time
+import uuid
 from pathlib import Path
 from typing import Optional
 
 import pandas as pd
-from fastapi import FastAPI, File, Form, HTTPException, UploadFile, Request
+from fastapi import BackgroundTasks, FastAPI, File, Form, HTTPException, UploadFile, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
@@ -63,6 +65,179 @@ MAX_UPLOAD_BYTES = settings.max_upload_bytes
 MAX_RECORDS = settings.max_records
 ALLOWED_LLM_MODES = {"auto", "off", "gemini"}
 ALLOWED_GOALS = {"reconcile", "reconcile_all", "calculate_cash", "triage", "report"}
+
+# ---------------------------------------------------------------------------
+# Async job progress (real backend progress for long reconciliations)
+# ---------------------------------------------------------------------------
+JOBS: dict[str, dict] = {}
+JOBS_LOCK = threading.Lock()
+
+
+class _JobCancelled(RuntimeError):
+    pass
+
+
+def _job_init(owner: str) -> str:
+    job_id = f"job_{uuid.uuid4().hex[:12]}"
+    now = time.time()
+    with JOBS_LOCK:
+        # expire jobs older than 30 min, cap at 100
+        expired = [k for k, v in JOBS.items() if now - v.get("created", now) > 1800]
+        for k in expired:
+            JOBS.pop(k, None)
+        while len(JOBS) >= 100:
+            oldest = min(JOBS.items(), key=lambda kv: kv[1].get("created", now))[0]
+            JOBS.pop(oldest, None)
+        JOBS[job_id] = {
+            "job_id": job_id,
+            "status": "pending",
+            "stage": "queued",
+            "percent": 2,
+            "message": "Queued — starting reconciliation",
+            "result": None,
+            "error": None,
+            "owner": owner,
+            "created": now,
+            "cancelled": False,
+        }
+    return job_id
+
+
+def _job_update(job_id: str, stage: str, percent: int, message: str = "") -> None:
+    with JOBS_LOCK:
+        job = JOBS.get(job_id)
+        if job is None:
+            return
+        if job.get("cancelled"):
+            raise _JobCancelled(f"job {job_id} cancelled")
+        job["status"] = "running"
+        job["stage"] = stage
+        job["percent"] = max(0, min(100, int(percent)))
+        if message:
+            job["message"] = message
+
+
+def _job_done(job_id: str, result: dict) -> None:
+    with JOBS_LOCK:
+        job = JOBS.get(job_id)
+        if job is None:
+            return
+        job["status"] = "done"
+        job["stage"] = "done"
+        job["percent"] = 100
+        job["message"] = "Reconciliation complete"
+        job["result"] = result
+
+
+def _job_error(job_id: str, error: str) -> None:
+    with JOBS_LOCK:
+        job = JOBS.get(job_id)
+        if job is None:
+            return
+        if job.get("cancelled"):
+            job["status"] = "cancelled"
+            job["message"] = "Cancelled by user"
+        else:
+            job["status"] = "error"
+            job["message"] = error
+            job["error"] = error
+
+
+def _make_progress_callback(job_id: str):
+    def _cb(stage: str, percent: int, message: str = "") -> None:
+        _job_update(job_id, stage, percent, message)
+    return _cb
+
+
+def _run_demo_job(job_id: str, username: str, seed: int, llm_mode: str, goal: str) -> None:
+    try:
+        _job_update(job_id, "generating", 5, "Generating benchmark sample data")
+        data_dir = settings.data_dir
+        generate(seed=seed, data_dir=str(data_dir))
+        _job_update(job_id, "loading", 15, "Loading bank, ledger and invoice feeds")
+        bank_df = pd.read_csv(data_dir / "bank_feed.csv")
+        ledger_df = pd.read_csv(data_dir / "ledger.csv")
+        invoices_df = pd.read_csv(data_dir / "invoices.csv")
+        gt_df = pd.read_csv(data_dir / "ground_truth.csv")
+        meta = json.loads((data_dir / "batch_meta.json").read_text())
+        payload = run_reconciliation(
+            bank_df=bank_df, ledger_df=ledger_df, invoices_df=invoices_df, gt_df=gt_df,
+            bank_opening=meta.get("opening_balances", {}).get("bank", 42500.0),
+            ledger_opening=meta.get("opening_balances", {}).get("ledger", 42500.0),
+            llm_mode=llm_mode,
+            batch_id=meta.get("batch_id", f"demo_seed_{seed}"),
+            reports_dir=REPORTS_DIR,
+            goal=goal,
+            progress_callback=_make_progress_callback(job_id),
+        )
+        payload["_owner"] = username
+        _save_session(payload, username)
+        _job_done(job_id, payload)
+    except _JobCancelled:
+        with JOBS_LOCK:
+            job = JOBS.get(job_id)
+            if job is not None:
+                job["status"] = "cancelled"
+                job["message"] = "Cancelled by user"
+    except Exception as exc:
+        log.exception("demo job %s failed", job_id)
+        _job_error(job_id, str(exc))
+
+
+def _run_custom_job(job_id: str, username: str, files_payload: list[dict],
+                    gt_bytes: bytes | None, llm_mode: str, goal: str) -> None:
+    try:
+        _job_update(job_id, "loading", 10, "Reading uploaded CSV files")
+        import io as _io
+        sources_list: list[dict] = []
+        gt_df = None
+        if gt_bytes:
+            try:
+                gt_df = pd.read_csv(_io.BytesIO(gt_bytes))
+            except Exception:
+                gt_df = None
+        for item in files_payload:
+            try:
+                df = pd.read_csv(_io.BytesIO(item["bytes"]))
+            except Exception as exc:
+                raise HTTPException(status_code=400, detail=f"Invalid CSV for {item.get('label')}: {exc}") from exc
+            if df is not None and not df.empty:
+                sources_list.append({
+                    "df": df,
+                    "category": item.get("category") or "bank",
+                    "label": item.get("label") or "upload",
+                    "source_key": item.get("source_key") or "bank",
+                    "opening_balance": float(item.get("opening_balance") or 0.0),
+                })
+        total_rows = sum(len(s["df"]) for s in sources_list)
+        if total_rows > MAX_RECORDS:
+            raise HTTPException(status_code=400, detail=f"Too many records ({total_rows} > {MAX_RECORDS})")
+        if total_rows == 0:
+            raise HTTPException(status_code=400, detail="No records found in uploaded files")
+        _job_update(job_id, "normalizing", 15, "Normalizing schemas across sources")
+        payload = run_reconciliation(
+            sources=sources_list,
+            gt_df=gt_df,
+            llm_mode=llm_mode,
+            batch_id=f"custom_upload_{int(time.time())}",
+            reports_dir=REPORTS_DIR,
+            goal=goal,
+            progress_callback=_make_progress_callback(job_id),
+        )
+        payload["_owner"] = username
+        _save_session(payload, username)
+        _job_done(job_id, payload)
+    except _JobCancelled:
+        with JOBS_LOCK:
+            job = JOBS.get(job_id)
+            if job is not None:
+                job["status"] = "cancelled"
+                job["message"] = "Cancelled by user"
+    except HTTPException as exc:
+        _job_error(job_id, exc.detail)
+    except Exception as exc:
+        log.exception("custom job %s failed", job_id)
+        _job_error(job_id, str(exc))
 
 
 @app.middleware("http")
@@ -384,6 +559,105 @@ def reconcile_demo(request: Request, seed: int = Form(42), llm_mode: str = Form(
     except Exception as exc:
         log.exception("reconcile-demo failed")
         raise HTTPException(status_code=500, detail=str(exc)) from exc
+
+
+# --- Async jobs with real progress (frontend polls GET /api/job/{id}) ---
+@app.post("/api/reconcile-demo/async")
+def reconcile_demo_async(request: Request, background_tasks: BackgroundTasks,
+                         seed: int = Form(42), llm_mode: str = Form("auto"), goal: str = Form("reconcile")):
+    username = get_current_user(request)
+    if llm_mode not in ALLOWED_LLM_MODES:
+        raise HTTPException(status_code=400, detail=f"llm_mode must be one of {ALLOWED_LLM_MODES}")
+    if goal not in ALLOWED_GOALS:
+        raise HTTPException(status_code=400, detail=f"goal must be one of {ALLOWED_GOALS}")
+    if not 0 <= seed <= 1_000_000:
+        raise HTTPException(status_code=400, detail="seed out of range")
+    job_id = _job_init(username)
+    background_tasks.add_task(_run_demo_job, job_id, username, seed, llm_mode, goal)
+    return {"job_id": job_id}
+
+
+@app.post("/api/reconcile/async")
+async def reconcile_custom_async(
+    request: Request,
+    background_tasks: BackgroundTasks,
+    files: list[UploadFile] = File(default=[]),
+    metadata: str = Form(default="[]"),
+    llm_mode: str = Form("auto"),
+    goal: str = Form("reconcile"),
+):
+    username = get_current_user(request)
+    if llm_mode not in ALLOWED_LLM_MODES:
+        raise HTTPException(status_code=400, detail=f"llm_mode must be one of {ALLOWED_LLM_MODES}")
+    if goal not in ALLOWED_GOALS:
+        raise HTTPException(status_code=400, detail=f"goal must be one of {ALLOWED_GOALS}")
+    try:
+        meta_items = json.loads(metadata) if metadata and metadata.strip() else []
+        if not isinstance(meta_items, list):
+            meta_items = []
+    except Exception:
+        meta_items = []
+    # Buffer uploads now — file handles close after response, background task needs bytes
+    files_payload: list[dict] = []
+    for idx, uploaded_file in enumerate(files or []):
+        if not uploaded_file.filename:
+            continue
+        raw = await uploaded_file.read()
+        if len(raw) > MAX_UPLOAD_BYTES:
+            raise HTTPException(status_code=413, detail=f"{uploaded_file.filename} file too large")
+        if len(raw) == 0:
+            continue
+        file_meta = meta_items[idx] if idx < len(meta_items) else {}
+        cat = file_meta.get("category") or "bank"
+        label = file_meta.get("label") or uploaded_file.filename.replace(".csv", "")
+        try:
+            op_bal = float(file_meta.get("opening_balance", 0.0) or 0.0)
+        except Exception:
+            op_bal = 0.0
+        src_key = file_meta.get("source_key") or f"{cat}:{label.lower().replace(' ', '_')}"
+        files_payload.append({
+            "bytes": raw,
+            "category": cat,
+            "label": label,
+            "opening_balance": op_bal,
+            "source_key": src_key,
+        })
+    if not files_payload:
+        raise HTTPException(status_code=400, detail="No records found in uploaded files")
+    job_id = _job_init(username)
+    background_tasks.add_task(_run_custom_job, job_id, username, files_payload, None, llm_mode, goal)
+    return {"job_id": job_id}
+
+
+@app.get("/api/job/{job_id}")
+def get_job(job_id: str, request: Request):
+    username = get_current_user(request)
+    with JOBS_LOCK:
+        job = JOBS.get(job_id)
+        if job is None:
+            raise HTTPException(status_code=404, detail="Job not found")
+        if job.get("owner") != username:
+            raise HTTPException(status_code=404, detail="Job not found")
+        # return a copy without internal fields
+        out = {k: v for k, v in job.items() if k not in ("owner", "created", "cancelled")}
+    return out
+
+
+@app.delete("/api/job/{job_id}")
+def cancel_job(job_id: str, request: Request):
+    username = get_current_user(request)
+    with JOBS_LOCK:
+        job = JOBS.get(job_id)
+        if job is None:
+            raise HTTPException(status_code=404, detail="Job not found")
+        if job.get("owner") != username:
+            raise HTTPException(status_code=404, detail="Job not found")
+        if job.get("status") in ("done", "error"):
+            return {"job_id": job_id, "status": job.get("status")}
+        job["cancelled"] = True
+        job["status"] = "cancelled"
+        job["message"] = "Cancelled by user"
+    return {"job_id": job_id, "status": "cancelled"}
 
 
 # --- Session history (ChatGPT-like) — per-user ---

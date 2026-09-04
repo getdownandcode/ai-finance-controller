@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import RunwayForecasterChart from './components/RunwayChart.jsx';
 import {
   Activity,
@@ -226,6 +226,8 @@ export default function App() {
 
   const [activeTab, setActiveTab] = useState(() => localStorage.getItem(LS_TAB) || 'ingest');
   const [loading, setLoading] = useState(false);
+  const [jobProgress, setJobProgress] = useState(0);
+  const [jobElapsed, setJobElapsed] = useState(0);
   const [results, setResults] = useState(() => {
     try { const raw = localStorage.getItem(LS_KEY); return raw ? JSON.parse(raw) : null; } catch { return null; }
   });
@@ -310,15 +312,84 @@ export default function App() {
     closeSidebarIfMobile();
   };
 
+  // --- Backend job progress: async job + polling (800ms), simple loader only ---
+  const jobPollRef = useRef(null);
+  const jobIdRef = useRef(null);
+  const jobStartRef = useRef(0);
+
+  const clearJobPoll = () => {
+    if (jobPollRef.current) { clearInterval(jobPollRef.current); jobPollRef.current = null; }
+  };
+  useEffect(() => () => clearJobPoll(), []);
+  // elapsed timer while loading
+  useEffect(() => {
+    if (!loading) return;
+    const t = setInterval(() => {
+      if (jobStartRef.current) setJobElapsed(Math.floor((Date.now() - jobStartRef.current) / 1000));
+    }, 500);
+    return () => clearInterval(t);
+  }, [loading]);
+
+  const startLoading = () => {
+    setLoading(true);
+    setError(null);
+    setJobProgress(2);
+    setJobElapsed(0);
+    jobStartRef.current = Date.now();
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+  const stopLoading = () => {
+    clearJobPoll();
+    jobIdRef.current = null;
+    setLoading(false);
+  };
+  const pollJobUntilDone = (jobId) => {
+    jobIdRef.current = jobId;
+    clearJobPoll();
+    return new Promise((resolve, reject) => {
+      const poll = async () => {
+        try {
+          const r = await authFetch(`/api/job/${encodeURIComponent(jobId)}`);
+          if (!r.ok) {
+            const e = await r.json().catch(() => ({}));
+            throw new Error(e.detail || 'Progress check failed');
+          }
+          const j = await r.json();
+          setJobProgress(typeof j.percent === 'number' ? j.percent : 0);
+          if (j.status === 'done' && j.result) { stopLoading(); resolve(j.result); return; }
+          if (j.status === 'error') { stopLoading(); reject(new Error(j.error || j.message || 'Reconciliation failed')); return; }
+          if (j.status === 'cancelled') { stopLoading(); reject(new Error('Reconciliation cancelled.')); return; }
+          // safety timeout after 5 min
+          if (Date.now() - jobStartRef.current > 5 * 60 * 1000) {
+            stopLoading();
+            reject(new Error('Reconciliation timed out after 5 minutes. Please try again.'));
+          }
+        } catch (e) {
+          // network blip: keep polling unless cancelled
+          if (String(e.message || '').toLowerCase().includes('cancelled')) { stopLoading(); reject(e); }
+        }
+      };
+      poll();
+      jobPollRef.current = setInterval(poll, 800);
+    });
+  };
+  const handleCancelJob = async () => {
+    const jobId = jobIdRef.current;
+    clearJobPoll();
+    if (jobId) {
+      try { await authFetch(`/api/job/${encodeURIComponent(jobId)}`, { method: 'DELETE' }); } catch {}
+    }
+    jobIdRef.current = null;
+    setLoading(false);
+  };
+
   const handleCustomReconcile = async (e) => {
     if (e) e.preventDefault();
     if (filesList.length === 0) {
       setError('Please upload at least one CSV file (Bank Statement, General Ledger, Invoices, or Gateway).');
       return;
     }
-    setLoading(true);
-    setError(null);
-    window.scrollTo({ top: 0, behavior: 'smooth' });
+    startLoading();
     try {
       const formData = new FormData();
       const meta = [];
@@ -334,46 +405,80 @@ export default function App() {
       formData.append('metadata', JSON.stringify(meta));
       formData.append('llm_mode', 'auto');
       formData.append('goal', 'reconcile');
-      const res = await authFetch('/api/reconcile', { method: 'POST', body: formData });
-      if (!res.ok) {
-        const err = await res.json();
-        throw new Error(err.detail || 'Reconciliation execution failed');
+      // Prefer async job with real progress; fall back to sync endpoint
+      let data = null;
+      try {
+        const start = await authFetch('/api/reconcile/async', { method: 'POST', body: formData });
+        if (start.status === 404) throw new Error('fallback-sync');
+        if (!start.ok) {
+          const err = await start.json().catch(() => ({}));
+          throw new Error(err.detail || 'Reconciliation execution failed');
+        }
+        const { job_id } = await start.json();
+        if (!job_id) throw new Error('fallback-sync');
+        data = await pollJobUntilDone(job_id);
+      } catch (err) {
+        if (err.message === 'fallback-sync') {
+          const res = await authFetch('/api/reconcile', { method: 'POST', body: formData });
+          if (!res.ok) {
+            const j = await res.json().catch(() => ({}));
+            throw new Error(j.detail || 'Reconciliation execution failed');
+          }
+          data = await res.json();
+          stopLoading();
+        } else {
+          throw err;
+        }
       }
-      const data = await res.json();
       persistAndShow(data);
     } catch (e) {
+      stopLoading();
+      if (String(e.message || '').toLowerCase().includes('cancelled')) return;
       setError(e.message);
-    } finally {
-      setLoading(false);
     }
   };
 
   const handleRunSampleData = async () => {
-    setLoading(true);
-    setError(null);
-    window.scrollTo({ top: 0, behavior: 'smooth' });
+    startLoading();
     try {
       const formData = new FormData();
       formData.append('seed', 42);
       formData.append('llm_mode', 'auto');
       formData.append('goal', 'reconcile');
-      const res = await authFetch('/api/reconcile-demo', { method: 'POST', body: formData });
-      if (!res.ok) {
-        const err = await res.json();
-        throw new Error(err.detail || 'Sample batch reconciliation failed');
+      let data = null;
+      try {
+        const start = await authFetch('/api/reconcile-demo/async', { method: 'POST', body: formData });
+        if (start.status === 404) throw new Error('fallback-sync');
+        if (!start.ok) {
+          const err = await start.json().catch(() => ({}));
+          throw new Error(err.detail || 'Sample batch reconciliation failed');
+        }
+        const { job_id } = await start.json();
+        if (!job_id) throw new Error('fallback-sync');
+        data = await pollJobUntilDone(job_id);
+      } catch (err) {
+        if (err.message === 'fallback-sync') {
+          const res = await authFetch('/api/reconcile-demo', { method: 'POST', body: formData });
+          if (!res.ok) {
+            const j = await res.json().catch(() => ({}));
+            throw new Error(j.detail || 'Sample batch reconciliation failed');
+          }
+          data = await res.json();
+          stopLoading();
+        } else {
+          throw err;
+        }
       }
-      const data = await res.json();
       persistAndShow(data);
     } catch (e) {
+      stopLoading();
+      if (String(e.message || '').toLowerCase().includes('cancelled')) return;
       setError(e.message);
-    } finally {
-      setLoading(false);
     }
   };
 
   const handleLoadSession = async (batchId) => {
-    setLoading(true);
-    setError(null);
+    startLoading();
     try {
       if (results?.batch_id === batchId) {
         setActiveTab('dashboard');
@@ -400,7 +505,7 @@ export default function App() {
       localStorage.setItem(LS_KEY, JSON.stringify(data));
       closeSidebarIfMobile();
     } catch (e) { setError(e.message); }
-    finally { setLoading(false); }
+    finally { stopLoading(); }
   };
 
   const handleDeleteSession = async (batchId, e) => {
@@ -776,19 +881,19 @@ export default function App() {
         )}
 
         {loading && (
-          <div className="glass animate-fade-in flex flex-col items-center justify-center gap-4 rounded-2xl px-6 py-12 text-center sm:px-8">
+          <div role="status" aria-live="polite" className="glass animate-fade-in flex flex-col items-center justify-center gap-4 rounded-2xl px-6 py-10 text-center sm:px-8">
             <div className="relative h-12 w-12">
               <div className="absolute inset-0 rounded-full border border-border" />
               <div className="absolute inset-0 animate-spin rounded-full border-2 border-transparent border-t-primary border-r-secondary" style={{ animationDuration: '0.8s' }} />
               <div className="absolute inset-2 rounded-full bg-primary/10 blur-[1px]" />
             </div>
             <div>
-              <h3 className="text-sm font-bold text-foreground">Reconciling financial records…</h3>
-              <p className="mx-auto mt-2 max-w-md text-xs leading-relaxed text-muted-foreground">Normalizing schemas, finding candidate pairs, executing multi-tier matching rules, and evaluating AI evidence.</p>
+              <h3 className="text-sm font-bold text-foreground">Reconciling financial records… {jobElapsed > 0 && <span className="font-mono font-semibold tabular-nums text-muted-foreground">· {jobElapsed}s</span>}</h3>
+              <p className="mx-auto mt-1.5 max-w-md text-xs leading-relaxed text-muted-foreground">Please wait while we match your transactions.</p>
             </div>
-            <div className="h-1.5 w-48 overflow-hidden rounded-full bg-muted">
-              <div className="h-full w-2/5 rounded-full bg-primary animate-[indeterminate_1.2s_ease-in-out_infinite]" />
-            </div>
+            <button type="button" onClick={handleCancelJob} className={cx(btnOutline, 'h-8 px-4 text-xs')}>
+              <X className="h-3.5 w-3.5" /> Cancel
+            </button>
           </div>
         )}
 
@@ -999,43 +1104,53 @@ export default function App() {
                   </div>
                 )}
 
-                <div className="flex flex-col-reverse items-stretch justify-between gap-3 border-t border-border pt-6 sm:flex-row sm:items-center">
-                  <button
-                    type="button"
-                    onClick={handleRunSampleData}
-                    disabled={loading}
-                    className="inline-flex h-10 items-center justify-center gap-2 text-xs font-medium text-muted-foreground transition-colors duration-200 hover:text-primary disabled:opacity-50"
-                  >
-                    {loading ? (
-                      <div className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-primary border-t-transparent" />
-                    ) : (
-                      <Database className="h-3.5 w-3.5" />
-                    )}
-                    <span>{loading ? 'Reconciling sample data…' : 'Or run with benchmark sample data'}</span>
-                  </button>
-                  <button
-                    type="submit"
-                    disabled={loading || filesList.length === 0}
-                    className={cx(
-                      'inline-flex h-11 items-center justify-center gap-2 rounded-xl px-6 text-sm font-semibold transition-all duration-200 focus-ring',
-                      filesList.length === 0 || loading
-                        ? 'cursor-not-allowed border border-border bg-muted text-muted-foreground'
-                        : 'bg-primary text-primary-foreground shadow-md hover:opacity-90'
-                    )}
-                  >
-                    {loading ? (
-                      <>
-                        <div className="h-4 w-4 animate-spin rounded-full border-2 border-primary-foreground border-t-transparent" />
-                        <span>Reconciling records…</span>
-                      </>
-                    ) : (
-                      <>
-                        <Play className="h-4 w-4 fill-current" />
-                        <span>Run autonomous reconciliation {filesList.length > 0 ? `(${filesList.length} files)` : ''}</span>
-                        <ArrowRight className="h-4 w-4 opacity-70" />
-                      </>
-                    )}
-                  </button>
+                <div className="space-y-3 border-t border-border pt-5">
+                  {filesList.length === 0 && sessions.length === 0 && !results && (
+                    <div className="flex items-start gap-2.5 rounded-xl border border-chart-2/30 bg-chart-2/[0.07] px-3.5 py-2.5">
+                      <Database className="mt-0.5 h-3.5 w-3.5 shrink-0 text-chart-2" />
+                      <p className="text-[11px] leading-relaxed text-foreground">
+                        <span className="font-bold">New here?</span> Start with the 1-click benchmark sample — no upload needed.
+                      </p>
+                    </div>
+                  )}
+                  <div className="flex flex-col gap-2 sm:flex-row">
+                    <button
+                      type="button"
+                      onClick={handleRunSampleData}
+                      disabled={loading}
+                      title="Bank + ledger + invoices · instant demo, no upload"
+                      className={cx(btnOutline, 'h-9 flex-1 px-3.5 text-xs')}
+                    >
+                      {loading ? (
+                        <span className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+                      ) : (
+                        <Database className="h-3.5 w-3.5" />
+                      )}
+                      <span>{loading ? 'Working on sample…' : 'Try benchmark sample'}</span>
+                      {filesList.length === 0 && sessions.length === 0 && !results && !loading && (
+                        <span className="rounded-full bg-chart-2/15 px-1.5 py-0.5 text-[10px] font-bold text-chart-2">First run?</span>
+                      )}
+                    </button>
+                    <button
+                      type="submit"
+                      disabled={loading || filesList.length === 0}
+                      title={filesList.length === 0 ? 'Upload CSVs above to enable' : 'Run reconciliation on your files'}
+                      className={cx(
+                        btn,
+                        'h-9 flex-1 px-3.5 text-xs focus-ring',
+                        filesList.length === 0 || loading
+                          ? 'cursor-not-allowed border border-border bg-muted text-muted-foreground'
+                          : 'bg-primary text-primary-foreground shadow-sm hover:opacity-90'
+                      )}
+                    >
+                      {loading ? (
+                        <span className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-current border-t-transparent" />
+                      ) : (
+                        <Play className="h-3.5 w-3.5 fill-current" />
+                      )}
+                      <span>{loading ? 'Working…' : `Run my files${filesList.length > 0 ? ` (${filesList.length})` : ''}`}</span>
+                    </button>
+                  </div>
                 </div>
               </form>
             </div>

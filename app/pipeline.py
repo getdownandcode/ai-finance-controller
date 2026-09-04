@@ -65,9 +65,16 @@ def run_reconciliation(
     goal: str = "reconcile",
     policy_path: str | Path | None = None,
     mode: str | None = None,
+    progress_callback=None,
     **kwargs,
 ) -> dict:
     """Autonomous pipeline: goal → observe → plan → act → reflect until complete or blocked."""
+    def _progress(stage: str, percent: int, message: str = "") -> None:
+        try:
+            if progress_callback is not None:
+                progress_callback(stage, percent, message)
+        except Exception:
+            pass
     if mode == "fixed":
         log.warning("mode='fixed' is deprecated and ignored — running autonomous pipeline")
 
@@ -80,6 +87,8 @@ def run_reconciliation(
 
     # Filter out empty entries
     active_sources = [s for s in sources if s.get("df") is not None and not s["df"].empty]
+
+    _progress("normalizing", 8, "Normalizing schemas across sources")
 
     all_records: dict[str, Record] = {}
     source_counts: dict[str, int] = {}
@@ -141,17 +150,22 @@ def run_reconciliation(
     cfg = AgentConfig(llm_mode=llm_mode)
     policy = Policy.load(policy_path)
 
+    _progress("candidates", 25, "Finding candidate pairs")
     controller = AutonomousController(all_records, meta, policy=policy, goal=goal, cfg=cfg)
+    _progress("matching", 40, "Executing multi-tier matching rules")
     autonomous_state = controller.run()
     recon_state = autonomous_state.recon
 
+    _progress("evaluating", 70, "Evaluating AI evidence and scoring")
     gt_map = _build_gt_map(gt_df, all_records)
     metrics = evaluate(recon_state, gt_map, all_records)
+    _progress("cash", 82, "Computing cash position")
     cash = cash_position(all_records, recon_state.matched_ids(), recon_state.exception_ids, meta)
 
     from evaluation.agent_metrics import compute_agent_metrics
     metrics.update(compute_agent_metrics(autonomous_state, recon_state, metrics, cash, policy))
 
+    _progress("reporting", 92, "Writing reports and finalizing")
     reporter = ReportingAgent(recon_state, metrics, cash, meta, cfg, reports_dir=reports_dir)
     reporter.write_all()
 
@@ -167,6 +181,7 @@ def run_reconciliation(
                 "members": cluster_members,
             })
 
+    _progress("done", 100, "Reconciliation complete")
     return {
         "batch_id": batch_id,
         "total_records": len(all_records),
