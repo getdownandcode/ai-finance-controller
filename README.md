@@ -13,6 +13,10 @@
 ## 📖 Comprehensive Documentation
 For a deep dive into system architecture, multi-tier decisioning, Indian fintech logic, cash runway modeling, and full data flow, read **[`PROJECT_DOCUMENTATION.md`](PROJECT_DOCUMENTATION.md)**.
 
+## 🏛️ System Architecture
+
+![MatchMind System Architecture](architecture_diagram.svg)
+
 ---
 
 ## ⚡ Core Superpowers

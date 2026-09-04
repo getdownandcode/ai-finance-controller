@@ -1,0 +1,303 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1600 1080" width="1600" height="1080" role="img" aria-label="MatchMind system architecture">
+  <defs>
+    <marker id="fl" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M 0 1 L 9 5 L 0 9 z" fill="#4F46E5"/>
+    </marker>
+    <marker id="flS" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M 0 1 L 9 5 L 0 9 z" fill="#64748B"/>
+    </marker>
+    <marker id="flG" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M 0 1 L 9 5 L 0 9 z" fill="#047857"/>
+    </marker>
+    <marker id="flR" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M 0 1 L 9 5 L 0 9 z" fill="#B91C1C"/>
+    </marker>
+  </defs>
+
+  <style>
+    .sans { font-family: Inter, -apple-system, 'Segoe UI', sans-serif; }
+    .mono { font-family: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, monospace; }
+    .h1 { font-size: 24px; font-weight: 800; fill: #0F172A; }
+    .sub { font-size: 12px; fill: #64748B; letter-spacing: .08em; }
+    .lane { font-size: 12px; font-weight: 700; fill: #4F46E5; letter-spacing: .08em; }
+    .laneNo { font-size: 12px; font-weight: 800; fill: #FFFFFF; }
+    .bt { font-size: 13.5px; font-weight: 700; fill: #0F172A; }
+    .bd { font-size: 11.5px; fill: #475569; }
+    .cd { font-size: 10.5px; fill: #64748B; }
+    .tag { font-size: 9.5px; font-weight: 700; letter-spacing: .06em; }
+    .fn { font-size: 10.5px; fill: #4F46E5; }
+    .step { font-size: 11px; font-weight: 800; fill: #FFFFFF; }
+    .lg { font-size: 11px; fill: #475569; }
+  </style>
+
+  <!-- page -->
+  <rect x="0" y="0" width="1600" height="1080" fill="#F1F5F9"/>
+  <rect x="16" y="16" width="1568" height="1048" rx="14" fill="#FFFFFF" stroke="#CBD5E1" stroke-width="1.5"/>
+
+  <!-- header -->
+  <g transform="translate(48,40)">
+    <rect x="0" y="0" width="46" height="46" rx="10" fill="#4F46E5"/>
+    <path d="M 13 24 L 20 31 L 33 16" stroke="#FFFFFF" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+    <text x="58" y="27" class="sans h1">MatchMind — System Architecture</text>
+    <text x="58" y="44" class="mono sub">AUTONOMOUS FINANCE CONTROLLER · MULTI-SOURCE RECONCILIATION · FASTAPI + REACT</text>
+    <!-- legend -->
+    <g transform="translate(1058,2)">
+      <line x1="0" y1="10" x2="34" y2="10" stroke="#4F46E5" stroke-width="2" marker-end="url(#fl)"/>
+      <text x="40" y="14" class="sans lg">sync request / response</text>
+      <line x1="230" y1="10" x2="264" y2="10" stroke="#64748B" stroke-width="1.6" stroke-dasharray="5 4" marker-end="url(#flS)"/>
+      <text x="270" y="14" class="sans lg">persist / async</text>
+      <rect x="0" y="24" width="12" height="12" rx="3" fill="#EEF2FF" stroke="#4F46E5"/>
+      <text x="18" y="34" class="sans lg">service</text>
+      <rect x="110" y="24" width="12" height="12" rx="3" fill="#ECFDF5" stroke="#047857"/>
+      <text x="128" y="34" class="sans lg">matched output</text>
+      <rect x="248" y="24" width="12" height="12" rx="3" fill="#FEF2F2" stroke="#B91C1C"/>
+      <text x="266" y="34" class="sans lg">exception path</text>
+    </g>
+  </g>
+
+  <!-- flow spine -->
+  <line x1="34" y1="120" x2="34" y2="1010" stroke="#CBD5E1" stroke-width="2"/>
+  <g class="sans" text-anchor="middle">
+    <circle cx="34" cy="252" r="10" fill="#4F46E5"/><text x="34" y="256" class="step">1</text>
+    <circle cx="34" cy="442" r="10" fill="#4F46E5"/><text x="34" y="446" class="step">2</text>
+    <circle cx="34" cy="620" r="10" fill="#4F46E5"/><text x="34" y="624" class="step">3</text>
+    <circle cx="34" cy="832" r="10" fill="#4F46E5"/><text x="34" y="836" class="step">4</text>
+    <circle cx="34" cy="968" r="10" fill="#4F46E5"/><text x="34" y="972" class="step">5</text>
+  </g>
+
+  <!-- ============ LANE 1 : CLIENT ============ -->
+  <g transform="translate(56,112)">
+    <rect x="0" y="0" width="1528" height="128" rx="10" fill="#F8FAFC" stroke="#E2E8F0"/>
+    <rect x="0" y="0" width="44" height="128" rx="10" fill="#4F46E5"/>
+    <rect x="30" y="0" width="14" height="128" fill="#4F46E5"/>
+    <text x="22" y="66" class="sans laneNo" text-anchor="middle" transform="rotate(-90,22,66)">L1</text>
+    <text x="60" y="24" class="sans lane">L1 · CLIENT LAYER — BROWSER SPA + CLI</text>
+    <text x="60" y="42" class="mono cd">1 · user uploads CSVs / reviews results · JWT per request · static SPA served by API</text>
+    <!-- browser -->
+    <g transform="translate(60,52)">
+      <rect x="0" y="0" width="640" height="64" rx="8" fill="#EEF2FF" stroke="#4F46E5" stroke-width="1.4"/>
+      <text x="14" y="22" class="sans bt">Browser SPA — React 19 + Vite + Tailwind v4 + Recharts</text>
+      <text x="14" y="39" class="mono bd">views: Ingest · Dashboard · Exceptions · Clusters · Audit · Export</text>
+      <text x="14" y="54" class="mono cd">sessions sidebar · runway AreaChart + flows BarChart · localStorage afc_session</text>
+    </g>
+    <!-- inputs -->
+    <g transform="translate(716,52)">
+      <rect x="0" y="0" width="400" height="64" rx="8" fill="#FFFFFF" stroke="#CBD5E1" stroke-width="1.2"/>
+      <text x="14" y="22" class="sans bt">CSV inputs + metadata</text>
+      <text x="14" y="39" class="mono bd">bank · ledger · invoice/gateway + opening_balance</text>
+      <text x="14" y="54" class="mono fn">multipart/form-data → POST /api/reconcile</text>
+    </g>
+    <!-- cli -->
+    <g transform="translate(1132,52)">
+      <rect x="0" y="0" width="336" height="64" rx="8" fill="#FFFFFF" stroke="#CBD5E1" stroke-width="1.2"/>
+      <text x="14" y="22" class="sans bt">CLI / batch harness</text>
+      <text x="14" y="39" class="mono bd">run_agent.py --seed 42 --llm auto</text>
+      <text x="14" y="54" class="mono cd">generate_data.py · data_test_* fixtures</text>
+    </g>
+  </g>
+
+  <!-- L1 -> L2 -->
+  <line x1="500" y1="240" x2="500" y2="258" stroke="#4F46E5" stroke-width="2" marker-end="url(#fl)"/>
+  <line x1="1050" y1="240" x2="1050" y2="258" stroke="#4F46E5" stroke-width="2" marker-end="url(#fl)"/>
+
+  <!-- ============ LANE 2 : API ============ -->
+  <g transform="translate(56,266)">
+    <rect x="0" y="0" width="1528" height="164" rx="10" fill="#F8FAFC" stroke="#E2E8F0"/>
+    <rect x="0" y="0" width="44" height="164" rx="10" fill="#4F46E5"/>
+    <rect x="30" y="0" width="14" height="164" fill="#4F46E5"/>
+    <text x="22" y="86" class="sans laneNo" text-anchor="middle" transform="rotate(-90,22,86)">L2</text>
+    <text x="60" y="24" class="sans lane">L2 · EDGE + API — FASTAPI (server.py) · JWT AUTH · GUARDS</text>
+    <text x="60" y="42" class="mono cd">2 · authenticate → validate → route to pipeline → persist session → respond</text>
+    <g transform="translate(60,52)">
+      <rect x="0" y="0" width="330" height="100" rx="8" fill="#FFFFFF" stroke="#CBD5E1" stroke-width="1.2"/>
+      <text x="14" y="22" class="sans bt">Auth + session scope</text>
+      <text x="14" y="39" class="mono fn">POST /api/auth/register|login</text>
+      <text x="14" y="54" class="mono bd">GET /api/auth/me · JWT Bearer</text>
+      <text x="14" y="69" class="mono cd">app/auth.py · per-user session dirs</text>
+      <text x="14" y="86" class="mono cd">POST /api/auth/logout (revoke)</text>
+    </g>
+    <g transform="translate(406,52)">
+      <rect x="0" y="0" width="380" height="100" rx="8" fill="#EEF2FF" stroke="#4F46E5" stroke-width="1.4"/>
+      <text x="14" y="22" class="sans bt">Reconcile endpoints</text>
+      <text x="14" y="39" class="mono fn">POST /api/reconcile (CSV+meta)</text>
+      <text x="14" y="54" class="mono fn">POST /api/reconcile-demo (seed)</text>
+      <text x="14" y="69" class="mono bd">GET /api/status · llm_mode auto/off</text>
+      <text x="14" y="86" class="mono cd">goal: reconcile | triage | report …</text>
+    </g>
+    <g transform="translate(802,52)">
+      <rect x="0" y="0" width="360" height="100" rx="8" fill="#FFFFFF" stroke="#CBD5E1" stroke-width="1.2"/>
+      <text x="14" y="22" class="sans bt">History + export</text>
+      <text x="14" y="39" class="mono fn">GET /api/sessions · /session/{id}</text>
+      <text x="14" y="54" class="mono fn">DELETE /session/{id} · /download/…</text>
+      <text x="14" y="69" class="mono bd">markdown · csv · json · audit_log</text>
+      <text x="14" y="86" class="mono cd">last-50 sessions retained / user</text>
+    </g>
+    <g transform="translate(1178,52)">
+      <rect x="0" y="0" width="290" height="100" rx="8" fill="#FFFFFF" stroke="#CBD5E1" stroke-width="1.2"/>
+      <text x="14" y="22" class="sans bt">Edge guards</text>
+      <text x="14" y="39" class="mono bd">validated CORS · no wildcard</text>
+      <text x="14" y="54" class="mono bd">upload-size + 10k record cap</text>
+      <text x="14" y="69" class="mono bd">request log middleware (ms)</text>
+      <text x="14" y="86" class="mono cd">static: frontend/dist · /api/health</text>
+    </g>
+  </g>
+
+  <!-- L2 -> L3 -->
+  <line x1="800" y1="430" x2="800" y2="448" stroke="#4F46E5" stroke-width="2.2" marker-end="url(#fl)"/>
+
+  <!-- ============ LANE 3 : ORCHESTRATION ============ -->
+  <g transform="translate(56,456)">
+    <rect x="0" y="0" width="1528" height="152" rx="10" fill="#F8FAFC" stroke="#E2E8F0"/>
+    <rect x="0" y="0" width="44" height="152" rx="10" fill="#0F172A"/>
+    <rect x="30" y="0" width="14" height="152" fill="#0F172A"/>
+    <text x="22" y="80" class="sans laneNo" text-anchor="middle" transform="rotate(-90,22,80)">L3</text>
+    <text x="60" y="24" class="sans lane" fill="#0F172A">L3 · ORCHESTRATION — app/pipeline.py + AUTONOMOUS CONTROLLER (policy-bounded)</text>
+    <text x="60" y="42" class="mono cd">3 · run_reconciliation: parse → control loop (observe → plan → act → reflect) → synthesize → report</text>
+    <g transform="translate(60,52)">
+      <rect x="0" y="0" width="500" height="88" rx="8" fill="#FFFFFF" stroke="#0F172A" stroke-width="1.4"/>
+      <text x="14" y="22" class="sans bt">run_reconciliation() — shared by API + CLI</text>
+      <text x="14" y="39" class="mono bd">parse_records_from_dataframe → Record{record_id,…}</text>
+      <text x="14" y="54" class="mono bd">cross-source ID namespacing · opening balances</text>
+      <text x="14" y="71" class="mono cd">agents/autonomous_controller.py · max 60 steps</text>
+    </g>
+    <g transform="translate(576,52)">
+      <rect x="0" y="0" width="480" height="88" rx="8" fill="#FFFFFF" stroke="#CBD5E1" stroke-width="1.2"/>
+      <text x="14" y="22" class="sans bt">Agent pool (agents/)</text>
+      <text x="14" y="39" class="mono bd">controller · matching · exception · critic</text>
+      <text x="14" y="54" class="mono bd">observer · planner · reporting · state.py</text>
+      <text x="14" y="71" class="mono cd">pending_approvals · agent_trace · audit trail</text>
+    </g>
+    <g transform="translate(1072,52)">
+      <rect x="0" y="0" width="396" height="88" rx="8" fill="#FFFBEB" stroke="#B45309" stroke-width="1.2"/>
+      <text x="14" y="22" class="sans bt">Policy bounds (config/)</text>
+      <text x="14" y="39" class="mono bd">policy.yaml: fuzzy ≥ 0.88 · tie ≥ 0.05</text>
+      <text x="14" y="54" class="mono bd">LLM ≤ 8 calls · 50k tokens · 35d window</text>
+      <text x="14" y="71" class="mono cd">no external writes · approvals &gt; ₹5,000</text>
+    </g>
+  </g>
+
+  <!-- L3 -> L4 -->
+  <line x1="800" y1="608" x2="800" y2="626" stroke="#4F46E5" stroke-width="2.2" marker-end="url(#fl)"/>
+
+  <!-- ============ LANE 4 : MATCHING ============ -->
+  <g transform="translate(56,634)">
+    <rect x="0" y="0" width="1528" height="186" rx="10" fill="#F8FAFC" stroke="#E2E8F0"/>
+    <rect x="0" y="0" width="44" height="186" rx="10" fill="#047857"/>
+    <rect x="30" y="0" width="14" height="186" fill="#047857"/>
+    <text x="22" y="97" class="sans laneNo" text-anchor="middle" transform="rotate(-90,22,97)">L4</text>
+    <text x="60" y="24" class="sans lane" fill="#047857">L4 · MATCHING ENGINE — tools/ · CHEAP DETERMINISTIC FIRST, LLM LAST</text>
+    <text x="60" y="42" class="mono cd">4 · normalize → Pass 0 → T1 → T1.5 → T2 → T3(Gemini) → clusters | exceptions</text>
+    <!-- normalize -->
+    <g transform="translate(60,52)">
+      <rect x="0" y="0" width="228" height="122" rx="8" fill="#FFFFFF" stroke="#CBD5E1" stroke-width="1.2"/>
+      <rect x="12" y="10" width="86" height="18" rx="4" fill="#F1F5F9" stroke="#CBD5E1"/><text x="55" y="23" text-anchor="middle" class="mono tag" fill="#475569">NORMALIZE</text>
+      <text x="12" y="46" class="sans bt">Parse + tokens</text>
+      <text x="12" y="62" class="mono bd">INR float · sign matrix</text>
+      <text x="12" y="77" class="mono bd">UTR RRN INV CN GSTIN</text>
+      <text x="12" y="92" class="mono cd">normalize_records.py</text>
+      <text x="12" y="107" class="mono cd">schemas.yaml aliases</text>
+    </g>
+    <!-- P0 -->
+    <g transform="translate(300,52)">
+      <rect x="0" y="0" width="212" height="122" rx="8" fill="#FFFFFF" stroke="#CBD5E1" stroke-width="1.2"/>
+      <rect x="12" y="10" width="62" height="18" rx="4" fill="#F1F5F9" stroke="#CBD5E1"/><text x="43" y="23" text-anchor="middle" class="mono tag" fill="#475569">PASS 0</text>
+      <text x="12" y="46" class="sans bt">Phantom UPI filter</text>
+      <text x="12" y="62" class="mono bd">equal + opposite pairs</text>
+      <text x="12" y="77" class="mono bd">same date · net-zero</text>
+      <text x="12" y="92" class="mono cd">detect_duplicates.py</text>
+      <text x="12" y="107" class="mono cd">closed, never invoiced</text>
+    </g>
+    <!-- T1 -->
+    <g transform="translate(524,52)">
+      <rect x="0" y="0" width="212" height="122" rx="8" fill="#FFFFFF" stroke="#CBD5E1" stroke-width="1.2"/>
+      <rect x="12" y="10" width="62" height="18" rx="4" fill="#ECFDF5" stroke="#047857"/><text x="43" y="23" text-anchor="middle" class="mono tag" fill="#047857">TIER 1</text>
+      <text x="12" y="46" class="sans bt">Exact + paisa</text>
+      <text x="12" y="62" class="mono bd">conf 1.00 · 6-day win</text>
+      <text x="12" y="77" class="mono bd">round-off ≤ ₹0.99 → .99</text>
+      <text x="12" y="92" class="mono cd">exact_match.py</text>
+      <text x="12" y="107" class="mono cd">stale-UTR check</text>
+    </g>
+    <!-- T1.5 -->
+    <g transform="translate(748,52)">
+      <rect x="0" y="0" width="228" height="122" rx="8" fill="#FFFFFF" stroke="#CBD5E1" stroke-width="1.2"/>
+      <rect x="12" y="10" width="70" height="18" rx="4" fill="#ECFDF5" stroke="#047857"/><text x="47" y="23" text-anchor="middle" class="mono tag" fill="#047857">TIER 1.5</text>
+      <text x="12" y="46" class="sans bt">CN / DN + batches</text>
+      <text x="12" y="62" class="mono bd">gross − returns = net</text>
+      <text x="12" y="77" class="mono bd">split + bulk payouts</text>
+      <text x="12" y="92" class="mono cd">candidate_retrieval.py</text>
+      <text x="12" y="107" class="mono cd">many-to-one groups</text>
+    </g>
+    <!-- T2 -->
+    <g transform="translate(988,52)">
+      <rect x="0" y="0" width="236" height="122" rx="8" fill="#FFFFFF" stroke="#CBD5E1" stroke-width="1.2"/>
+      <rect x="12" y="10" width="62" height="18" rx="4" fill="#FFFBEB" stroke="#B45309"/><text x="43" y="23" text-anchor="middle" class="mono tag" fill="#B45309">TIER 2</text>
+      <text x="12" y="46" class="sans bt">Multi-signal fuzzy</text>
+      <text x="12" y="62" class="mono bd">score ≥ 0.88 · gap ≥ 5%</text>
+      <text x="12" y="77" class="mono bd">Levenshtein · Jaccard</text>
+      <text x="12" y="92" class="mono cd">fuzzy_match.py · 30d decay</text>
+      <text x="12" y="107" class="mono cd">near-tie → exception</text>
+    </g>
+    <!-- T3 -->
+    <g transform="translate(1236,52)">
+      <rect x="0" y="0" width="232" height="122" rx="8" fill="#FFFFFF" stroke="#4F46E5" stroke-width="1.4" stroke-dasharray="6 4"/>
+      <rect x="12" y="10" width="118" height="18" rx="4" fill="#4F46E5"/><text x="71" y="23" text-anchor="middle" class="mono tag" fill="#FFFFFF">TIER 3 · GEMINI</text>
+      <text x="12" y="46" class="sans bt">AI reasoner (last)</text>
+      <text x="12" y="62" class="mono bd">MDR 2.36% · TDS 194-O/C/J</text>
+      <text x="12" y="77" class="mono bd">Smart Collect resolve</text>
+      <text x="12" y="92" class="mono cd">llm_reasoning.py · ≤8 calls</text>
+      <text x="12" y="107" class="mono cd">twin-collision guard</text>
+    </g>
+  </g>
+
+  <!-- L4 outputs split -->
+  <line x1="620" y1="820" x2="620" y2="838" stroke="#047857" stroke-width="2" marker-end="url(#flG)"/>
+  <line x1="1050" y1="820" x2="1050" y2="838" stroke="#B91C1C" stroke-width="2" marker-end="url(#flR)"/>
+
+  <!-- ============ LANE 5 : SYNTHESIS / PERSIST / DEPLOY ============ -->
+  <g transform="translate(56,846)">
+    <rect x="0" y="0" width="1528" height="164" rx="10" fill="#F8FAFC" stroke="#E2E8F0"/>
+    <rect x="0" y="0" width="44" height="164" rx="10" fill="#334155"/>
+    <rect x="30" y="0" width="14" height="164" fill="#334155"/>
+    <text x="22" y="86" class="sans laneNo" text-anchor="middle" transform="rotate(-90,22,86)">L5</text>
+    <text x="60" y="24" class="sans lane" fill="#334155">L5 · SYNTHESIS → PERSISTENCE → DELIVERY (Docker · Render)</text>
+    <text x="60" y="42" class="mono cd">5 · cash + forecast → evaluate → write audit packs → per-user sessions → serve / export</text>
+    <g transform="translate(60,52)">
+      <rect x="0" y="0" width="360" height="100" rx="8" fill="#ECFDF5" stroke="#047857" stroke-width="1.3"/>
+      <text x="14" y="22" class="sans bt">Reconciled clusters</text>
+      <text x="14" y="39" class="mono bd">GRP-001… · method + conf</text>
+      <text x="14" y="54" class="mono bd">cash_position: bank vs GL Δ</text>
+      <text x="14" y="69" class="mono bd">runway Today/+30/+60/+90</text>
+      <text x="14" y="86" class="mono cd">AR/AP aging · burn · Cash +ve</text>
+    </g>
+    <g transform="translate(436,52)">
+      <rect x="0" y="0" width="360" height="100" rx="8" fill="#FEF2F2" stroke="#B91C1C" stroke-width="1.3"/>
+      <text x="14" y="22" class="sans bt">Exception queue</text>
+      <text x="14" y="39" class="mono bd">10 reason codes · candidate</text>
+      <text x="14" y="54" class="mono bd">DUPLICATE · TWIN · NO_CPART</text>
+      <text x="14" y="69" class="mono bd">HITL: approve / journal / review</text>
+      <text x="14" y="86" class="mono cd">actions/ + validate step</text>
+    </g>
+    <g transform="translate(812,52)">
+      <rect x="0" y="0" width="330" height="100" rx="8" fill="#FFFFFF" stroke="#CBD5E1" stroke-width="1.2"/>
+      <text x="14" y="22" class="sans bt">Evaluate + audit packs</text>
+      <text x="14" y="39" class="mono bd">evaluation/score · P/R/F1</text>
+      <text x="14" y="54" class="mono bd">agent_metrics · coverage</text>
+      <text x="14" y="69" class="mono bd">recon_report.md/json · csv</text>
+      <text x="14" y="86" class="mono cd">audit_log.json · reports/</text>
+    </g>
+    <g transform="translate(1158,52)">
+      <rect x="0" y="0" width="310" height="100" rx="8" fill="#FFFFFF" stroke="#CBD5E1" stroke-width="1.2"/>
+      <text x="14" y="22" class="sans bt">Persist + deploy</text>
+      <text x="14" y="39" class="mono bd">sessions/ per-user · /data</text>
+      <text x="14" y="54" class="mono bd">Docker: node20 → py3.11</text>
+      <text x="14" y="69" class="mono bd">Render starter · disk 1GB</text>
+      <text x="14" y="86" class="mono cd">GET /api/health · uvicorn</text>
+    </g>
+  </g>
+
+  <!-- external note -->
+  <g transform="translate(56,1022)">
+    <rect x="0" y="0" width="1528" height="30" rx="7" fill="#FFFFFF" stroke="#E2E8F0"/>
+    <text x="14" y="20" class="mono cd">External: Google Gemini 2.5 Flash (Tier 3 only, policy-capped) · Razorpay/GST semantics resolved in-house · allow_external_writes=false · secrets via env (GEMINI_API_KEY, JWT_SECRET)</text>
+  </g>
+</svg>
